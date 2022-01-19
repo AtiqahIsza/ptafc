@@ -14,7 +14,7 @@ class CreateUserLogTable extends Migration
     public function up()
     {
         Schema::create('user_log', function (Blueprint $table) {
-            $table->unsignedBigInteger('u_log_id')->primary();
+            $table->id();
             $table->dateTime('last_access')->nullable();
             $table->string('location', 32)->nullable();
             $table->dateTime('login_time')->nullable();

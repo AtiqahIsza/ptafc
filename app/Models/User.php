@@ -16,10 +16,9 @@ class User extends Authenticatable
 
     public $timestamps = false;
 
-    /*User_Role
-    1 - Administrator
-    2 - Inspector
-    3 - Super User*/
+//    User_Role
+//    1 - Administrator
+//    2 - Report User
 
     protected $fillable = [
         'full_name',
@@ -27,14 +26,15 @@ class User extends Authenticatable
         'password',
         'phone_number',
         'username',
-        'company_company_id',
-        'user_role'
+        'company_id',
+        'user_role',
+        'email',
     ];
     protected $hidden = [
         'password',
     ];
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

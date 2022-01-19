@@ -11,16 +11,29 @@ class Bus extends Model
 
     protected $table = 'bus';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'bus_registration_number',
+        'bus_series_number',
+        'company_id',
+        'sector_id',
+        'route_id',
+        'bus_type_id',
+        'mac_address',
+        'bus_age',
+    ];
+
     function BusType() {
-        return $this->belongsTo(BusType::class, 'busType_id', 'id');
+        return $this->belongsTo(BusType::class, 'bus_type_id', 'id');
     }
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
     function Sector() {
-        return $this->belongsTo(Sector::class, 'sector_sector_id', 'sector_id');
+        return $this->belongsTo(Sector::class, 'sector_id', 'id');
     }
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

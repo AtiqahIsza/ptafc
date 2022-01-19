@@ -26,11 +26,21 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 Route::middleware('auth')->group(function () {
     Route::view('about', 'about')->name('about');
 
-    Route::get('users', [\App\Http\Controllers\UserProfileController::class, 'index'])->name('users.index');
+    Route::get('users', [\App\Http\Controllers\UserController::class, 'index'])->name('users.index');
 
     Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
     Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
+
+
+//Setting
+Route::get('/settings/managecompany', [\App\Http\Controllers\CompanyController::class, 'index'])->name('manageCompany');
+Route::get('/settings/managesector', [\App\Http\Controllers\SectorController::class, 'index'])->name('manageSector');
+Route::get('/settings/managebus', [\App\Http\Controllers\BusController::class, 'index'])->name('manageBus');
+Route::get('/settings/manageroute', [\App\Http\Controllers\RouteController::class, 'index'])->name('manageRoute');
+Route::get('/settings/managebusdriver', [\App\Http\Controllers\BusDriverController::class, 'index'])->name('manageBusDriver');
+Route::get('/settings/managestage', [\App\Http\Controllers\StageController::class, 'index'])->name('manageStage');
+Route::get('/settings/managebusstand', [\App\Http\Controllers\BusStandController::class, 'index'])->name('manageBusStand');
 
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');

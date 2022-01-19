@@ -14,7 +14,7 @@ class CreateRealtimeSaleSummaryTable extends Migration
     public function up()
     {
         Schema::create('realtime_sale_summary', function (Blueprint $table) {
-            $table->unsignedBigInteger('realtime_id')->primary();
+            $table->id();
             $table->bigInteger('bus_id')->nullable();
             $table->bigInteger('bus_scheduler_id')->nullable();
             $table->dateTime('date_time')->nullable();

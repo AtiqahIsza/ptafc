@@ -11,10 +11,24 @@ class Route extends Model
 
     protected $table = 'route';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'route_name',
+        'route_number',
+        'route_target',
+        'distance',
+        'inbound_distance',
+        'outbound_distance',
+        'company_id',
+        'sector_id',
+        'status',
+    ];
+
     function Sector() {
-        return $this->belongsTo(Sector::class, 'sector_company_id', 'sector_id');
+        return $this->belongsTo(Sector::class, 'sector_id', 'id');
     }
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

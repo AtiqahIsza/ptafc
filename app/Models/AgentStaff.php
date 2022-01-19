@@ -12,6 +12,6 @@ class AgentStaff extends Model
     protected $table = 'agent_staff';
 
     function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
 }

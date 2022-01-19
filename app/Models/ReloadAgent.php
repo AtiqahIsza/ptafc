@@ -12,10 +12,10 @@ class ReloadAgent extends Model
     protected $table = 'reload_agent';
 
     function ParentAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'parentAgent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'parent_agent_id', 'id');
     }
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

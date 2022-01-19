@@ -12,16 +12,16 @@ class TripDetail extends Model
     protected $table = 'trip_details';
 
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
     function Bus() {
-        return $this->belongsTo(Bus::class, 'bus_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
     function BusDriver() {
-        return $this->belongsTo(BusDriver::class, 'driver_driver_id', 'driver_id');
+        return $this->belongsTo(BusDriver::class, 'driver_id', 'id');
     }
     function PDAProfile() {
-        return $this->belongsTo(PDAProfile::class, 'pda_pda_id', 'pda_id');
+        return $this->belongsTo(PDAProfile::class, 'pda_id', 'id');
     }
 
 }

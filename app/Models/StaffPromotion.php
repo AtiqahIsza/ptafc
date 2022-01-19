@@ -12,9 +12,9 @@ class StaffPromotion extends Model
     protected $table = 'staff_promotion';
 
     function Agent() {
-        return $this->belongsTo(Company::class, 'agent_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'agent_company_id', 'id');
     }
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

@@ -14,7 +14,7 @@ class CreateMissedTripTable extends Migration
     public function up()
     {
         Schema::create('missed_trip', function (Blueprint $table) {
-            $table->bigIncrements('id');
+            $table->id();
             $table->string('bus_age')->nullable();
             $table->string('bus_plate_number')->nullable();
             $table->string('direction', 10);

@@ -12,6 +12,6 @@ class DriverHunter extends Model
     protected $table = 'driver_hunter';
 
     function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_region_id', 'region_id');
+        return $this->belongsTo(RegionCode::class, 'region_id', 'id');
     }
 }

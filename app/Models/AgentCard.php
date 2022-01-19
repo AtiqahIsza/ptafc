@@ -12,10 +12,10 @@ class AgentCard extends Model
     protected $table = 'agent_card';
 
     function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
 
     function TicketCard() {
-        return $this->belongsTo(TicketCard::class, 'card_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'card_id', 'id');
     }
 }

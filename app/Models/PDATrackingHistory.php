@@ -12,12 +12,12 @@ class PDATrackingHistory extends Model
     protected $table = 'pda_tracking_history';
 
     function Route() {
-        return $this->belongsTo(Company::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Company::class, 'route_id', 'id');
     }
     function Bus() {
-        return $this->belongsTo(Bus::class, 'bus_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
     function PDAProfile() {
-        return $this->belongsTo(PDAProfile::class, 'pda_pda_id', 'pda_id');
+        return $this->belongsTo(PDAProfile::class, 'pda_id', 'id');
     }
 }

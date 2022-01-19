@@ -13,21 +13,21 @@ class RefundVoucher extends Model
 
     function User()
     {
-        return $this->belongsTo(UserOld::class, 'user_user_id', 'user_id');
+        return $this->belongsTo(UserOld::class, 'user_id', 'id');
     }
 
     function ClaimCard()
     {
-        return $this->belongsTo(TicketCard::class, 'claimCard_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'claim_card_id', 'id');
     }
 
     function BlacklistCard()
     {
-        return $this->belongsTo(TicketCard::class, 'blacklistedCard_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'blacklisted_card_id', 'id');
     }
 
     function Agent()
     {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
 }

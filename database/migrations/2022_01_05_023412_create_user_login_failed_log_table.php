@@ -14,7 +14,7 @@ class CreateUserLoginFailedLogTable extends Migration
     public function up()
     {
         Schema::create('user_login_failed_log', function (Blueprint $table) {
-            $table->unsignedBigInteger('failed_id')->primary();
+            $table->id();
             $table->dateTime('date_attempt')->nullable();
             $table->string('location', 32)->nullable();
             $table->string('password');

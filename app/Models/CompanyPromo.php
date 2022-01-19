@@ -12,10 +12,10 @@ class CompanyPromo extends Model
     protected $table = 'company_promo';
 
     function User() {
-        return $this->belongsTo(User::class, 'user_user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

@@ -11,7 +11,17 @@ class Stage extends Model
 
     protected $table = 'stage';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'stage_name',
+        'stage_number',
+        'stage_order',
+        'no_of_km',
+        'route_id',
+    ];
+
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
 }

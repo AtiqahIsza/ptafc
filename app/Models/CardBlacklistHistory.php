@@ -12,6 +12,6 @@ class CardBlacklistHistory extends Model
     protected $table = 'card_blacklist_history';
 
     function TicketCard() {
-        return $this->belongsTo(TicketCard::class, 'card_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'card_id', 'id');
     }
 }

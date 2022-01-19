@@ -11,7 +11,21 @@ class Company extends Model
 
     protected $table = 'company';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'company_name',
+        'company_type',
+        'region_id',
+        'address1',
+        'address2',
+        'postcode' ,
+        'city',
+        'state',
+        'minimum_balance',
+    ];
+
     function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_region_id', 'region_id');
+        return $this->belongsTo(RegionCode::class, 'region_id', 'id');
     }
 }

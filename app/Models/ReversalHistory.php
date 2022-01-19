@@ -13,26 +13,26 @@ class ReversalHistory extends Model
 
     function Debitted()
     {
-        return $this->belongsTo(AgentAccount::class, 'debitted_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'debitted_transaction_id', 'id');
     }
 
     function Creditted()
     {
-        return $this->belongsTo(AgentAccount::class, 'creditted_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'creditted_transaction_id', 'id');
     }
 
     function CreditReversal()
     {
-        return $this->belongsTo(AgentAccount::class, 'creditReversal_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'credit_reversal_transaction_id', 'id');
     }
 
     function DebitReversal()
     {
-        return $this->belongsTo(AgentAccount::class, 'debitReversal_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'debit_reversal_transaction_id', 'id');
     }
 
     function User()
     {
-        return $this->belongsTo(User::class, 'user_user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

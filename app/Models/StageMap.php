@@ -12,6 +12,6 @@ class StageMap extends Model
     protected $table = 'stage_map';
 
     function Stage() {
-        return $this->belongsTo(Stage::class, 'stage_stage_id', 'stage_id');
+        return $this->belongsTo(Stage::class, 'stage_id', 'id');
     }
 }

@@ -12,12 +12,12 @@ class BusSchedulerHistory extends Model
     protected $table = 'bus_scheduler_history';
 
     function Bus1() {
-        return $this->belongsTo(Bus::class, 'bus1_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus1_id', 'id');
     }
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
     function Bus2() {
-        return $this->belongsTo(Bus::class, 'bus2_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus2_id', 'id');
     }
 }

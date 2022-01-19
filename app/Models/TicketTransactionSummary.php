@@ -12,9 +12,9 @@ class TicketTransactionSummary extends Model
     protected $table = 'ticket_transaction_summary';
 
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
     function Bus() {
-        return $this->belongsTo(Bus::class, 'bus_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
 }

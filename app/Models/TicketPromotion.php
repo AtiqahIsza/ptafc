@@ -12,9 +12,6 @@ class TicketPromotion extends Model
     protected $table = 'ticket_promotion';
 
     function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_region_id', 'region_id');
-    }
-    function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'createdBy_agent_id', 'agent_id');
+        return $this->belongsTo(RegionCode::class, 'region_id', 'region_id');
     }
 }

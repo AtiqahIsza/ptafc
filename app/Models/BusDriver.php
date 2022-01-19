@@ -11,23 +11,40 @@ class BusDriver extends Model
 
     protected $table = 'bus_driver';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'driver_name',
+        'employee_number',
+        'id_number',
+        'driver_role',
+        'status',
+        'target_collection',
+        'driver_number',
+        'driver_password',
+        'company_id',
+        'sector_id',
+        'route_id',
+        'bus_id',
+    ];
+
     function Sector() {
-        return $this->belongsTo(Sector::class, 'sector_sector_id', 'sector_id');
+        return $this->belongsTo(Sector::class, 'sector_id', 'id');
     }
 
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
 
     function Bus() {
-        return $this->belongsTo(Bus::class, 'bus_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
 
     function Hunter() {
-        return $this->belongsTo(DriverHunter::class, 'hunter_hunter_id', 'hunter_id');
+        return $this->belongsTo(DriverHunter::class, 'hunter_id', 'id');
     }
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

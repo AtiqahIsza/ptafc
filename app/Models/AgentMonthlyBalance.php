@@ -12,6 +12,6 @@ class AgentMonthlyBalance extends Model
     protected $table = 'agent_monthly_balance';
 
     function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
 }

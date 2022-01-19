@@ -12,18 +12,18 @@ class CardTRXSequenceHistory extends Model
     protected $table = 'card_trx_sequence_history';
 
     function PDAProfile() {
-        return $this->belongsTo(PDAProfile::class, 'pda_pda_id', 'pda_id');
+        return $this->belongsTo(PDAProfile::class, 'pda_id', 'id');
     }
     function Sale() {
-        return $this->belongsTo(TicketSalesTransaction::class, 'sales_sales_id', 'sales_id');
+        return $this->belongsTo(TicketSalesTransaction::class, 'sales_id', 'id');
     }
 
     function Agent() {
-        return $this->belongsTo(AgentAccount::class, 'transaction_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'transaction_id', 'id');
     }
 
     function TicketCard() {
-        return $this->belongsTo(TicketCard::class, 'card_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'card_id', 'id');
     }
 
 

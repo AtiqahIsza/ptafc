@@ -12,9 +12,9 @@ class AgentStaffTransaction extends Model
     protected $table = 'agent_staff_transaction';
 
     function AgentStaff() {
-        return $this->belongsTo(AgentStaff::class, 'staff_staff_id', 'staff_id');
+        return $this->belongsTo(AgentStaff::class, 'staff_id', 'id');
     }
     function AgentAccount() {
-        return $this->belongsTo(AgentAccount::class, 'referenceId_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'referenceid_transaction_id', 'id');
     }
 }

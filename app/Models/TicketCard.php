@@ -12,6 +12,6 @@ class TicketCard extends Model
     protected $table = 'ticket_card';
 
     function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_region_id', 'region_id');
+        return $this->belongsTo(RegionCode::class, 'region_id', 'id');
     }
 }

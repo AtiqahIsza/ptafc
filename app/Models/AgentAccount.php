@@ -12,24 +12,24 @@ class AgentAccount extends Model
     protected $table = 'agent_account';
 
     function ParentAgentAccount() {
-        return $this->belongsTo(AgentAccount::class, 'parent_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'parent_transaction_id', 'id');
     }
     function AgentAccount() {
-        return $this->belongsTo(AgentAccount::class, 'referenceId_transaction_id', 'transaction_id');
+        return $this->belongsTo(AgentAccount::class, 'referenceid_transaction_id', 'id');
     }
     function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
     function AccountType() {
-        return $this->belongsTo(AccountTransactionType::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(AccountTransactionType::class, 'agent_id', 'id');
     }
     function User() {
-        return $this->belongsTo(User::class, 'user_user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
     function TicketCard() {
-        return $this->belongsTo(TicketCard::class, 'card_card_id', 'card_id');
+        return $this->belongsTo(TicketCard::class, 'card_id', 'id');
     }
 }

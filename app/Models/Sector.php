@@ -11,7 +11,14 @@ class Sector extends Model
 
     protected $table = 'sector';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'sector_name',
+        'company_id',
+        ];
+
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

@@ -12,6 +12,6 @@ class BusSchedulerMSTR extends Model
     protected $table = 'bus_scheduler_mstr';
 
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
 }

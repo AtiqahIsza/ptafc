@@ -8,4 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class BusType extends Model
 {
     use HasFactory;
+
+    protected $table = 'bus_type';
 }

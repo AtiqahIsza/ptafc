@@ -12,6 +12,6 @@ class PDALog extends Model
     protected $table = 'pda_log';
 
     function PDAProfile() {
-        return $this->belongsTo(PDAProfile::class, 'pda_pda_id', 'pda_id');
+        return $this->belongsTo(PDAProfile::class, 'pda_id', 'id');
     }
 }

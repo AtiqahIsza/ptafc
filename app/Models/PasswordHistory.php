@@ -12,6 +12,6 @@ class PasswordHistory extends Model
     protected $table = 'password_history';
 
     function User() {
-        return $this->belongsTo(User::class, 'user_user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

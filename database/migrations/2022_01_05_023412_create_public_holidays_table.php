@@ -14,7 +14,7 @@ class CreatePublicHolidaysTable extends Migration
     public function up()
     {
         Schema::create('public_holidays', function (Blueprint $table) {
-            $table->unsignedBigInteger('ph_id')->primary();
+            $table->id();
             $table->dateTime('end_date')->nullable();
             $table->string('ph_details')->nullable();
             $table->dateTime('start_date')->nullable();

@@ -12,6 +12,6 @@ class BoardingArrivalMap extends Model
     protected $table = 'boarding_arrival_map';
 
     function Route() {
-        return $this->belongsTo(Route::class, 'route_route_id', 'route_id');
+        return $this->belongsTo(Route::class, 'route_id', 'id');
     }
 }

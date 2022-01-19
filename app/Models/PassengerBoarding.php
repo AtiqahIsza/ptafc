@@ -12,6 +12,6 @@ class PassengerBoarding extends Model
     protected $table = 'passenger_boarding';
 
     function Bus() {
-        return $this->belongsTo(Bus::class, 'bus_bus_id', 'bus_id');
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
 }

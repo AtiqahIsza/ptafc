@@ -12,10 +12,10 @@ class PDAProfile extends Model
     protected $table = 'pda_profile';
 
     function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_region_id', 'region_id');
+        return $this->belongsTo(RegionCode::class, 'region_id', 'id');
     }
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

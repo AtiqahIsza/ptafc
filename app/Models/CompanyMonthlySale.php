@@ -12,6 +12,6 @@ class CompanyMonthlySale extends Model
     protected $table = 'company_monthly_sales';
 
     function Company() {
-        return $this->belongsTo(Company::class, 'company_company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 }

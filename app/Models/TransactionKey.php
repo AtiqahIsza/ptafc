@@ -12,6 +12,6 @@ class TransactionKey extends Model
     protected $table = 'transaction_key';
 
     function ReloadAgent() {
-        return $this->belongsTo(ReloadAgent::class, 'agent_agent_id', 'agent_id');
+        return $this->belongsTo(ReloadAgent::class, 'agent_id', 'id');
     }
 }

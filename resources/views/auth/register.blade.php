@@ -35,8 +35,7 @@
                                         <select name="userrole" id="userrole" class="form-control" autofocus required>
                                             <option value="" disabled selected>Select your user role</option>
                                             <option value="1">Administrator</option>
-                                            <option value="2">Inspector</option>
-                                            <option value="3">Super User</option>
+                                            <option value="2">Report User</option>
                                         </select>
                                     </div>
                                     @if ($errors->has('userrole'))
@@ -120,7 +119,7 @@
                                         <select name="company" id="company" class="form-control" autofocus required>
                                             <option value="" disabled selected>Select your company</option>
                                             @foreach($companies as $company)
-                                                <option value="{{$company->company_id}}">{{$company->company_name}}</option>
+                                                <option value="{{$company->id}}">{{$company->company_name}}</option>
                                             @endforeach
                                         </select>
                                     </div>
