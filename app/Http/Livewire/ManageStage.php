@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Route;
 use App\Models\Sector;
 use App\Models\Stage;
+use App\Models\StageMap;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -15,6 +16,8 @@ class ManageStage extends Component
     public $companies;
     public $stages;
     public $routes;
+    public $stageMaps;
+
     public $removedStageId;
     public $state = [];
     public $selectedCompany = NULL;
@@ -31,6 +34,8 @@ class ManageStage extends Component
     public function render()
     {
         $this->companies = Company::all();
+        $this->stageMaps = StageMap::all();
+
         //$this->routes = Route::all();
         return view('livewire.manage-stage');
     }

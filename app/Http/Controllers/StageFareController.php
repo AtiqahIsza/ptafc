@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Stage;
 use App\Models\StageFare;
 use Illuminate\Http\Request;
 
@@ -10,11 +11,11 @@ class StageFareController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
     public function index()
     {
-        //
+        return view('settings.manageStageFare');
     }
 
     /**
@@ -65,11 +66,18 @@ class StageFareController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \App\Models\StageFare  $stageFare
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, StageFare $stageFare)
+    public function update(Request $request)
     {
-        //
+        if ($request->ajax()) {
+            StageFare::find($request->pk)
+                ->update([
+                    $request->name => $request->value
+                ]);
+
+            return response()->json(['success' => true]);
+        }
     }
 
     /**

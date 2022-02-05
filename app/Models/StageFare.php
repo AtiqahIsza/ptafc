@@ -14,10 +14,10 @@ class StageFare extends Model
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'route_id');
     }
-    function toStage() {
+    function tostage() {
         return $this->belongsTo(Stage::class, 'tostage_stage_id', 'id');
     }
-    function fromStage() {
+    function fromstage() {
         return $this->belongsTo(Stage::class, 'fromstage_stage_id', 'id');
     }
 }

@@ -12,9 +12,12 @@
         "laravel/sanctum": "^2.11",
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.3",
-        "livewire/livewire": "^2.8"
+        "livewire/livewire": "^2.8",
+        "power-components/livewire-powergrid": "^2.2",
+        "wire-elements/modal": "^1.0"
     },
     "require-dev": {
+        "barryvdh/laravel-debugbar": "^3.6",
         "facade/ignition": "^2.5",
         "fakerphp/faker": "^1.9.1",
         "kitloong/laravel-migrations-generator": "^5.1",

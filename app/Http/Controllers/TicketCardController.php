@@ -10,11 +10,21 @@ class TicketCardController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
     public function index()
     {
-        //
+        return view('cards.view');
+    }
+
+    public function manageCards()
+    {
+        return view('cards.manageCard');
+    }
+
+    public function manageVouchers()
+    {
+        return view('cards.manageVoucher');
     }
 
     /**

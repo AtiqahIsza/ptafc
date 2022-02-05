@@ -12,35 +12,28 @@
 
                         <div class="row align-items-center">
                             <div class="col-md-6 mb-3">
-                                <label for="name">{{ 'Your Name' }}</label>
+                                <label for="name">{{ 'My Username' }}</label>
                                 <div class="input-group">
                                     <span class="input-group-text">
                                         <i class="fas fa-user-alt fa-fw"></i>
                                     </span>
-                                    <input id="name" class="form-control" type="text" name="name"
-                                        placeholder="{{ __('Name') }}" value="{{ old('name', auth()->user()->full_name) }}"
-                                        required>
+                                    <span class="form-control border-gray-300" id="username">{{ old('name', auth()->user()->username) }}</span>
+                                    {{--<input id="name" class="form-control" type="text" name="name"
+                                           placeholder="{{ __('Name') }}" value="{{ old('name', auth()->user()->username) }}"
+                                           required>--}}
                                 </div>
-                                @error('name') <div class="invalid-feedback"> {{ $message }} </div> @enderror
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="email">{{ __('Your Email') }}</label>
+                                <label for="name">{{ 'My Full Name' }}</label>
                                 <div class="input-group">
-                                    <span class="input-group-text" id="basic-addon1">
-                                        <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20"
-                                            xmlns="http://www.w3.org/2000/svg">
-                                            <path
-                                                d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z">
-                                            </path>
-                                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z">
-                                            </path>
-                                        </svg>
+                                    <span class="input-group-text">
+                                        <i class="fas fa-user-alt fa-fw"></i>
                                     </span>
-                                    <input type="email" name="email" class="form-control"
-                                        placeholder="{{ __('Email') }}" id="email"
-                                        value="{{ old('email', auth()->user()->email) }}" required>
+                                    <span class="form-control border-gray-300" id="fullname">{{ old('name', auth()->user()->full_name) }}</span>
+                                    {{--<input id="name" class="form-control" type="text" name="name"
+                                        placeholder="{{ __('Name') }}" value="{{ old('name', auth()->user()->full_name) }}"
+                                        required>--}}
                                 </div>
-                                @error('email') <div class="invalid-feedback"> {{ $message }} </div> @enderror
                             </div>
                         </div>
                         <div class="row align-items-center">

@@ -32,6 +32,10 @@ Route::middleware('auth')->group(function () {
     Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
 
+//Card
+Route::get('/cards/manage', [\App\Http\Controllers\TicketCardController::class, 'manageCards'])->name('manageCards');
+Route::get('/cards/view', [\App\Http\Controllers\TicketCardController::class, 'index'])->name('viewCards');
+Route::get('/cards/managevoucher', [\App\Http\Controllers\TicketCardController::class, 'manageVouchers'])->name('manageVouchers');
 
 //Setting
 Route::get('/settings/managecompany', [\App\Http\Controllers\CompanyController::class, 'index'])->name('manageCompany');
@@ -41,6 +45,14 @@ Route::get('/settings/manageroute', [\App\Http\Controllers\RouteController::clas
 Route::get('/settings/managebusdriver', [\App\Http\Controllers\BusDriverController::class, 'index'])->name('manageBusDriver');
 Route::get('/settings/managestage', [\App\Http\Controllers\StageController::class, 'index'])->name('manageStage');
 Route::get('/settings/managebusstand', [\App\Http\Controllers\BusStandController::class, 'index'])->name('manageBusStand');
+Route::get('/settings/managestagefare', [\App\Http\Controllers\StageFareController::class, 'index'])->name('manageStageFare');
+
+//PowerGrid
+Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');
+
+//StageFare
+Route::get('/settings/updatestagefare', [\App\Http\Controllers\StageFareController::class, 'update'])->name('updateStageFare');
+
 
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');

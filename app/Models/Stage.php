@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Stage extends Model
 {
@@ -23,5 +24,13 @@ class Stage extends Model
 
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'id');
+    }
+
+    function FromStage(){
+        return $this->hasMany(StageFare::class, 'id', 'fromstage_stage_id');
+    }
+
+    function ToStage() {
+        return $this->hasMany(StageFare::class, 'id','tostage_stage_id');
     }
 }

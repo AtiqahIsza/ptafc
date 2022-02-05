@@ -33,10 +33,6 @@ class ManageBusDriver extends Component
     public function render()
     {
         $this->companies = Company::all();
-        $this->drivers = BusDriver::all();
-        $this->sectors = Sector::all();
-        $this->routes = Route::all();
-        $this->buses = Bus::all();
         return view('livewire.manage-bus-driver');
     }
 
@@ -50,6 +46,9 @@ class ManageBusDriver extends Component
     public function addNew()
     {
         $this->reset();
+        $this->sectors = Sector::all();
+        $this->routes = Route::all();
+        $this->buses = Bus::all();
         $this->dispatchBrowserEvent('show-form');
     }
 

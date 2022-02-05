@@ -4,6 +4,7 @@ namespace App\Http\Livewire;
 
 use App\Models\Company;
 use App\Models\Route;
+use App\Models\RouteMap;
 use App\Models\Sector;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -13,6 +14,7 @@ class ManageRoute extends Component
     public $companies;
     public $sectors;
     public $routes;
+    public $routeMaps;
     public $removedRouteId;
     public $state = [];
     public $selectedCompany = NULL;
@@ -29,6 +31,8 @@ class ManageRoute extends Component
     {
         $this->companies = Company::all();
         $this->sectors = Sector::all();
+        $this->routeMaps = RouteMap::all();
+
         return view('livewire.manage-route');
     }
 

@@ -11,6 +11,14 @@ class CardBlacklistHistory extends Model
 
     protected $table = 'card_blacklist_history';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'reason',
+        'card_id',
+        'blacklisted_date'
+    ];
+
     function TicketCard() {
         return $this->belongsTo(TicketCard::class, 'card_id', 'id');
     }

@@ -43,10 +43,19 @@
                         <td><span class="fw-normal">{{ $route->sector->sector_name }}</span></td>
                         <td><span class="fw-normal">{{ $route->inbound_distance }}</span></td>
                         <td><span class="fw-normal">{{ $route->outbound_distance }}</span></td>
-                        <td>
-                            <!-- Button for preview route map-->
-                            <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">Preview Route Map</button>
-                        </td>
+                        @foreach($routeMaps as $routeMap)
+                            @if($route->id == $routeMap->route_id)
+                                <td>
+                                    <!-- Button for preview stage map-->
+                                    <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
+                                    <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
+                                </td>
+                            @else
+                                <td>
+                                    <button wire:click.prevent="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#">Create</button>
+                                </td>
+                            @endif
+                        @endforeach
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $route }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>

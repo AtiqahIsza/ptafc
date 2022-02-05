@@ -9,7 +9,7 @@ class RouteMap extends Model
 {
     use HasFactory;
 
-    protected $table = 'route_scheduler_details';
+    protected $table = 'route_map';
 
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'id');

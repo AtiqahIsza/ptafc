@@ -1,12 +1,16 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Users</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
+        <button wire:click.prevent="addNew" class="buttonAdd-map btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add User
         </button>
     </div>
-    <div class="col-9 col-lg-8 d-md-flex">
+    <div class="card card-body border-0 shadow table-wrapper table-responsive">
+        <livewire:user-table/>
+    </div>
+
+    {{--<div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline">
             <option value="">Choose Company</option>
             @foreach($companies as $company)
@@ -55,10 +59,10 @@
             </tbody>
         </table>
         <div class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
-            {{--{{ $users->links() }}--}}
+            --}}{{--{{ $users->links() }}--}}{{--
         </div>
     </div>
-    @endif
+    @endif--}}
 
     <!-- Edit User Modal Content -->
     <div wire:ignore.self class="modal fade" id="modalEditUser" tabindex="-1" role="dialog" aria-hidden="true">
@@ -133,7 +137,7 @@
                                 <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-building fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.company_id" id="company_id" class="form-control border-gray-300" autofocus required>
+                                <select wire:model.defer="state.company_id" id="company_id" class="form-select border-gray-300" autofocus required>
                                     <option value="">Select your company</option>
                                     @foreach($companies as $company)
                                         <option value="{{$company->id}} ">{{$company->company_name}}</option>
@@ -150,7 +154,7 @@
                                 <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-user-lock fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.user_role" id="user_role" class="form-control border-gray-300" autofocus required>
+                                <select wire:model.defer="state.user_role" id="user_role" class="form-select border-gray-300" autofocus required>
                                     <option value="">Select user role</option>
                                     <option value="1">Administrator</option>
                                     <option value="2">Report User</option>
@@ -221,7 +225,7 @@
     <!-- End of Edit User Modal Content -->
 
     <!-- Remove User Modal -->
-    <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
+    {{--<div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -238,12 +242,12 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>--}}
     <!-- End of Remove User Modal Content -->
 </div>
 @section('script')
     <script>
-        window.addEventListener('show-form', event => {
+        window.addEventListener('editEvent', event => {
             $('#modalEditUser').modal('show');
         });
         window.addEventListener('hide-form', event => {
