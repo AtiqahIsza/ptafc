@@ -64,7 +64,7 @@ class ManageStageFare extends Component
                             FROM stage
                             GROUP BY route_id
                             HAVING route_id = "'.$route.'"')->get();*/
-            $this->stageFrom = Stage::where('route_id', $route)->orderby('stage_order')->get()->toArray();;
+            $this->stageFrom = Stage::where('route_id', $route)->orderby('stage_order')->get()->toArray();
             $this->stageTo = Stage::where('route_id', $route)->orderby('stage_order')->get();
             //dd($this->stageTo );
             $this->stageFares = StageFare::where('route_id', $route)->get();
@@ -74,10 +74,9 @@ class ManageStageFare extends Component
 
     public function fareType($route, $type)
     {
-        $this->stageFares = StageFare::where('route_id', $route)->get();
+        $this->stageFares = StageFare::where('route_id', $route)->orderby('tostage_stage_id')->get();
         $this->stages = Stage::where('route_id', $route)->get();;
         //$this->maxColumn = Stage::where('route_id', $route)->max('stage_order');
-        $this->state = $this->stageFares->toArray();
 
         if($type=='Adult'){
             $this->fareTypes = 'Adult';

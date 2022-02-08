@@ -23,7 +23,7 @@ class StageFareController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
         //
     }
@@ -70,14 +70,27 @@ class StageFareController extends Controller
      */
     public function update(Request $request)
     {
-        if ($request->ajax()) {
-            StageFare::find($request->pk)
-                ->update([
-                    $request->name => $request->value
-                ]);
-
-            return response()->json(['success' => true]);
-        }
+        if($request->ajax())
+    	{
+    		if($request->action == 'edit')
+    		{
+    			$data = array(
+    				'fare' => $request->fare,
+    				'to_stage' => $request->to_stage,
+    				'from_stage' =>	$request->from_stage
+    			);
+    			DB::table('sample_datas')
+    				->where('id', $request->id)
+    				->update($data);
+    		}
+    		if($request->action == 'delete')
+    		{
+    			DB::table('sample_datas')
+    				->where('id', $request->id)
+    				->delete();
+    		}
+    		return response()->json($request);
+    	}
     }
 
     /**

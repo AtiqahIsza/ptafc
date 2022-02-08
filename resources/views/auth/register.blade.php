@@ -32,7 +32,7 @@
                                        <span class="input-group-text" id="basic-addon1">
                                             <i class="fas fa-user-lock fa-fw"></i>
                                         </span>
-                                        <select name="userrole" id="userrole" class="form-control" autofocus required>
+                                        <select name="userrole" id="userrole" class="form-select" autofocus required>
                                             <option value="" disabled selected>Select your user role</option>
                                             <option value="1">Administrator</option>
                                             <option value="2">Report User</option>
@@ -116,7 +116,7 @@
                                         <span class="input-group-text" id="basic-addon1">
                                             <i class="fas fa-building fa-fw"></i>
                                         </span>
-                                        <select name="company" id="company" class="form-control" autofocus required>
+                                        <select name="company" id="company" class="form-select" autofocus required>
                                             <option value="" disabled selected>Select your company</option>
                                             @foreach($companies as $company)
                                                 <option value="{{$company->id}}">{{$company->company_name}}</option>

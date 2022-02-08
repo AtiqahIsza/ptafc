@@ -40,9 +40,11 @@
     @livewireScripts
 
     @powerGridScripts
-    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="https://markcell.github.io/jquery-tabledit/assets/js/tabledit.min.js"></script>
+    {{-- <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
     <script>$.fn.poshytip={defaults:null}</script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/js/jquery-editable-poshytip.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/js/jquery-editable-poshytip.min.js"></script> --}}
 
     <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>

@@ -67,9 +67,9 @@ class StageController extends Controller
      * @param  \App\Models\Stage  $stage
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Stage $stage)
+    public function update()
     {
-        //
+       //
     }
 
     /**

@@ -52,20 +52,37 @@
                                     <tr>
                                         <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
                                         <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
-                                        @for($i=0; $i<$maxColumns; $i++)
+                                        
+                                        @for($i=0; $i<$toStage->stage_order; $i++)
                                             @if( isset($stageFrom[$i]['id']))
-                                                @if((($stageFares->contains('fare')->where('tostage_stage_id', $toStage->id)->where('fromstage_stage_id', $stageFrom[$i]['id']))))
-                                                {{--@if(($stageFares->contains('tostage_stage_id', $toStage->id)) && ($stageFares->contains('fromstage_stage_id', $stageFrom[$i]['id'])))--}}
-                                                    {{--@if(($stageFares->fromstage_stage_id == $stageFrom->id) && ($stageFares->tostage_stage_id == $stageTo[$i]['id']))--}}
+                                                @php 
+                                                $result = 0;
+                                                @endphp
+                                                @foreach ($stageFares as $stageFare)
+                                                    @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
+                                                        @php     
+                                                            $result = $stageFare->fare
+                                                        @endphp
+                                                    @endif
+                                                @endforeach
+                                                
+                                                @if($result)
                                                     <td>
                                                         <label>
-                                                            <input name="fare[{{$toStage->id}}][{{$stageFrom[$i]['id']}}]" class="update form-control border-gray-300" data-type="text"
-                                                                   data-pk="{{ $toStage->id }}" data-title="Enter fare"
-                                                                   value="{{ $stageFares->get('fare')->where('tostage_stage_id', $toStage->id)->where('fromstage_stage_id', $stageFrom[$i]['id']) }}">
+                                                            <input name="fare" class="update form-control border-gray-300" data-type="text"
+                                                                data-pk="{{ $toStage->id }}" data-title="Enter fare" value="{{ $result }}">
+                                                            @if ($errors->has('companyName'))
+                                                                <span class="text-danger">{{ $errors->first('companyName') }}</span>
+                                                            @endif
                                                         </label>
                                                     </td>
                                                 @else
-                                                    <td></td>
+                                                    <td>
+                                                        <label>
+                                                            <input name="fare[{{$toStage->id}}][{{$stageFrom[$i]['id']}}]" class="update form-control border-gray-300" data-type="text"
+                                                                data-pk="{{ $toStage->id }}" data-title="Enter fare" placeholder="Enter fare">
+                                                        </label>
+                                                    </td>
                                                 @endif
                                             @endif
                                         @endfor
@@ -132,10 +149,10 @@
                                 @endforeach
                                 </tbody>
                             </table>
-                            <button class="btn btn-primary">Save Changes</button>
+                            {{-- <button class="btn btn-primary">Save Changes</button> --}}
                         </div>
                     </div>
-
+                
                     <!-- End of Adult Fare Tab -->
                     <!-- Concession Fare Tab -->
                     <div class="tab-pane fade show {{ $fareTypes == 'Concession' ? 'active' : '' }}" id="nav-concession" role="tabpanel" aria-labelledby="nav-concession-tab">
