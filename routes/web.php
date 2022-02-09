@@ -51,7 +51,7 @@ Route::get('/settings/managestagefare', [\App\Http\Controllers\StageFareControll
 Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');
 
 //StageFare
-Route::get('/settings/updatestagefare', [\App\Http\Controllers\StageFareController::class, 'update'])->name('updateStageFare');
+Route::post('/settings/updatestagefare', [\App\Http\Controllers\StageFareController::class, 'update'])->name('updateStageFare');
 
 
 /*//Authentication (Login & Register)

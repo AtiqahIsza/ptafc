@@ -11,6 +11,16 @@ class StageFare extends Model
 
     protected $table = 'stage_fare';
 
+    public $timestamps = false;
+
+    protected $fillable = [
+        'fare',
+        'consession_fare',
+        'fromstage_stage_id',
+        'tostage_stage_id',
+        'route_id'
+    ];
+
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'route_id');
     }

@@ -22,12 +22,6 @@ class EditUser extends ModalComponent
         $this->user = $user;
     }*/
 
-    public function showModal()
-    {
-        $this->showModal = true;
-
-    }
-
     public function render()
     {
         /*$this->reset();

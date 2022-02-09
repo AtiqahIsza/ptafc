@@ -216,7 +216,7 @@ final class UserTable extends PowerGridComponent
                ->caption('Edit')
                ->class('btn btn-warning cursor-pointer px-3 py-2.5 m-1 rounded text-sm')
                ->openModal('edit-user', ['id' => 'id']),
-               //->emit('editEvent', ['id' => 'id']),
+               //->emit('edit-user',['id' => 'id']),
                //->route('editUser', ['user' => 'id']),
 
            Button::add('destroy')

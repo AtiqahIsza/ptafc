@@ -8,6 +8,7 @@ use App\Models\Stage;
 use App\Models\StageFare;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Illuminate\Support\Facades\Validator;
 
 class ManageStageFare extends Component
 {
@@ -84,5 +85,31 @@ class ManageStageFare extends Component
         else{
             $this->fareTypes = 'Concession';
         }
+    }
+
+    public function modalDisc(Route $route)
+    {
+        $this->selectedRoute = $route;
+    }
+
+    public function applyDiscount()
+    {
+        $validatedData = Validator::make($this->state,[
+            'discount' => ['required', 'numeric'],
+        ])->validate();
+
+        $discount = $validatedData['discount'];
+
+        $adultFares = StageFare::where('route_id', $this->selectedRoute->id)->orderby('tostage_stage_id')->get();
+
+        foreach($adultFares as $adultFare){
+            $calc = $adultFare->fare - ($adultFare->fare * ($discount/100));
+            $updateConcFare = StageFare::where('route_id', $this->selectedRoute->id)
+            ->where('tostage_stage_id', $adultFare->tostage_stage_id)
+            ->where('fromstage_stage_id', $adultFare->fromstage_stage_id)
+            ->update(['consession_fare' => $calc]);
+        }
+
+        return redirect()->to('/settings/managestagefare')->with(['message' => 'Concession fare updated successfully!']);
     }
 }

@@ -25,7 +25,7 @@ return [
     | to your script bundler like webpack.
     |
     */
-    'include_js' => false,
+    'include_js' => true,
 
 
     /*

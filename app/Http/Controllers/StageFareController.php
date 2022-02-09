@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Validator;
 use App\Models\Stage;
 use App\Models\StageFare;
 use Illuminate\Http\Request;
@@ -70,27 +71,68 @@ class StageFareController extends Controller
      */
     public function update(Request $request)
     {
-        if($request->ajax())
-    	{
-    		if($request->action == 'edit')
-    		{
-    			$data = array(
-    				'fare' => $request->fare,
-    				'to_stage' => $request->to_stage,
-    				'from_stage' =>	$request->from_stage
-    			);
-    			DB::table('sample_datas')
-    				->where('id', $request->id)
-    				->update($data);
-    		}
-    		if($request->action == 'delete')
-    		{
-    			DB::table('sample_datas')
-    				->where('id', $request->id)
-    				->delete();
-    		}
-    		return response()->json($request);
-    	}
+        $validatedData = Validator::make($request->all(), [
+            'fare' => ['required', 'array'],
+            'fare.*' => ['required', 'string', 'max:255'],
+            'fromStage' => ['required', 'array'],
+            'fromStage.*' => ['required', 'string', 'max:255'],
+            'toStage'=> ['required', 'array'],
+            'toStage.*' => ['required', 'string', 'max:255'],
+            'routeId'=> ['required', 'string', 'max:255'],
+            'fareType'=> ['required', 'string', 'max:255'],
+        ])->validate();
+        
+        foreach ($validatedData['fare'] as $i => $validatedData['fare']) {
+        
+            $existedFare = StageFare::where([
+                ['route_id', $validatedData['routeId']],
+                ['fromstage_stage_id', $validatedData['fromStage'][$i]],
+                ['tostage_stage_id', $validatedData['toStage'][$i]]
+            ])->first();
+
+            if($existedFare){
+
+                if($validatedData['fareType'] == 'Adult'){
+                    $updateFare = StageFare::where('route_id', $validatedData['routeId'])
+                    ->where('tostage_stage_id', $validatedData['toStage'][$i])
+                    ->where('fromstage_stage_id', $validatedData['fromStage'][$i])
+                    ->update(['fare' => $validatedData['fare']]);
+                }
+                else{
+                    $updateFare = StageFare::where('route_id', $validatedData['routeId'])
+                    ->where('tostage_stage_id', $validatedData['toStage'][$i])
+                    ->where('fromstage_stage_id', $validatedData['fromStage'][$i])
+                    ->update(['consession_fare' => $validatedData['fare']]);
+                }
+                
+                // if($updateFare){
+                //     return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare updated successfully!']);
+                // }
+            }
+            else{
+                if($validatedData['fareType'] == 'Adult'){
+                    $createFare = StageFare::create([
+                        'fare' =>  $validatedData['fare'],
+                        'route_id' => $validatedData['routeId'],
+                        'fromstage_stage_id' => $validatedData['fromStage'][$i],
+                        'tostage_stage_id' => $validatedData['toStage'][$i],
+                    ]);
+                }
+                else{
+                    $createFare = StageFare::create([
+                        'consession_fare' =>  $validatedData['fare'],
+                        'route_id' => $validatedData['routeId'],
+                        'fromstage_stage_id' => $validatedData['fromStage'][$i],
+                        'tostage_stage_id' => $validatedData['toStage'][$i],
+                    ]);
+                }
+                
+                // if($createFare){
+                //     return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare created successfully!']);
+                // }
+            }
+        } 
+        return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare created successfully!']);
     }
 
     /**

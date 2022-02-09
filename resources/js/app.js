@@ -3,11 +3,10 @@ import "simplebar";
 import SmoothScroll from "smooth-scroll";
 
 // Reference from published scripts
-require('./vendor/wire-elements/modal/resources/views');
-
+require('./vendor/livewire-ui/modal');
 
 // Reference from vendor
-require('../vendor/wire-elements/modal/config/livewire-ui-modal.php');
+require('../../vendor/livewire-ui/modal/resources/js/modal');
 /*
 
 =========================================================
