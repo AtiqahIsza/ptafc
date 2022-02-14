@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Bus Drivers</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd-map btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Bus Driver
         </button>
@@ -27,7 +27,7 @@
                     <th class="border-gray-200">{{ __('Driver Number') }}</th>
                     <th class="border-gray-200">{{ __('Driver Role') }}</th>
                     <th class="border-gray-200">{{ __('Hiring Company') }}</th>
-                    <th class="border-gray-200">{{ __('Active Card Manu. No.') }}</th>
+                    {{--<th class="border-gray-200">{{ __('Active Card Manu. No.') }}</th>--}}
                     <th class="border-gray-200">{{ __('Status') }}</th>
                 </tr>
                 </thead>
@@ -37,10 +37,22 @@
                         <td><span class="fw-normal">{{ $driver->driver_name }}</span></td>
                         <td><span class="fw-normal">{{ $driver->employee_number }}</span></td>
                         <td><span class="fw-normal">{{ $driver->driver_number }}</span></td>
-                        <td><span class="fw-normal">{{ $driver->driver_role }}</span></td>
+                        @if($driver->driver_role ==1)
+                            <td><span class="fw-normal">Driver</span></td>
+                        @elseif($driver->driver_role ==2)
+                            <td><span class="fw-normal">Inspector</span></td>
+                        @else
+                            <td><span class="fw-normal">Administrator</span></td>
+                        @endif
                         <td><span class="fw-normal">{{ $driver->company->company_name }}</span></td>
-                        <td><span class="fw-normal"> IN PROGRESS</span></td>
-                        <td><span class="fw-normal">{{ $driver->status}}</span></td>
+                      {{--  <td><span class="fw-normal">{{ $driver->driverCard->manufacturing_id}}</span></td>--}}
+                        @if($driver->status==1)
+                            <td><span class="fw-normal">Active</span></td>
+                        @elseif($driver->status==2)
+                            <td><span class="fw-normal">Inactive</span></td>
+                        @else
+                            <td><span class="fw-normal">Blacklisted</span></td>
+                        @endif
                     </tr>
                 @endforeach
                 </tbody>
@@ -131,10 +143,9 @@
                                 </span>
                                 <select wire:model.defer="state.status" id="status" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Driver Status</option>
-                                    <option value="1">New</option>
-                                    <option value="2">Active</option>
-                                    <option value="3">Inactive</option>
-                                    <option value="4">Blacklisted</option>
+                                    <option value="1">Active</option>
+                                    <option value="2">Inactive</option>
+                                    <option value="3">Blacklisted</option>
                                 </select>
                                 @if ($errors->has('status'))
                                     <span class="text-danger">{{ $errors->first('role') }}</span>

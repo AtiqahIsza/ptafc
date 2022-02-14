@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Stage;
 use App\Models\StageMap;
 use Illuminate\Http\Request;
 
@@ -10,11 +11,13 @@ class StageMapController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $stage = Stage::where('id', $request->route('id'))->first();
+
+        return view('settings.addStageMap', compact('stage'));
     }
 
     /**

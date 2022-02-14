@@ -57,7 +57,23 @@
                             <td><span class="fw-normal">{{ $card->card_holder_name }}</span></td>
                             <td><span class="fw-normal">{{ $card->id_number }}</span></td>
                             <td><span class="fw-normal">{{ $card->card_number }}</span></td>
-                            <td><span class="fw-normal">{{ $card->card_type }}</span></td>
+                            @if($card->card_type==1)
+                                <td><span class="fw-normal">Passenger</span></td>
+                            @elseif($card->card_type==2)
+                                <td><span class="fw-normal">Agent</span></td>
+                            @elseif($card->card_type==3)
+                                <td><span class="fw-normal">Sub-Agent</span></td>
+                            @elseif($card->card_type==4)
+                                <td><span class="fw-normal">Mobile-Agent</span></td>
+                            @elseif($card->card_type==5)
+                                <td><span class="fw-normal">UPM Student</span></td>
+                            @elseif($card->card_type==6)
+                                <td><span class="fw-normal">KTB Staff</span></td>
+                            @elseif($card->card_type==7)
+                                <td><span class="fw-normal">Inspector</span></td>
+                            @else
+                                <td><span class="fw-normal">Driver</span></td>
+                            @endif
                             <td><span class="fw-normal">{{ $card->current_balance }}</span></td>
                         </tr>
                     @endforeach

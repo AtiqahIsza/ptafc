@@ -55,6 +55,7 @@ Route::post('/settings/updateStageFare', [\App\Http\Controllers\StageFareControl
 
 //Map
 Route::get('/settings/manageRoute/{id}/addMap', [\App\Http\Controllers\RouteMapController::class, 'index'])->name('addRouteMap');
+Route::get('/settings/manageStage/{id}/addMap', [\App\Http\Controllers\StageMapController::class, 'index'])->name('addStageMap');
 
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');

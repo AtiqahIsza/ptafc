@@ -22,8 +22,10 @@
     <link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/css/jquery-editable.css" rel="stylesheet"/>
     @powerGridStyles
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+
     <!-- Map Script -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+
 </head>
 
 <body>

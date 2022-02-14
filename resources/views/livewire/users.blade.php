@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Users</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd-map btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add User
         </button>

@@ -5,10 +5,6 @@
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Stage
         </button>
-        <button wire:click.prevent="addNewMap" class="buttonAdd-map btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalMap">
-            <i class="fa fa-plus-circle mr-1 fa-fw"></i>
-            Add Stage Map
-        </button>
     </div>
     <div class="d-block mb-md-0" style="position: relative">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline"  >
@@ -49,19 +45,29 @@
                         <td><span class="fw-normal">{{ $stage->stage_name }}</span></td>
                         <td><span class="fw-normal">{{ $stage->stage_number }}</span></td>
                         <td><span class="fw-normal">{{ $stage->no_of_km }}</span></td>
+                        @php
+                            $result = false;
+                        @endphp
                         @foreach($stageMaps as $stageMap)
-                            @if($stage->id == $stageMap->stage_id)
-                                <td>
-                                    <!-- Button for preview stage map-->
-                                    <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
-                                    <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
-                                </td>
-                            @else
-                                <td>
-                                    <button wire:click.prevent="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#">Create</button>
-                                </td>
+                            @if($stageMap->stage_id == $stage->id)
+                                @php
+                                    $result = true;
+                                @endphp
                             @endif
                         @endforeach
+
+                        @if($result)
+                            <td>
+                                <!-- Button for preview stage map-->
+                                <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
+                                <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
+                            </td>
+                        @else
+                            <td>
+                                <!-- Button for creating map-->
+                                <button onclick="window.location='{{ route('addStageMap', $stage->id) }}'" class="btn btn-primary">Create</button>
+                            </td>
+                        @endif
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $stage }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>

@@ -12,7 +12,7 @@ class DriverCard extends Model
     protected $table = 'driver_card';
 
     function BusDriver() {
-        return $this->belongsTo(BusDriver::class, 'driver_id', 'id');
+        return $this->belongsTo(BusDriver::class, 'driver_id', 'id_number');
     }
 
     function TicketCard() {

@@ -9,7 +9,7 @@
         @endif
         <div class="main py-4">
             <div class="d-block mb-md-0" style="position: relative">
-                <h2>Create Route Map for <span>{{ $route->route_name }}</span></h2>
+                <h2>Create Stage Map for <span>{{ $stage->stage_name }}</span></h2>
             </div>
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
                 <!-- Form -->
@@ -17,14 +17,14 @@
                     @csrf
                     <table class="table table-hover">
                         <thead>
-                            <th class="border-gray-200">{{ __('Company Name:') }}</th>
-                            <th class="border-gray-200"><span class="badge bg-primary">{{ $route->company->company_name }}</span></th>
-                            <th class="border-gray-200">{{ __('Sector Name:') }}</th>
-                            <th class="border-gray-200"><span class="badge bg-primary">{{ $route->route_name }}</span></th>
+                        <th class="border-gray-200">{{ __('Company Name:') }}</th>
+                        <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->company->company_name }}</span></th>
+                        <th class="border-gray-200">{{ __('Route Name:') }}</th>
+                        <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->route_name }}</span></th>
                         </thead>
                         <tbody>
                         <tr>
-                            <td colspan="4"><span class="fw-normal">Create Route Map here:</span></td>
+                            <td colspan="4"><span class="fw-normal">Create Stage Map here:</span></td>
                         </tr>
                         <tr>
                             <td colspan="4">
@@ -45,7 +45,7 @@
 
     <!-- Map Script -->
     <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&v=weekly&channel=2"
+        src="https://maps.googleapis.com/maps/api/js?key=&callback=initMap&v=weekly&channel=2"
         async></script>
     <script>
         // This example creates a 2-pixel-wide red polyline showing the path of

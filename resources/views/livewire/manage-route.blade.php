@@ -47,7 +47,7 @@
                             $result = false;
                         @endphp
                         @foreach($routeMaps as $routeMap)
-                            @if($stageMap->route_id == $route->id)
+                            @if($routeMap->route_id == $route->id)
                                 @php
                                     $result = true;
                                 @endphp

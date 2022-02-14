@@ -210,10 +210,10 @@ final class UserTable extends PowerGridComponent
     public function actions(): array
     {
        return [
-           Button::add('edit')
+           /*Button::add('edit')
                ->caption('Edit')
                ->class('btn btn-warning cursor-pointer px-3 py-2.5 m-1 rounded text-sm')
-               ->openModal('edit-user', ['id' => 'id','custom' => __METHOD__]),
+               ->openModal('edit-user', ['id' => 'id','custom' => __METHOD__]),*/
                //->emit('edit-user',['id' => 'id']),
                //->route('editUser', ['user' => 'id']),
 
