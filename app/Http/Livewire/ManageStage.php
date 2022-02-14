@@ -86,7 +86,7 @@ class ManageStage extends Component
 
         $this->stages->update($validatedData);
 
-        return redirect()->to('/settings/managestage')->with(['message' => 'Stage updated successfully!']);
+        return redirect()->to('/settings/manageStage')->with(['message' => 'Stage updated successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
         //$this->emit('hide-form');
@@ -123,7 +123,7 @@ class ManageStage extends Component
 
         Stage::create($validatedData);
 
-        return redirect()->to('/settings/managestage')->with(['message' => 'Stage added successfully!']);
+        return redirect()->to('/settings/manageStage')->with(['message' => 'Stage added successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
@@ -140,6 +140,6 @@ class ManageStage extends Component
         $stage= Stage::findOrFail($this->removedStageId);
         $stage->delete();
 
-        return redirect()->to('/settings/managestage')->with(['message' => 'Stage removed successfully!']);
+        return redirect()->to('/settings/manageStage')->with(['message' => 'Stage removed successfully!']);
     }
 }

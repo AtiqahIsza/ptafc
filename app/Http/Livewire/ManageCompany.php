@@ -61,14 +61,12 @@ class ManageCompany extends Component
             'minimum_balance' => ['required', 'between:0,99.99'],
         ])->validate();
 
-        /*if(!empty($validatedData['password'])) {
-            $validatedData['password'] = bcrypt($validatedData['password']);
-        }*/
-
         $this->companies->update($validatedData);
 
-        $this->dispatchBrowserEvent('hide-form', ['message' => 'Company updated successfully!']);
-        /*$this->emit('hideModalEvent');
+        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company updated successfully!']);
+
+        /*$this->dispatchBrowserEvent('hide-form', ['message' => 'Company updated successfully!']);
+        $this->emit('hideModalEvent');
         $this->alert('success', 'Company updated successfully', [
             'position' => 'top',
         ]);*/
@@ -97,7 +95,9 @@ class ManageCompany extends Component
 
         Company::create($validatedData);
 
-        $this->dispatchBrowserEvent('hide-form', ['message' => 'Company added successfully!']);
+        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company added successfully!']);
+
+        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Company added successfully!']);
     }
 
     public function confirmRemoval($companyId)
@@ -110,6 +110,8 @@ class ManageCompany extends Component
     {
         $company = Company::findOrFail($this->removedCompanyId);
         $company ->delete();
-        $this->dispatchBrowserEvent('hide-delete-modal', ['message' => 'Company deleted successfully!']);
+
+        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company removed successfully!']);
+        //$this->dispatchBrowserEvent('hide-delete-modal', ['message' => 'Company deleted successfully!']);
     }
 }

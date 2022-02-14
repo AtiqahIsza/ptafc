@@ -5,10 +5,10 @@
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Route
         </button>
-        <button wire:click.prevent="addNewMap" class="buttonAdd-map btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalMap">
+        {{--<button onclick="{{ route('addRouteMap' ) }}" class="buttonAdd-map btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Route Map
-        </button>
+        </button>--}}
     </div>
     <div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline"  >
@@ -43,19 +43,29 @@
                         <td><span class="fw-normal">{{ $route->sector->sector_name }}</span></td>
                         <td><span class="fw-normal">{{ $route->inbound_distance }}</span></td>
                         <td><span class="fw-normal">{{ $route->outbound_distance }}</span></td>
+                        @php
+                            $result = false;
+                        @endphp
                         @foreach($routeMaps as $routeMap)
-                            @if($route->id == $routeMap->route_id)
-                                <td>
-                                    <!-- Button for preview stage map-->
-                                    <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
-                                    <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
-                                </td>
-                            @else
-                                <td>
-                                    <button wire:click.prevent="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#">Create</button>
-                                </td>
+                            @if($stageMap->route_id == $route->id)
+                                @php
+                                    $result = true;
+                                @endphp
                             @endif
                         @endforeach
+
+                        @if($result)
+                            <td>
+                                <!-- Button for preview stage map-->
+                                <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
+                                <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
+                            </td>
+                        @else
+                            <td>
+                                <!-- Button for creating map-->
+                                <button onclick="window.location='{{ route('addRouteMap', $route->id) }}'" class="btn btn-primary">Create</button>
+                            </td>
+                        @endif
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $route }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>

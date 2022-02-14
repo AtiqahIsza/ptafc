@@ -74,7 +74,7 @@ class ManageBus extends Component
 
         $this->buses->update($validatedData);
 
-        return redirect()->to('/settings/managebus')->with(['message' => 'Bus updated successfully!']);
+        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus updated successfully!']);
 
         //return Redirect::back()->with(['message' => 'Bus updated successfully!']);
         //$this->emit('hide-form');
@@ -104,7 +104,7 @@ class ManageBus extends Component
 
         Bus::create($validatedData);
 
-        return redirect()->to('/settings/managebus')->with(['message' => 'Bus added successfully!']);
+        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus added successfully!']);
 
         //return Redirect::back()->with(['message' => 'Bus added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
@@ -121,7 +121,7 @@ class ManageBus extends Component
         $sector = Bus::findOrFail($this->removedBusId);
         $sector->delete();
 
-        return redirect()->to('/settings/managebus')->with(['message' => 'Bus removed successfully!']);
+        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus removed successfully!']);
 
         //return Redirect::back()->with(['message' => 'Bus removed successfully!']);
         //$this->dispatchBrowserEvent('hide-delete-modal', ['message' => 'Company deleted successfully!']);

@@ -83,7 +83,7 @@ return [
     | Define here the CDN source for imported AlpineJS
     |
     */
-
+    'js_framework' => 'alpinejs',
     'alpinejs_cdn' => 'https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js',
 
     /*

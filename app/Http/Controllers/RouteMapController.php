@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Route;
 use App\Models\RouteMap;
 use Illuminate\Http\Request;
 
@@ -10,11 +11,13 @@ class RouteMapController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $route = Route::where('id', $request->route('id'))->first();
+
+        return view('settings.addRouteMap', compact('route'));
     }
 
     /**

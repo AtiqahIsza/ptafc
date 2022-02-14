@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Database\QueryException;
@@ -20,9 +21,9 @@ final class UserTable extends PowerGridComponent
 
     //Messages informing success/error data is updated.
     public bool $showUpdateMessages = true;
-    public $users;
-    public $state = [];
-    public $showEditModal = false;
+    //public $users;
+    //public $state = [];
+    //public $showEditModal = false;
     /*
     |--------------------------------------------------------------------------
     |  Features Setup
@@ -31,12 +32,12 @@ final class UserTable extends PowerGridComponent
     |
     */
 
-    protected function getListeners(): array
+    /*protected function getListeners(): array
     {
         return array_merge($this->listeners, [
             'editEvent' => 'editEvent'
         ]);
-    }
+    }*/
 
     public function setUp(): void
     {
@@ -133,7 +134,7 @@ final class UserTable extends PowerGridComponent
                 ->sortable()
                 ->searchable()
                 ->makeInputText()
-                ->editOnClick(),
+                ->editOnClick('true'),
 
             Column::add()
                 ->title('IC NUMBER')
@@ -141,7 +142,7 @@ final class UserTable extends PowerGridComponent
                 ->sortable()
                 ->searchable()
                 ->makeInputText()
-                ->editOnClick(),
+                ->editOnClick('true'),
 
             Column::add()
                 ->title('PHONE NUMBER')
@@ -149,7 +150,7 @@ final class UserTable extends PowerGridComponent
                 ->sortable()
                 ->searchable()
                 ->makeInputText()
-                ->editOnClick(),
+                ->editOnClick('true'),
 
             Column::add()
                 ->title('USERNAME')
@@ -157,31 +158,28 @@ final class UserTable extends PowerGridComponent
                 ->sortable()
                 ->searchable()
                 ->makeInputText()
-                ->editOnClick(),
+                ->editOnClick('true'),
 
             Column::add()
                 ->title('COMPANY NAME')
                 ->field('company_id')
                 ->sortable()
                 ->searchable()
-                ->makeInputText()
-                ->editOnClick(),
+                ->makeInputSelect(Company::get(['id', 'company_name']), 'company_name', 'user_id'),
 
             Column::add()
                 ->title('USER ROLE')
                 ->field('user_role')
                 ->sortable()
                 ->searchable()
-                ->makeInputText()
-                ->editOnClick(),
+                ->makeInputText(),
 
             Column::add()
                 ->title('EMAIL')
                 ->field('email')
                 ->sortable()
                 ->searchable()
-                ->makeInputText()
-                ->editOnClick(),
+                ->makeInputText(),
 
             Column::add()
                 ->title('CREATED AT')
@@ -215,7 +213,7 @@ final class UserTable extends PowerGridComponent
            Button::add('edit')
                ->caption('Edit')
                ->class('btn btn-warning cursor-pointer px-3 py-2.5 m-1 rounded text-sm')
-               ->openModal('edit-user', ['id' => 'id']),
+               ->openModal('edit-user', ['id' => 'id','custom' => __METHOD__]),
                //->emit('edit-user',['id' => 'id']),
                //->route('editUser', ['user' => 'id']),
 

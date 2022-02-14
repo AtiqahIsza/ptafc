@@ -75,7 +75,7 @@ class ManageBusDriver extends Component
 
         BusDriver::create($validatedData);
 
-        return redirect()->to('/settings/managebusdriver')->with(['message' => 'Bus Driver Added Successfully!']);
+        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus Driver Added Successfully!']);
 
         //return Redirect::back()->with(['message' => 'Bus added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);

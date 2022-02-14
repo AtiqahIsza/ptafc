@@ -56,7 +56,7 @@ class ManageSector extends Component
 
         $this->sectors->update($validatedData);
 
-        return redirect()->to('/settings/managesector')->with(['message' => 'Sector updated successfully!']);
+        return redirect()->to('/settings/manageSector')->with(['message' => 'Sector updated successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
         //$this->emit('hide-form');
@@ -80,7 +80,7 @@ class ManageSector extends Component
 
         Sector::create($validatedData);
 
-        return redirect()->to('/settings/managesector')->with(['message' => 'Sector removed successfully!']);
+        return redirect()->to('/settings/manageSector')->with(['message' => 'Sector removed successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
@@ -97,6 +97,6 @@ class ManageSector extends Component
         $sector = Sector::findOrFail($this->removedSectorId);
         $sector->delete();
 
-        return redirect()->to('/settings/managesector')->with(['message' => 'Sector removed successfully!']);
+        return redirect()->to('/settings/manageSector')->with(['message' => 'Sector removed successfully!']);
     }
 }

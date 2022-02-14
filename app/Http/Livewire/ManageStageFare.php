@@ -110,6 +110,6 @@ class ManageStageFare extends Component
             ->update(['consession_fare' => $calc]);
         }
 
-        return redirect()->to('/settings/managestagefare')->with(['message' => 'Concession fare updated successfully!']);
+        return redirect()->to('/settings/manageStageFare')->with(['message' => 'Concession fare updated successfully!']);
     }
 }

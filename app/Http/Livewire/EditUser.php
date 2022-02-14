@@ -31,4 +31,11 @@ class EditUser extends ModalComponent
         //$this->state = $user->toArray();
         return view('livewire.edit-user');
     }
+
+    public function close()
+    {
+        $this->closeModalWithEvents([
+            'pg:eventRefresh-default',
+        ]);
+    }
 }

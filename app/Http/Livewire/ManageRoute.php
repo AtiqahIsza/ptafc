@@ -25,6 +25,7 @@ class ManageRoute extends Component
         $this->sectors = collect();
         $this->companies = collect();
         $this->routes = collect();
+        $this->routeMaps = collect();
     }
 
     public function render()
@@ -39,6 +40,7 @@ class ManageRoute extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
+
             $this->routes = Route::where('company_id', $company)->get();
         }
     }
@@ -69,7 +71,7 @@ class ManageRoute extends Component
 
         $this->routes->update($validatedData);
 
-        return redirect()->to('/settings/manageroute')->with(['message' => 'Route updated successfully!']);
+        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route updated successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
         //$this->emit('hide-form');
@@ -100,7 +102,7 @@ class ManageRoute extends Component
 
         Route::create($validatedData);
 
-        return redirect()->to('/settings/manageroute')->with(['message' => 'Route added successfully!']);
+        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route added successfully!']);
 
         //return Redirect::back()->with(['message' => 'Sector added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
@@ -117,6 +119,6 @@ class ManageRoute extends Component
         $route = Route::findOrFail($this->removedRouteId);
         $route->delete();
 
-        return redirect()->to('/settings/manageroute')->with(['message' => 'Route removed successfully!']);
+        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route removed successfully!']);
     }
 }
