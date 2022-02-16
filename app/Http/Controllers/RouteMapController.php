@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Models\RouteMap;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class RouteMapController extends Controller
 {
@@ -36,9 +38,31 @@ class RouteMapController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        //
+        $out = new ConsoleOutput();
+        $routeMaps = $request->all();
+        $out->writeln($routeMaps);
+        try{
+            foreach($routeMaps as $routeMap)
+            {
+                $newMap = new RouteMap();
+                $newMap->longitude = $routeMap['lng'];
+                $newMap->latitute = $routeMap['lat'];
+                $newMap->sequence = $routeMap['sequence'];
+                $newMap->route_id = $routeMap['route_id'];
+                $newMap->save();
+            }
+
+            $log['current_route_map'] = $newMap;
+
+            return $this->returnResponse(1, $log, "Route Map Successfully Stored");
+        }
+        catch(\Exception $e){
+            $out->writeln($e);
+            $error['error'] =  $e;
+            return $this->returnResponse(2, $error, "Error Occurred, see error log");
+        }
     }
 
     /**
@@ -84,5 +108,14 @@ class RouteMapController extends Controller
     public function destroy(RouteMap $routeMap)
     {
         //
+    }
+
+    public function returnResponse ($statusCode, $payload, $statusDescription) : JsonResponse
+    {
+        $response['statusCode'] = $statusCode ;
+        $response['payload'] = $payload;
+        $response['statusDescription'] = $statusDescription;
+
+        return response()->json($response);
     }
 }

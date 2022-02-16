@@ -1,6 +1,88 @@
 @extends('layouts.app')
 
 @section('content')
+    <!-- Map Script -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&libraries=drawing&callback=initMap&v=weekly&channel=2"> </script>
+    <script>
+        // This example creates an interactive map which constructs a polyline based on
+        // user clicks. Note that the polyline only appears once its path property
+        // contains two LatLng coordinates.
+        let poly;
+        let map;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 7,
+                center: { lat: 3.140853, lng: 101.693207 }, // Center the map on Malaysia.
+            });
+            poly = new google.maps.Polyline({
+                strokeColor: "#000000",
+                strokeOpacity: 1.0,
+                strokeWeight: 3,
+            });
+            poly.setMap(map);
+            // Add a listener for the click event
+            map.addListener("click", addLatLng);
+
+        }
+
+        // Handles click events on a map, and adds a new point to the Polyline.
+        function addLatLng(event) {
+            const path = poly.getPath();
+
+            // Because path is an MVCArray, we can simply append a new coordinate
+            // and it will automatically appear.
+            path.push(event.latLng);
+            // Add a new marker at the new plotted point on the polyline.
+            new google.maps.Marker({
+                position: event.latLng,
+                title: "#" + path.getLength(),
+                map: map,
+            });
+
+            var buttonSave= document.getElementById('saveButton');
+            var routeId = document.getElementById('routeID');
+
+            buttonSave.onclick = function() {
+                //e.preventDefault();
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
+                addMarker(path, routeId);
+            }
+        }
+
+        function addMarker(path,id) {
+            var pointsArray = [];
+
+            for (var i = 0; i < path.getLength(); i++) {
+                var xy = path.getAt(i); //LatLang for a polyline
+                var seq = i + 1;
+                var item = {
+                    "lat": xy.lat(),
+                    "lng": xy.lng(),
+                    "sequence": seq,
+                    "route_id": id
+                };
+                pointsArray.push(item);
+            }
+
+            $.ajax({
+                url: "{{ route('storeRouteMap') }}",
+                type: 'GET',
+                data: {pointsArray: pointsArray},
+                success: function (response) {
+                    alert(response);
+                },
+                error: function (response) {
+                    alert('Error'+response);
+                }
+            })
+        }
+    </script>
+
     <div class="row">
         @if (session()->has('message'))
             <div class="alert alert-success">
@@ -13,7 +95,7 @@
             </div>
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
                 <!-- Form -->
-                <form>
+                <form method="GET">
                     @csrf
                     <table class="table table-hover">
                         <thead>
@@ -28,51 +110,24 @@
                         </tr>
                         <tr>
                             <td colspan="4">
-                                <div id="map"></div>
+                                <div id="map" class="map"></div>
+                                <input id="routeID" class="border-gray-200" type="hidden" value="{{ $route->id }}">
                             </td>
                         </tr>
                         <tr>
                             <td colspan="4">
-                                <button type="submit" class="btn btn-primary">Save</button>
+                                <div class="d-block mb-md-0" style="position: relative">
+                                    <button id="saveButton" type="submit" class="btn btn-primary">Save</button>
+                                    <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
+                                </div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
                 </form>
+
             </div>
         </div>
     </div>
-
-    <!-- Map Script -->
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&v=weekly&channel=2"
-        async></script>
-    <script>
-        // This example creates a 2-pixel-wide red polyline showing the path of
-        // the first trans-Pacific flight between Oakland, CA, and Brisbane,
-        // Australia which was made by Charles Kingsford Smith.
-        function initMap() {
-            const map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 3,
-                center: { lat: 0, lng: -180 },
-                mapTypeId: "terrain",
-            });
-            const flightPlanCoordinates = [
-                { lat: 37.772, lng: -122.214 },
-                { lat: 21.291, lng: -157.821 },
-                { lat: -18.142, lng: 178.431 },
-                { lat: -27.467, lng: 153.027 },
-            ];
-            const flightPath = new google.maps.Polyline({
-                path: flightPlanCoordinates,
-                geodesic: true,
-                strokeColor: "#FF0000",
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-            });
-
-            flightPath.setMap(map);
-        }
-    </script>
 @endsection
 

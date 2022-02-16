@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusStand;
+use App\Models\Company;
+use App\Models\Route;
+use App\Models\Stage;
 use Illuminate\Http\Request;
 
 class BusStandController extends Controller
@@ -20,11 +23,15 @@ class BusStandController extends Controller
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
     public function create()
     {
-        //
+        $companies = Company::all();
+        $routes = Route::all();
+        $stages = Stage::all();
+
+        return view('settings.addBusStand', compact('stages', 'companies', 'routes'));
     }
 
     /**

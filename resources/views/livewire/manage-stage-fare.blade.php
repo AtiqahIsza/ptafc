@@ -24,7 +24,7 @@
     @if (!is_null($selectedRoute))
         <div class="row">
             <div class="col-12">
-                
+
                 <!-- Tab -->
                 <nav>
                     <div class="nav nav-tabs mb-4" id="nav-tab" role="tablist">
@@ -48,12 +48,12 @@
                                     <th class="border-gray-200">{{ __('Order') }}</th>
                                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
                                     @foreach($stages as $stage)
-                                        <th class="border-gray-200">{{ $stage->stage_order}}</th>
+                                        <th class="border-gray-200">{{ $stage->stage_name}}</th>
                                     @endforeach
                                 </tr>
                                 </thead>
                                 <tbody id="each-fare">
-                                
+
                                 <input name="routeId" type="hidden" value="{{ $selectedRoute }}">
                                 <input name="fareType" type="hidden" value="{{ $fareTypes }}">
 
@@ -62,20 +62,20 @@
                                         <td style="display: none"><input name="routeId" type="hidden" value="{{ $selectedRoute }}">></td>
                                         <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
                                         <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
-                                        
+
                                         @for($i=0; $i<$toStage->stage_order; $i++)
                                             @if( isset($stageFrom[$i]['id']))
-                                                @php 
+                                                @php
                                                 $result = 0;
                                                 @endphp
                                                 @foreach ($stageFares as $stageFare)
                                                     @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
-                                                        @php     
+                                                        @php
                                                             $result = $stageFare->fare
                                                         @endphp
                                                     @endif
                                                 @endforeach
-                                                
+
                                                 @if($result)
                                                     <td>
                                                         <label>
@@ -121,12 +121,12 @@
                                     <th class="border-gray-200">{{ __('Order') }}</th>
                                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
                                     @foreach($stages as $stage)
-                                        <th class="border-gray-200">{{ $stage->stage_order}}</th>
+                                        <th class="border-gray-200">{{ $stage->stage_name}}</th>
                                     @endforeach
                                 </tr>
                                 </thead>
                                 <tbody id="each-fare">
-                                
+
                                 <input name="routeId" type="hidden" value="{{ $selectedRoute }}">
                                 <input name="fareType" type="hidden" value="{{ $fareTypes }}">
 
@@ -135,20 +135,20 @@
                                         <td style="display: none"><input name="routeId" type="hidden" value="{{ $selectedRoute }}">></td>
                                         <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
                                         <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
-                                        
+
                                         @for($i=0; $i<$toStage->stage_order; $i++)
                                             @if( isset($stageFrom[$i]['id']))
-                                                @php 
+                                                @php
                                                 $result = 0;
                                                 @endphp
                                                 @foreach ($stageFares as $stageFare)
                                                     @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
-                                                        @php     
+                                                        @php
                                                             $result = $stageFare->consession_fare
                                                         @endphp
                                                     @endif
                                                 @endforeach
-                                                
+
                                                 @if($result)
                                                     <td>
                                                         <label>
@@ -177,7 +177,7 @@
                             </table>
                             <button class="btn btn-primary" type="submit">Save Changes</button>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="modalDisc({{ $selectedRoute }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDiscount">Apply Discount</button>    
+                            <button wire:click.prevent="modalDisc({{ $selectedRoute }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDiscount">Apply Discount</button>
                             </form>
                         </div>
                     </div>
@@ -223,7 +223,7 @@
                                 @endif
                             </div>
                         </div>
-                        
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary" id="btnSave">
                                 <span>Save Changes</span>

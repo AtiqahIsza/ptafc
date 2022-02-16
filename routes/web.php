@@ -54,8 +54,11 @@ Route::get('/settings/manageStageFare', [\App\Http\Controllers\StageFareControll
 Route::post('/settings/updateStageFare', [\App\Http\Controllers\StageFareController::class, 'update'])->name('updateStageFare');
 
 //Map
-Route::get('/settings/manageRoute/{id}/addMap', [\App\Http\Controllers\RouteMapController::class, 'index'])->name('addRouteMap');
+Route::get('/settings/manageRouteMap/{id}/add', [\App\Http\Controllers\RouteMapController::class, 'index'])->name('addRouteMap');
+Route::get('/settings/manageRouteMap/store', [\App\Http\Controllers\RouteMapController::class, 'store'])->name('storeRouteMap');
+
 Route::get('/settings/manageStage/{id}/addMap', [\App\Http\Controllers\StageMapController::class, 'index'])->name('addStageMap');
+Route::get('/settings/manageBusStand/addMap', [\App\Http\Controllers\BusStandController::class, 'create'])->name('addBusStand');
 
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');
