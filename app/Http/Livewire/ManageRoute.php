@@ -16,6 +16,7 @@ class ManageRoute extends Component
     public $routes;
     public $routeMaps;
     public $removedRouteId;
+    public $removedRouteMapId;
     public $state = [];
     public $selectedCompany = NULL;
     public $showEditModal = false;
@@ -120,5 +121,20 @@ class ManageRoute extends Component
         $route->delete();
 
         return redirect()->to('/settings/manageRoute')->with(['message' => 'Route removed successfully!']);
+    }
+
+    public function confirmRemovalMap($route)
+    {
+        // $routeId = Route::select('id')->where('id',$route->id)->first();
+        $this->removedRouteMapId = $route;
+        //$this->dispatchBrowserEvent('show-delete-modal');
+    }
+
+    public function removeRouteMap()
+    {
+        $routeMap = RouteMap::where('route_id',$this->removedRouteMapId);
+        $routeMap->delete();
+
+        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route Map removed successfully!']);
     }
 }

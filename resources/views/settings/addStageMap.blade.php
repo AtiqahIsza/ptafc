@@ -1,6 +1,43 @@
 @extends('layouts.app')
 
 @section('content')
+    <!-- Map Script -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&libraries=drawing&callback=initMap&v=weekly&channel=2"> </script>
+    <script>
+        let poly;
+        let map;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 7,
+                center: { lat: 3.140853, lng: 101.693207 }, // Center the map on Malaysia.
+            });
+            poly = new google.maps.Polyline({
+                strokeColor: "#000000",
+                strokeOpacity: 1.0,
+                strokeWeight: 3,
+            });
+            poly.setMap(map);
+            // Add a listener for the click event
+            map.addListener("click", addLatLng);
+        }
+
+        // Handles click events on a map, and adds a new point to the Polyline.
+        function addLatLng(event) {
+            const path = poly.getPath();
+
+            // Because path is an MVCArray, we can simply append a new coordinate
+            // and it will automatically appear.
+            path.push(event.latLng);
+            // Add a new marker at the new plotted point on the polyline.
+            new google.maps.Marker({
+                position: event.latLng,
+                title: "#" + path.getLength(),
+                map: map,
+            });
+        }
+    </script>
+
     <div class="row">
         @if (session()->has('message'))
             <div class="alert alert-success">
@@ -29,12 +66,13 @@
                         <tr>
                             <td colspan="4">
                                 <div id="map"></div>
+                                <input id="stageID" class="border-gray-200" type="hidden" value="{{ $stage->id }}">
                             </td>
                         </tr>
                         <tr>
                             <td>
                                 <div class="d-block mb-md-0" style="position: relative">
-                                    <button type="submit" class="btn btn-primary">Save</button>
+                                    <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-primary">
                                     <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                                 </div>
                             </td>
@@ -46,44 +84,47 @@
         </div>
     </div>
 
-    <!-- Map Script -->
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&callback=initMap&v=weekly&channel=2"
-        async></script>
-    <script>
+    <<script>
         // This example creates an interactive map which constructs a polyline based on
         // user clicks. Note that the polyline only appears once its path property
         // contains two LatLng coordinates.
-        let poly;
-        let map;
+        let markerLastAdded = null;
+        const markers = [];
+        const buttonSave= $('#saveButton') //document.getElementById('saveButton');
+        const stageId = $('#stageID').val(); //document.getElementById('routeID').value;
+        //const path = poly.getPath();
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 7,
-                center: { lat: 41.879, lng: -87.624 }, // Center the map on Chicago, USA.
-            });
-            poly = new google.maps.Polyline({
-                strokeColor: "#000000",
-                strokeOpacity: 1.0,
-                strokeWeight: 3,
-            });
-            poly.setMap(map);
-            // Add a listener for the click event
-            map.addListener("click", addLatLng);
+        const saveBtnOnClick = () => {
+            //e.preventDefault();
+            loopMarker(poly);
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "{{ route('storeRouteMap') }}",
+                type: 'POST',
+                data: {markers : markers},
+                success: function (response) {
+                    console.log(response);
+                },
+                error: function (response) {
+                    console.log("Error " + response);
+                }
+            })
         }
 
-        // Handles click events on a map, and adds a new point to the Polyline.
-        function addLatLng(event) {
+        function loopMarker(poly) {
             const path = poly.getPath();
+            path.forEach((point, sequence) => addMarker(point, sequence));
+        }
 
-            // Because path is an MVCArray, we can simply append a new coordinate
-            // and it will automatically appear.
-            path.push(event.latLng);
-            // Add a new marker at the new plotted point on the polyline.
-            new google.maps.Marker({
-                position: event.latLng,
-                title: "#" + path.getLength(),
-                map: map,
+        function addMarker(point, sequence){
+            markerLastAdded = point;
+            markers.push({
+                lat: point.lat(),
+                long: point.lng(),
+                sequence: sequence,
+                stage_id: stageId
             });
         }
     </script>

@@ -46,6 +46,7 @@ Route::get('/settings/manageBusDriver', [\App\Http\Controllers\BusDriverControll
 Route::get('/settings/manageStage', [\App\Http\Controllers\StageController::class, 'index'])->name('manageStage');
 Route::get('/settings/manageBusStand', [\App\Http\Controllers\BusStandController::class, 'index'])->name('manageBusStand');
 Route::get('/settings/manageStageFare', [\App\Http\Controllers\StageFareController::class, 'index'])->name('manageStageFare');
+Route::get('/settings/manageScheduler', [\App\Http\Controllers\RouteSchedulerDetailController::class, 'index'])->name('manageScheduler');
 
 //PowerGrid
 //Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');
@@ -55,10 +56,16 @@ Route::post('/settings/updateStageFare', [\App\Http\Controllers\StageFareControl
 
 //Map
 Route::get('/settings/manageRouteMap/{id}/add', [\App\Http\Controllers\RouteMapController::class, 'index'])->name('addRouteMap');
-Route::get('/settings/manageRouteMap/store', [\App\Http\Controllers\RouteMapController::class, 'store'])->name('storeRouteMap');
+Route::post('/settings/manageRouteMap/store', [\App\Http\Controllers\RouteMapController::class, 'store'])->name('storeRouteMap');
+Route::get('/settings/manageRouteMap/{id}/view', [\App\Http\Controllers\RouteMapController::class, 'show'])->name('viewRouteMap');
 
 Route::get('/settings/manageStage/{id}/addMap', [\App\Http\Controllers\StageMapController::class, 'index'])->name('addStageMap');
-Route::get('/settings/manageBusStand/addMap', [\App\Http\Controllers\BusStandController::class, 'create'])->name('addBusStand');
+Route::post('/settings/manageStageMap/store', [\App\Http\Controllers\StageMapController::class, 'store'])->name('storeStageMap');
+Route::get('/settings/manageStageMap/{id}/view', [\App\Http\Controllers\StageMapController::class, 'show'])->name('viewStageMap');
+
+Route::get('/settings/manageBusStand/{id}/addMap', [\App\Http\Controllers\BusStandController::class, 'create'])->name('addBusStand');
+Route::post('/settings/manageBusStand/store', [\App\Http\Controllers\BusStandController::class, 'store'])->name('storeBusStand');
+Route::get('/settings/manageBusStand/{id}/view', [\App\Http\Controllers\BusStandController::class, 'show'])->name('viewBusStand');
 
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');

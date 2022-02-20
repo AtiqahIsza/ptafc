@@ -211,7 +211,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">
+                    <a class="nav-link {{ request()->routeIs('manageScheduler') ? 'active' : '' }}" href="{{ route('manageScheduler') }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>

@@ -14,7 +14,8 @@
         "laravel/ui": "^3.3",
         "livewire/livewire": "^2.8",
         "power-components/livewire-powergrid": "^2.2",
-        "wire-elements/modal": "^1.0"
+        "wire-elements/modal": "^1.0",
+      "ext-json": "*"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.6",

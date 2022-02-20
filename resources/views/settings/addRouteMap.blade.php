@@ -4,9 +4,6 @@
     <!-- Map Script -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&libraries=drawing&callback=initMap&v=weekly&channel=2"> </script>
     <script>
-        // This example creates an interactive map which constructs a polyline based on
-        // user clicks. Note that the polyline only appears once its path property
-        // contains two LatLng coordinates.
         let poly;
         let map;
 
@@ -39,47 +36,6 @@
                 title: "#" + path.getLength(),
                 map: map,
             });
-
-            var buttonSave= document.getElementById('saveButton');
-            var routeId = document.getElementById('routeID');
-
-            buttonSave.onclick = function() {
-                //e.preventDefault();
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-                addMarker(path, routeId);
-            }
-        }
-
-        function addMarker(path,id) {
-            var pointsArray = [];
-
-            for (var i = 0; i < path.getLength(); i++) {
-                var xy = path.getAt(i); //LatLang for a polyline
-                var seq = i + 1;
-                var item = {
-                    "lat": xy.lat(),
-                    "lng": xy.lng(),
-                    "sequence": seq,
-                    "route_id": id
-                };
-                pointsArray.push(item);
-            }
-
-            $.ajax({
-                url: "{{ route('storeRouteMap') }}",
-                type: 'GET',
-                data: {pointsArray: pointsArray},
-                success: function (response) {
-                    alert(response);
-                },
-                error: function (response) {
-                    alert('Error'+response);
-                }
-            })
         }
     </script>
 
@@ -95,14 +51,14 @@
             </div>
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
                 <!-- Form -->
-                <form method="GET">
+                <form>
                     @csrf
                     <table class="table table-hover">
                         <thead>
                             <th class="border-gray-200">{{ __('Company Name:') }}</th>
                             <th class="border-gray-200"><span class="badge bg-primary">{{ $route->company->company_name }}</span></th>
                             <th class="border-gray-200">{{ __('Sector Name:') }}</th>
-                            <th class="border-gray-200"><span class="badge bg-primary">{{ $route->route_name }}</span></th>
+                            <th class="border-gray-200"><span class="badge bg-primary">{{ $route->sector->sector_name }}</span></th>
                         </thead>
                         <tbody>
                         <tr>
@@ -117,7 +73,7 @@
                         <tr>
                             <td colspan="4">
                                 <div class="d-block mb-md-0" style="position: relative">
-                                    <button id="saveButton" type="submit" class="btn btn-primary">Save</button>
+                                    <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-primary">Save</button>
                                     <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                                 </div>
                             </td>
@@ -129,5 +85,52 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    <script>
+        // This example creates an interactive map which constructs a polyline based on
+        // user clicks. Note that the polyline only appears once its path property
+        // contains two LatLng coordinates.
+        let markerLastAdded = null;
+        const markers = [];
+        const buttonSave= $('#saveButton') //document.getElementById('saveButton');
+        const routeId = $('#routeID').val(); //document.getElementById('routeID').value;
+        //const path = poly.getPath();
+
+        const saveBtnOnClick = () => {
+            //e.preventDefault();
+            loopMarker(poly);
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                url: "{{ route('storeRouteMap') }}",
+                type: 'POST',
+                data: {markers : markers},
+                success: function (response) {
+                    console.log(response);
+                },
+                error: function (response) {
+                    console.log("Error " + response);
+                }
+            })
+        }
+
+        function loopMarker(poly) {
+            const path = poly.getPath();
+            path.forEach((point, sequence) => addMarker(point, sequence));
+        }
+
+        function addMarker(point, sequence){
+            markerLastAdded = point;
+            markers.push({
+                lat: point.lat(),
+                long: point.lng(),
+                sequence: sequence,
+                route_id: routeId
+            });
+        }
+    </script>
 @endsection
 

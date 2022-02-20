@@ -5,6 +5,7 @@ namespace App\Http\Livewire;
 use App\Models\BusStand;
 use App\Models\Company;
 use App\Models\Route;
+use App\Models\RouteMap;
 use App\Models\Stage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -15,7 +16,9 @@ class ManageBusStand extends Component
     public $routes;
     public $stages;
     public $busStands;
-
+    public $removedBusStandRouteId;
+    public $routeMap= false;
+    public $removeBtn= false;
     public $selectedCompany = NULL;
     public $selectedRoute= NULL;
     public $selectedStage = NULL;
@@ -42,8 +45,20 @@ class ManageBusStand extends Component
 
     public function updatedSelectedRoute($route)
     {
+        $this->routeMap = false;
+        $this->removeBtn = false;
+        //$this->selectedRoute = Route::where('id', $route)->first();
+
         if (!is_null($route)) {
-            $this->stages = Stage::where('route_id', $route)->get();
+            $existRouteMap = RouteMap::where('route_id', $route)->first();
+            if($existRouteMap){
+                $this->routeMap = true;
+            }
+            $existBusStand = BusStand::where('route_id', $route)->first();
+            if($existBusStand){
+                $this->removeBtn = true;
+            }
+            $this->busStands = BusStand::where('route_id', $route)->get();
         }
     }
 
@@ -74,5 +89,20 @@ class ManageBusStand extends Component
 
         //return Redirect::back()->with(['message' => 'Sector added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
+    }
+
+    public function confirmRemoval($route)
+    {
+       // $routeId = Route::select('id')->where('id',$route->id)->first();
+        $this->removedBusStandRouteId = $route;
+        //$this->dispatchBrowserEvent('show-delete-modal');
+    }
+
+    public function removeSector()
+    {
+        $busStand = BusStand::where('route_id',$this->removedBusStandRouteId);
+        $busStand->delete();
+
+        return redirect()->to('/settings/manageBusStand')->with(['message' => 'Bus Stand removed successfully!']);
     }
 }

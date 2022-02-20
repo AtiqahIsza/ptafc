@@ -20,9 +20,10 @@ class CreateBusStandTable extends Migration
             $table->string('latitude', 16);
             $table->string('longitude', 16);
             $table->unsignedSmallInteger('sequence')->nullable();
-            $table->unsignedBigInteger('stage_id')->nullable()->index('FKA82FC557367987EA');
+            $table->string('radius', 10);
+            $table->unsignedBigInteger('route_id')->nullable()->index('FKA82FC557367987EA');
 
-            $table->foreign(['stage_id'], 'FKA82FC557367987EA')->references(['id'])->on('stage')->onDelete('cascade');
+            $table->foreign(['route_id'], 'FKA82FC557367987EA')->references(['id'])->on('route')->onDelete('cascade');
 
         });
     }

@@ -20,7 +20,9 @@ class CreateBusSchedulerDetailsTable extends Migration
             $table->unsignedBigInteger('bus1_id')->nullable()->index('FKEB4336BFAE94CE97');
             $table->unsignedBigInteger('bus2_id')->nullable()->index('FKEB4336BF1675FB76');
             $table->unsignedBigInteger('scheduler_mstr_id')->index('FKEB4336BFFC086242');
+            $table->unsignedBigInteger('route_id')->index('FK_bus_scheduler_details_route');
 
+            $table->foreign(['route_id'], 'FK_bus_scheduler_details_route')->references(['id'])->on('route')->onDelete('cascade');
             $table->foreign(['scheduler_mstr_id'], 'FKEB4336BFFC086242')->references(['id'])->on('bus_scheduler_mstr')->onDelete('cascade');
             $table->foreign(['bus1_id'], 'FKEB4336BFAE94CE97')->references(['id'])->on('bus')->onDelete('cascade');
             $table->foreign(['bus2_id'], 'FKEB4336BF1675FB76')->references(['id'])->on('bus')->onDelete('cascade');

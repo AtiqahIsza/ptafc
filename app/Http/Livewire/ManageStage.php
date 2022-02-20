@@ -17,7 +17,7 @@ class ManageStage extends Component
     public $stages;
     public $routes;
     public $stageMaps;
-
+    public $removedStageMapId;
     public $removedStageId;
     public $state = [];
     public $selectedCompany = NULL;
@@ -141,5 +141,20 @@ class ManageStage extends Component
         $stage->delete();
 
         return redirect()->to('/settings/manageStage')->with(['message' => 'Stage removed successfully!']);
+    }
+
+    public function confirmRemovalMap($stage)
+    {
+        // $routeId = Route::select('id')->where('id',$route->id)->first();
+        $this->removedStageMapId = $stage;
+        //$this->dispatchBrowserEvent('show-delete-modal');
+    }
+
+    public function removeStageMap()
+    {
+        $stageMap = StageMap::where('stage_id',$this->removedStageMapId);
+        $stageMap->delete();
+
+        return redirect()->to('/settings/manageStage')->with(['message' => 'Stage Map removed successfully!']);
     }
 }

@@ -57,8 +57,8 @@
                         @if($result)
                             <td>
                                 <!-- Button for preview stage map-->
-                                <button wire:click.prevent="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#">View</button>
-                                <button wire:click.prevent="#" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#">Remove</button>
+                                <button onclick="window.location='{{ route('viewRouteMap', $route->id) }}'" class="btn btn-success">View</button>
+                                <button wire:click.prevent="confirmRemovalMap({{ $route->id }})"  class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#mapConfirmationModal">Remove</button>
                             </td>
                         @else
                             <td>
@@ -251,7 +251,7 @@
     </div>
     <!-- End of Edit User Modal Content -->
 
-    <!-- Remove User Modal -->
+    <!-- Remove Route Modal -->
     <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -270,7 +270,28 @@
             </div>
         </div>
     </div>
-    <!-- End of Remove User Modal Content -->
+    <!-- End of Remove Route Modal Content -->
+
+    <!-- Remove Route Map Modal -->
+    <div wire:ignore.self class="modal fade" id="mapConfirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Remove Route Map</h5>
+                </div>
+
+                <div class="modal-body">
+                    <h4>Are you sure you want to remove this route map?</h4>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times mr-1"></i> Cancel</button>
+                    <button type="button" wire:click.prevent="removeRouteMap" class="btn btn-danger" data-bs-dismiss="modal"><i class="fa fa-trash mr-1"></i>Remove Route Map</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Remove Route Map Modal Content -->
 </div>
 
 @section('script')

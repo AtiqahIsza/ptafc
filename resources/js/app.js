@@ -7,6 +7,15 @@ require('./vendor/livewire-ui/modal');
 
 // Reference from vendor
 require('../../vendor/livewire-ui/modal/resources/js/modal');
+
+import Calendar from 'tui-calendar'; /* ES6 */
+import "tui-calendar/dist/tui-calendar.css";
+
+// If you use the default popups, use this.
+import 'tui-date-picker/dist/tui-date-picker.css';
+import 'tui-time-picker/dist/tui-time-picker.css';
+
+window.bootstrap = require("bootstrap");
 /*
 
 =========================================================

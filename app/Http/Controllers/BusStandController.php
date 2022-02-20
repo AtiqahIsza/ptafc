@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bus;
 use App\Models\BusStand;
 use App\Models\Company;
 use App\Models\Route;
+use App\Models\RouteMap;
 use App\Models\Stage;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class BusStandController extends Controller
 {
@@ -25,13 +30,14 @@ class BusStandController extends Controller
      *
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
-        $companies = Company::all();
-        $routes = Route::all();
-        $stages = Stage::all();
-
-        return view('settings.addBusStand', compact('stages', 'companies', 'routes'));
+        $routes = Route::where('id', $request->route('id'))->first();
+        $routeMaps = RouteMap::select('latitude', 'longitude')
+            ->where('route_id', $request->route('id'))
+            ->orderby('sequence')
+            ->get();
+        return view('settings.addBusStand', compact( 'routes','routeMaps'));
     }
 
     /**
@@ -40,20 +46,55 @@ class BusStandController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        //
+        $out = new ConsoleOutput();
+        $busStands = $request->markers;
+
+        try{
+            foreach($busStands as $key => $value){
+                /*$out->writeln($value['lat']);
+                $out->writeln(round($value['lat'],10));
+                $out->writeln($value['long']);
+                $out->writeln(round($value['long'],10));
+                $out->writeln($value['sequence']);
+                $out->writeln($value['route_id']);*/
+
+                $newMap = new BusStand();
+                $newMap->longitude = round($value['long'],10);
+                $newMap->latitude = round($value['lat'],10);
+                $newMap->sequence = $value['sequence'];
+                $newMap->route_id = $value['route_id'];
+                $newMap->radius = $value['radius'];
+                $newMap->save();
+            }
+            return $this->returnResponse(1, "Route Map Successfully Stored", "Route Map Successfully Stored");
+        }
+        catch(\Exception $e){
+            $out->writeln($e);
+            $error['error'] =  $e;
+            return $this->returnResponse(2, $error, "Error Occurred, see error log");
+        }
     }
 
     /**
      * Display the specified resource.
      *
      * @param  \App\Models\BusStand  $busStand
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function show(BusStand $busStand)
+    public function show(Request $request)
     {
-        //
+        $routes = Route::where('id', $request->route('id'))->first();
+        $routeMaps = RouteMap::select('latitude', 'longitude')
+            ->where('route_id', $request->route('id'))
+            ->orderby('sequence')
+            ->get();
+        $busStand = BusStand::select('latitude', 'longitude','radius')
+            ->where('route_id', $request->route('id'))
+            ->orderby('sequence')
+            ->get();
+        return view('settings.viewBusStand', compact('routes','routeMaps','busStand'));
     }
 
     /**

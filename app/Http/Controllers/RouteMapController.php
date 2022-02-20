@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Models\RouteMap;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -41,22 +42,25 @@ class RouteMapController extends Controller
     public function store(Request $request): JsonResponse
     {
         $out = new ConsoleOutput();
-        $routeMaps = $request->all();
-        $out->writeln($routeMaps);
+        $routeMaps = $request->markers;
+
         try{
-            foreach($routeMaps as $routeMap)
-            {
+            foreach($routeMaps as $key => $value){
+                /*$out->writeln($value['lat']);
+                $out->writeln(round($value['lat'],10));
+                $out->writeln($value['long']);
+                $out->writeln(round($value['long'],10));
+                $out->writeln($value['sequence']);
+                $out->writeln($value['route_id']);*/
+
                 $newMap = new RouteMap();
-                $newMap->longitude = $routeMap['lng'];
-                $newMap->latitute = $routeMap['lat'];
-                $newMap->sequence = $routeMap['sequence'];
-                $newMap->route_id = $routeMap['route_id'];
+                $newMap->longitude = round($value['long'],10);
+                $newMap->latitude = round($value['lat'],10);
+                $newMap->sequence = $value['sequence'];
+                $newMap->route_id = $value['route_id'];
                 $newMap->save();
             }
-
-            $log['current_route_map'] = $newMap;
-
-            return $this->returnResponse(1, $log, "Route Map Successfully Stored");
+            return $this->returnResponse(1, "Route Map Successfully Stored", "Route Map Successfully Stored");
         }
         catch(\Exception $e){
             $out->writeln($e);
@@ -69,11 +73,16 @@ class RouteMapController extends Controller
      * Display the specified resource.
      *
      * @param  \App\Models\RouteMap  $routeMap
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function show(RouteMap $routeMap)
+    public function show(Request $request)
     {
-        //
+        $route = Route::where('id', $request->route('id'))->first();
+        $routeMaps = RouteMap::select('latitude', 'longitude')
+            ->where('route_id', $request->route('id'))
+            ->orderby('sequence')
+            ->get();
+        return view('settings.viewRouteMap', compact('route','routeMaps'));
     }
 
     /**
