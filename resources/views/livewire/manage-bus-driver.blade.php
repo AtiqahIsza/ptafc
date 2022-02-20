@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Bus Drivers</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Bus Driver
         </button>

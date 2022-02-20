@@ -44,6 +44,8 @@
                     <i class="fa fa-plus-circle mr-1 fa-fw"></i>
                     Add Bus Stand
                 </button>
+                @else
+                    <span style="float:right; color: red">**Add Route Map first**</span>
                 @endif
                 @if($removeBtn)
                     <button onclick="window.location='{{ route('viewBusStand', $selectedRoute) }}'" class="buttonAdd-map btn btn-success d-inline-flex align-items-center me-2">

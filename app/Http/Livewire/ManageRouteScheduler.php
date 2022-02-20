@@ -19,6 +19,8 @@ class ManageRouteScheduler extends Component
     public $routes;
     public $schedule;
     public $startDate;
+    public $selectedId;
+    public $removedId;
     public $state=[];
 
 
@@ -41,37 +43,6 @@ class ManageRouteScheduler extends Component
         $this->dispatchBrowserEvent('add-form');
     }
 
-    public function modalView($id)
-    {
-        $this->state = [];
-        $schedule = RouteSchedule::where('id', $id)->first();
-        $this->schedule = $schedule;
-        $this->state = $schedule->toArray();
-        $this->dispatchBrowserEvent('view-modal');
-    }
-
-    public function updateSchedule()
-    {
-        $validatedData = Validator::make($this->state, [
-            'title'=> ['required', 'string', 'max:255'],
-            'sequence'=> ['required', 'int'],
-            'time'=> ['required', 'date_format:H:i'],
-            'start'=> ['required', 'date_format:Y-m-d'],
-            'inbus_id'=> ['required', 'int'],
-            'outbus_id'=> ['required', 'int'],
-            'route_id'=> ['required', 'int'],
-        ])->validate();
-
-        $this->schedule->update($validatedData);
-
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route updated successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
-        //$this->emit('hide-form');
-        //session()->flash('message', 'Sector successfully updated!');
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
-    }
-
     //ADD NEW DB FOR THIS (route_schedule)
     public function addScheduleRoute()
     {
@@ -90,7 +61,7 @@ class ManageRouteScheduler extends Component
         $validatedData['start'] = $this->startDate;
 
         $out->writeln($validatedData['title']);
-        $out->writeln($validatedData['schedule_date']);
+        $out->writeln($validatedData['start']);
         $out->writeln($validatedData['sequence']);
         $out->writeln($validatedData['time']);
         $out->writeln($validatedData['inbus_id']);
@@ -122,28 +93,77 @@ class ManageRouteScheduler extends Component
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
     }
 
-    public function getevent()
+    public function modalView($id)
+    {
+        $this->state = [];
+        $schedule = RouteSchedule::where('id', $id)->first();
+        $this->selectedId = $id;
+        $this->schedule = $schedule;
+        $this->state = $schedule->toArray();
+        $this->dispatchBrowserEvent('view-modal');
+    }
+
+    public function updateSchedule()
+    {
+        $validatedData = Validator::make($this->state, [
+            'title'=> ['required', 'string', 'max:255'],
+            'sequence'=> ['required', 'int'],
+            'time'=> ['required', 'date_format:H:i'],
+            'start'=> ['required', 'date_format:Y-m-d'],
+            'inbus_id'=> ['required', 'int'],
+            'outbus_id'=> ['required', 'int'],
+            'route_id'=> ['required', 'int'],
+        ])->validate();
+
+        $result = RouteSchedule::find($this->selectedId);
+        $result->update($validatedData);
+
+        //$this->schedule::update($validatedData);
+
+        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule updated successfully!']);
+
+        //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
+        //$this->emit('hide-form');
+        //session()->flash('message', 'Sector successfully updated!');
+        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
+    }
+
+    public function confirmRemoval($id)
+    {
+        $this->removedId = $id;
+        $this->dispatchBrowserEvent('show-delete-modal');
+    }
+
+    public function removeRouteSchedule()
+    {
+        $schedule = RouteSchedule::findOrFail($this->removedId);
+        $schedule->delete();
+
+        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule removed successfully!']);
+    }
+
+    /*public function getevent()
     {
         $events = BusSchedulerDetail::all();
         return  json_encode($events);
-    }
+    }*/
 
-    public function addevent($event)
+    /*public function addevent($event)
     {
         $input['route_id'] = $event['title'];
         $input['start'] = $event['start'];
         Event::create($input);
-    }
+    }*/
 
     /**
      * Write code on Method
      *
      * @return response()
      */
-    public function eventDrop($event, $oldEvent)
+    /*public function eventDrop($event, $oldEvent)
     {
         $eventdata = Event::find($event['id']);
         $eventdata->start = $event['start'];
         $eventdata->save();
-    }
+    }*/
 }

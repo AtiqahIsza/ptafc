@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Stages</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Stage
         </button>

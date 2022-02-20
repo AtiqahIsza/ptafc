@@ -72,7 +72,7 @@
                         <tr>
                             <td>
                                 <div class="d-block mb-md-0" style="position: relative">
-                                    <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-primary">
+                                    <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-primary">Save</button>
                                     <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                                 </div>
                             </td>
