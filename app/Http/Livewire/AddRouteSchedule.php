@@ -16,12 +16,21 @@ class AddRouteSchedule extends Component
     public $routes;
     public $buses;
     public $state = [];
+    public $selectedRoute;
 
     public function render()
     {
         $this->routes=Route::all();
         $this->buses=Bus::all();
         return view('livewire.add-route-schedule');
+    }
+
+    public function updatedSelectedRoute($route)
+    {
+        if (!is_null($route)) {
+            $this->selectedRoute=$route;
+            $this->buses = Bus::where('route_id', $route)->get();
+        }
     }
 
     public function addRouteSchedule()
@@ -31,7 +40,6 @@ class AddRouteSchedule extends Component
 
         $validatedData = Validator::make($this->state, [
             'schedule_time'=> ['required', 'date_format:H:i'],
-            'route_id'=> ['required', 'int'],
             'inbound_distance'=> ['required', 'between:0,99.99'],
             'outbound_distance'=> ['required', 'between:0,99.99'],
             'inbound_bus_id'=> ['required', 'int'],
@@ -40,6 +48,9 @@ class AddRouteSchedule extends Component
             'trip_type'=> ['required', 'int'],
         ])->validate();
 
+        $validatedData['route_id'] = $this->selectedRoute;
+
+        $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['schedule_time']);
         $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['inbound_distance']);

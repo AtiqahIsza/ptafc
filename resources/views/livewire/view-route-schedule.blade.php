@@ -22,8 +22,8 @@
                 <td><span class="fw-normal">{{ $schedule->route->route_name }}</span></td>
                 <td><span class="fw-normal">{{ $schedule->inbound_distance }}</span></td>
                 <td><span class="fw-normal">{{ $schedule->outbound_distance }}</span></td>
-                <td><span class="fw-normal">123{{--{{ $schedule->bus->bus_registration_number}}--}}</span></td>
-                <td><span class="fw-normal">123{{--{{ $schedule->bus->bus_registration_number}}--}}</span></td>
+                <td><span class="fw-normal">{{ $schedule->inbus->bus_registration_number}}</span></td>
+                <td><span class="fw-normal">{{ $schedule->outbus->bus_registration_number}}</span></td>
                 @if($schedule->trip_type==1)
                     <td><span class="fw-normal">WEEKDAY</span></td>
                 @else

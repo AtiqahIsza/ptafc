@@ -26,11 +26,11 @@ class RouteSchedulerMSTR extends Model
         return $this->belongsTo(Route::class, 'route_id', 'id');
     }
 
-    function Inbus() {
+    function inbus() {
         return $this->belongsTo(Bus::class, 'inbound_bus_id', 'id');
     }
 
-    function Outbus() {
+    function outbus() {
         return $this->belongsTo(Bus::class, 'outbound_bus_id', 'id');
     }
 }

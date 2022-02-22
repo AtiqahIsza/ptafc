@@ -21,7 +21,7 @@ class CreateBusTable extends Migration
             $table->unsignedBigInteger('route_id')->nullable()->index('FK17E8087F2551F');
             $table->unsignedBigInteger('sector_id')->nullable()->index('FK17E80EDF4A172');
             $table->string('bus_type')->nullable();
-            $table->dateTime('bus_manfacturing_date')->nullable();
+            $table->dateTime('bus_manufacturing_date')->nullable();
             $table->string('mac_address')->nullable();
             $table->string('bus_age')->nullable();
             $table->unsignedBigInteger('bus_type_id')->nullable()->index('FK17E8097E7CEA9');

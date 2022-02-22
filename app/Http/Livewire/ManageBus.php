@@ -7,6 +7,7 @@ use App\Models\BusType;
 use App\Models\Company;
 use App\Models\Route;
 use App\Models\Sector;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -23,6 +24,7 @@ class ManageBus extends Component
     public $selectedCompany = NULL;
     public $showEditModal = false;
     public $sectorId = 0;
+    public $manufacturing_date;
 
     public function mount()
     {
@@ -67,7 +69,7 @@ class ManageBus extends Component
             'company_id' => ['required', 'int'],
             'sector_id' => ['required', 'int'],
             'route_id' => ['required', 'int'],
-            'bus_age' => ['required', 'string', 'max:255'],
+            'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
             'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
@@ -97,10 +99,12 @@ class ManageBus extends Component
             'company_id' => ['required', 'int'],
             'sector_id' => ['required', 'int'],
             'route_id' => ['required', 'int'],
-            'bus_age' => ['required', 'string', 'max:255'],
+            'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
             'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
+
+
 
         Bus::create($validatedData);
 

@@ -16,7 +16,7 @@
             <th class="border-gray-200">{{ __('Route Name') }}</th>
             <td>
                 <label for="route_id">
-                    <select wire:model.defer="state.route_id" class="form-select border-gray-300" style="width:100%" autofocus required>
+                    <select wire:model="selectedRoute" class="form-select border-gray-300" style="width:100%" autofocus required>
                         <option value="">Choose Route</option>
                         @foreach($routes as $route)
                             <option value="{{$route->id}}">{{$route->route_name}}</option>
@@ -40,6 +40,7 @@
                 <input wire:model.defer="state.outbound_distance" id="outDistance" class="form-control border-gray-300" placeholder="{{ __('Outbound Distance in KM') }}" autofocus required>
             </td>
         </tr>
+        @if (!is_null($selectedRoute))
         <tr>
             <th class="border-gray-200">{{ __('Inbound Bus') }}</th>
             <td>
@@ -71,6 +72,7 @@
                 @endif
             </td>
         </tr>
+        @endif
         <tr>
             <th class="border-gray-200">{{ __('Trip Type') }}</th>
             <td>

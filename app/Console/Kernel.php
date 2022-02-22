@@ -2,8 +2,11 @@
 
 namespace App\Console;
 
+use App\Models\RouteSchedulerMSTR;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Kernel extends ConsoleKernel
 {
@@ -16,6 +19,14 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
+        $schedule->command('routeschedule:dailt')->dailyAt('00:00');
+
+        /**
+         * 2 option to run:
+         * 1. 0 0 * * * cd /var/www/your-project && php artisan schedule:run >> /dev/null 2>&1
+         * 2. cd /var/www/your-project && php artisan routeschedule:weekly >> /dev/null 2>&1
+         *
+         */
     }
 
     /**

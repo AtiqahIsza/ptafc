@@ -21,7 +21,7 @@ class Bus extends Model
         'route_id',
         'bus_type_id',
         'mac_address',
-        'bus_age',
+        'bus_manufacturing_date',
     ];
 
     function BusType() {
