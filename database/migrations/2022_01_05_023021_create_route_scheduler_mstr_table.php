@@ -15,16 +15,18 @@ class CreateBusSchedulerMstrTable extends Migration
     {
         Schema::create('bus_scheduler_mstr', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('schedule_date')->nullable();
-            $table->integer('no_of_kilometers')->nullable();
-            $table->integer('no_of_trips')->nullable();
+            $table->dateTime('schedule_time')->nullable();
             $table->unsignedBigInteger('route_id')->nullable()->index('FK5E29F4787F2551F');
+            $table->unsignedBigInteger('inbound_bus_id')->nullable()->index('FK_bus_scheduler_mstr_bus');
+            $table->unsignedBigInteger('outbound_bus_id')->nullable()->index('FK_bus_scheduler_mstr_bus_2');
             $table->decimal('inbound_distance')->nullable()->default(0);
             $table->decimal('outbound_distance')->nullable()->default(0);
             $table->integer('status')->nullable();
             $table->integer('trip_type')->default(0);
 
             $table->foreign(['route_id'], 'FK5E29F4787F2551F')->references(['id'])->on('route')->onDelete('cascade');
+            $table->foreign(['inbound_bus_id'], 'FK_bus_scheduler_mstr_bus')->references(['id'])->on('bus')->onDelete('cascade');
+            $table->foreign(['outbound_bus_id'], 'FK_bus_scheduler_mstr_bus_2')->references(['id'])->on('bus')->onDelete('cascade');
         });
     }
 

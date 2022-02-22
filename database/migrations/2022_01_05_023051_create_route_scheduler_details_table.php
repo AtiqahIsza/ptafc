@@ -15,15 +15,10 @@ class CreateRouteSchedulerDetailsTable extends Migration
     {
         Schema::create('route_scheduler_details', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('from_stage_time')->nullable();
-            $table->dateTime('to_stage_timestamp')->nullable();
-            $table->unsignedBigInteger('fromstage_stage_id')->nullable()->index('FK11BC6A4884E9EE14');
-            $table->unsignedBigInteger('route_id')->nullable()->index('FK11BC6A4887F2551F');
-            $table->unsignedBigInteger('tostage_stage_id')->nullable()->index('FK11BC6A4862B52325');
+            $table->dateTime('schedule_date')->nullable();
+            $table->unsignedBigInteger('route_scheduler_mstr_id')->nullable()->index('FK_route_scheduler_details_route_scheduler_mstr');
 
-            $table->foreign(['route_id'], 'FK11BC6A4887F2551F')->references(['id'])->on('route')->onDelete('cascade');
-            $table->foreign(['fromstage_stage_id'], 'FK11BC6A4884E9EE14')->references(['id'])->on('stage')->onDelete('cascade');
-            $table->foreign(['tostage_stage_id'], 'FK11BC6A4862B52325')->references(['id'])->on('stage')->onDelete('cascade');
+            $table->foreign(['route_scheduler_mstr_id'], 'FK_route_scheduler_details_route_scheduler_mstr')->references(['id'])->on('route_scheduler_mstr')->onDelete('cascade');
         });
     }
 

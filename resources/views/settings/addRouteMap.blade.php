@@ -109,10 +109,12 @@
                 type: 'POST',
                 data: {markers : markers},
                 success: function (response) {
-                    console.log(response);
+                    if(response) {
+                        window.location = response.payload;
+                    }
                 },
                 error: function (response) {
-                    console.log("Error " + response);
+                    //console.log("Error " + response);
                 }
             })
         }

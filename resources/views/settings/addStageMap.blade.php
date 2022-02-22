@@ -101,14 +101,14 @@
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                url: "{{ route('storeRouteMap') }}",
+                url: "{{ route('storeStageMap') }}",
                 type: 'POST',
                 data: {markers : markers},
                 success: function (response) {
-                    console.log(response);
+                    //console.log(response);
                 },
                 error: function (response) {
-                    console.log("Error " + response);
+                    //console.log("Error " + response);
                 }
             })
         }

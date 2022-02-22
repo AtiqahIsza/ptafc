@@ -64,7 +64,7 @@
                         <tr>
                             <td colspan="4">
                                 <div class="d-block mb-md-0" style="position: relative">
-                                    <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
+                                    <input type="button" onclick="window.location='{{route("manageRoute")}}'"{{--onclick="window.history.back()"--}} class="btn btn-warning" value="Back">
                                 </div>
                             </td>
                         </tr>

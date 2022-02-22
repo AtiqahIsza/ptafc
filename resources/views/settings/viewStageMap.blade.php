@@ -18,8 +18,8 @@
             }
 
             map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 1,
-                center: coords, // Center the map on Malaysia.
+                zoom: 7,
+                center: { lat: 3.140853, lng: 101.693207 }, // Center the map on Malaysia.
             });
 
             const stageMaps = new google.maps.Polygon({

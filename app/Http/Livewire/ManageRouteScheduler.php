@@ -2,11 +2,15 @@
 
 namespace App\Http\Livewire;
 
+use App\Models\RegionCode;
+use App\Models\RouteSchedulerMSTR;
+use App\Models\Sector;
 use Carbon\Carbon;
 use App\Models\Bus;
 use App\Models\BusSchedulerDetail;
 use App\Models\Route;
 use App\Models\RouteSchedule;
+use App\Models\Company;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -14,25 +18,72 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 class ManageRouteScheduler extends Component
 {
-    public $events = '';
-    public $buses;
+    public $companies;
+    public $regions;
     public $routes;
-    public $schedule;
-    public $startDate;
-    public $selectedId;
-    public $removedId;
-    public $state=[];
+    public $sectors;
+    public $schedules;
 
+    public $selectedRegion;
+    public $selectedCompany;
+    public $selectedSector;
+    public $selectedRoute;
+
+    public $addNewButton = false;
 
     public function render()
     {
-        $this->buses = Bus::all();
+        $this->regions = RegionCode::all();
+        $this->sectors = Sector::all();
+        $this->companies = Company::all();
         $this->routes = Route::all();
-        $this->schedule = RouteSchedule::all();
-        //$events = Event::select('id','title','start')->get();
-        $events = RouteSchedule::select('id','title','start')->get();
-        $this->events = json_encode($events);
+
         return view('livewire.manage-route-scheduler');
+    }
+
+    public function mount()
+    {
+        $this->sectors = collect();
+        $this->companies = collect();
+        $this->routes = collect();
+        $this->regions = collect();
+        $this->schedule = collect();
+    }
+
+    public function updatedSelectedRegion($region)
+    {
+        if (!is_null($region)) {
+            $this->selectedRegion=$region;
+            $this->companies = Company::where('region_id', $region)->get();
+        }
+    }
+
+    public function updatedSelectedCompany($company)
+    {
+        if (!is_null($company)) {
+            $this->selectedCompany=$company;
+            $this->sectors = Sector::where('company_id', $company)->get();
+        }
+    }
+
+    public function updatedSelectedSector($sector)
+    {
+        if (!is_null($sector)) {
+            $this->selectedSector=$sector;
+            $this->routes = Route::where('sector_id', $sector)->get();
+        }
+    }
+
+    public function updatedSelectedRoute($route)
+    {
+        if (!is_null($route)) {
+            $this->selectedRoute=$route;
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $route)->get();
+        }
+    }
+
+    public function addNew(){
+        $this->addNewButton = true;
     }
 
     public function modalAdd($startDate)
@@ -41,66 +92,6 @@ class ManageRouteScheduler extends Component
         $this->buses = Bus::all();
         $this->routes = Route::all();
         $this->dispatchBrowserEvent('add-form');
-    }
-
-    //ADD NEW DB FOR THIS (route_schedule)
-    public function addScheduleRoute()
-    {
-        $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN HERE");
-
-        $validatedData = Validator::make($this->state, [
-            'title'=> ['required', 'string', 'max:255'],
-            'sequence'=> ['required', 'int'],
-            'time'=> ['required', 'date_format:H:i'],
-            'inbus_id'=> ['required', 'int'],
-            'outbus_id'=> ['required', 'int'],
-            'route_id'=> ['required', 'int'],
-        ])->validate();
-
-        $validatedData['start'] = $this->startDate;
-
-        $out->writeln($validatedData['title']);
-        $out->writeln($validatedData['start']);
-        $out->writeln($validatedData['sequence']);
-        $out->writeln($validatedData['time']);
-        $out->writeln($validatedData['inbus_id']);
-        $out->writeln($validatedData['outbus_id']);
-        $out->writeln($validatedData['route_id']);
-
-        /*$input  = $validatedData['schedule_date'];
-        $out->writeln($input);
-        $format = 'd-m-Y';
-        $date = Carbon::parse($this->startDate);
-        $out->writeln($date);*/
-
-        //check existed sequence on route_id and startDate
-        $existedSeq = RouteSchedule::where([
-            ['start',  $validatedData['start']],
-            ['route_id', $validatedData['route_id']],
-            ['sequence',$validatedData['sequence']]
-        ])->first();
-
-        if($existedSeq){
-            return Redirect::back()->with(['message' => 'Existed sequence for this route on selected date!']);
-        }
-
-        RouteSchedule::create($validatedData);
-
-        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule added successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Sector added successfully!']);
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
-    }
-
-    public function modalView($id)
-    {
-        $this->state = [];
-        $schedule = RouteSchedule::where('id', $id)->first();
-        $this->selectedId = $id;
-        $this->schedule = $schedule;
-        $this->state = $schedule->toArray();
-        $this->dispatchBrowserEvent('view-modal');
     }
 
     public function updateSchedule()
@@ -141,29 +132,4 @@ class ManageRouteScheduler extends Component
 
         return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule removed successfully!']);
     }
-
-    /*public function getevent()
-    {
-        $events = BusSchedulerDetail::all();
-        return  json_encode($events);
-    }*/
-
-    /*public function addevent($event)
-    {
-        $input['route_id'] = $event['title'];
-        $input['start'] = $event['start'];
-        Event::create($input);
-    }*/
-
-    /**
-     * Write code on Method
-     *
-     * @return response()
-     */
-    /*public function eventDrop($event, $oldEvent)
-    {
-        $eventdata = Event::find($event['id']);
-        $eventdata->start = $event['start'];
-        $eventdata->save();
-    }*/
 }
