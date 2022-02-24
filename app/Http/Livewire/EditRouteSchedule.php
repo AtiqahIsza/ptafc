@@ -4,45 +4,34 @@ namespace App\Http\Livewire;
 
 use App\Models\Bus;
 use App\Models\Route;
-use App\Models\RouteSchedule;
 use App\Models\RouteSchedulerMSTR;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
-class AddRouteSchedule extends Component
+class EditRouteSchedule extends Component
 {
+    public $editSchedules;
     public $routes;
     public $buses;
-    public $state = [];
-    public $selectedRoute;
+    public $state;
 
     public function render()
     {
-        return view('livewire.add-route-schedule');
+        $this->routes = Route::all();
+        $this->buses = Bus::all();
+        //dd($this->state);
+        return view('livewire.edit-route-schedule');
     }
 
-    public function mount(){
-        $this->routes=Route::all();
-        $this->buses=collect();
-    }
-
-    public function updatedSelectedRoute($route)
-    {
-        if (!is_null($route)) {
-            $this->selectedRoute=$route;
-            $this->buses = Bus::where('route_id', $route)->get();
-        }
-    }
-
-    public function addRouteSchedule()
+    public function editRouteSchedule()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN HERE");
 
         $validatedData = Validator::make($this->state, [
             'schedule_time'=> ['required', 'date_format:H:i'],
+            'route_id'=> ['required', 'int'],
             'inbound_distance'=> ['required', 'between:0,99.99'],
             'outbound_distance'=> ['required', 'between:0,99.99'],
             'inbound_bus_id'=> ['required', 'int'],
@@ -51,9 +40,6 @@ class AddRouteSchedule extends Component
             'trip_type'=> ['required', 'int'],
         ])->validate();
 
-        $validatedData['route_id'] = $this->selectedRoute;
-
-        $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['schedule_time']);
         $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['inbound_distance']);
@@ -65,6 +51,6 @@ class AddRouteSchedule extends Component
 
         RouteSchedulerMSTR::create($validatedData);
 
-        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule added successfully!']);
+        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule updated successfully!']);
     }
 }

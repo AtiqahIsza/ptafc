@@ -224,44 +224,26 @@
             </div>
         </div>
     </div>
-    <!-- End of Edit User Modal Content -->
+    <!-- End of Edit Company Modal Content -->
 
-    <!-- Remove User Modal -->
+    <!-- Remove Company Modal -->
     <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5>Remove User</h5>
+                    <h5>Remove Company</h5>
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this user?</h4>
+                    <h4>Are you sure you want to remove this company?</h4>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times mr-1"></i> Cancel</button>
-                    <button type="button" wire:click.prevent="removeUser" class="btn btn-danger"><i class="fa fa-trash mr-1"></i>Remove User</button>
+                    <button type="button" wire:click.prevent="removeCompany" class="btn btn-danger"><i class="fa fa-trash mr-1"></i>Remove Company</button>
                 </div>
             </div>
         </div>
     </div>
     <!-- End of Remove User Modal Content -->
 </div>
-@section('script')
-    <script>
-        window.addEventListener('show-form', event => {
-            $('#modalEdit').modal('show');
-        });
-        window.addEventListener('hide-form', event => {
-            $('#modalEdit').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
-        });
-        window.addEventListener('show-delete-form', event => {
-            $('#confirmationModal').modal('show');
-        });
-        window.addEventListener('hide-delete-modal', event => {
-            $('#confirmationModal').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
-        })
-    </script>
-@endsection

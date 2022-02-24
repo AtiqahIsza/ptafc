@@ -106,7 +106,7 @@ class ManageCompany extends Component
         $this->dispatchBrowserEvent('show-delete-modal');
     }
 
-    public function removeUser()
+    public function removeCompany()
     {
         $company = Company::findOrFail($this->removedCompanyId);
         $company ->delete();

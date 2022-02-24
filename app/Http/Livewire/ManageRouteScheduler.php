@@ -24,36 +24,34 @@ class ManageRouteScheduler extends Component
     public $sectors;
     public $schedules;
 
-    public $selectedRegion;
-    public $selectedCompany;
-    public $selectedSector;
-    public $selectedRoute;
+    public $selectedRegion = NULL;
+    public $selectedCompany = NULL;
+    public $selectedSector = NULL;
+    public $selectedRoute = NULL;
 
     public $addNewButton = false;
 
+    public $removedId;
+    public $removedSchedule;
+
     public function render()
     {
-        $this->regions = RegionCode::all();
-        $this->sectors = Sector::all();
-        $this->companies = Company::all();
-        $this->routes = Route::all();
-
         return view('livewire.manage-route-scheduler');
     }
 
     public function mount()
     {
+        $this->regions = RegionCode::all();
         $this->sectors = collect();
         $this->companies = collect();
         $this->routes = collect();
-        $this->regions = collect();
-        $this->schedule = collect();
+        $this->schedules = collect();
     }
 
     public function updatedSelectedRegion($region)
     {
         if (!is_null($region)) {
-            $this->selectedRegion=$region;
+            $this->selectedRegion = $region;
             $this->companies = Company::where('region_id', $region)->get();
         }
     }
@@ -61,7 +59,7 @@ class ManageRouteScheduler extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->selectedCompany=$company;
+            $this->selectedCompany = $company;
             $this->sectors = Sector::where('company_id', $company)->get();
         }
     }
@@ -69,7 +67,7 @@ class ManageRouteScheduler extends Component
     public function updatedSelectedSector($sector)
     {
         if (!is_null($sector)) {
-            $this->selectedSector=$sector;
+            $this->selectedSector = $sector;
             $this->routes = Route::where('sector_id', $sector)->get();
         }
     }
@@ -77,59 +75,13 @@ class ManageRouteScheduler extends Component
     public function updatedSelectedRoute($route)
     {
         if (!is_null($route)) {
-            $this->selectedRoute=$route;
+            //$this->selectedRoute = $route;
             $this->schedules = RouteSchedulerMSTR::where('route_id', $route)->get();
         }
     }
 
-    public function addNew(){
+    public function addNew()
+    {
         $this->addNewButton = true;
-    }
-
-    public function modalAdd($startDate)
-    {
-        $this->startDate = $startDate;
-        $this->buses = Bus::all();
-        $this->routes = Route::all();
-        $this->dispatchBrowserEvent('add-form');
-    }
-
-    public function updateSchedule()
-    {
-        $validatedData = Validator::make($this->state, [
-            'title'=> ['required', 'string', 'max:255'],
-            'sequence'=> ['required', 'int'],
-            'time'=> ['required', 'date_format:H:i'],
-            'start'=> ['required', 'date_format:Y-m-d'],
-            'inbus_id'=> ['required', 'int'],
-            'outbus_id'=> ['required', 'int'],
-            'route_id'=> ['required', 'int'],
-        ])->validate();
-
-        $result = RouteSchedule::find($this->selectedId);
-        $result->update($validatedData);
-
-        //$this->schedule::update($validatedData);
-
-        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule updated successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
-        //$this->emit('hide-form');
-        //session()->flash('message', 'Sector successfully updated!');
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
-    }
-
-    public function confirmRemoval($id)
-    {
-        $this->removedId = $id;
-        $this->dispatchBrowserEvent('show-delete-modal');
-    }
-
-    public function removeRouteSchedule()
-    {
-        $schedule = RouteSchedule::findOrFail($this->removedId);
-        $schedule->delete();
-
-        return redirect()->to('/settings/manageScheduler')->with(['message' => 'Route Schedule removed successfully!']);
     }
 }

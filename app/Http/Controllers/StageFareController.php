@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Stage;
 use App\Models\StageFare;
 use Illuminate\Http\Request;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class StageFareController extends Controller
 {
@@ -81,9 +82,8 @@ class StageFareController extends Controller
             'routeId'=> ['required', 'string', 'max:255'],
             'fareType'=> ['required', 'string', 'max:255'],
         ])->validate();
-        
+
         foreach ($validatedData['fare'] as $i => $validatedData['fare']) {
-        
             $existedFare = StageFare::where([
                 ['route_id', $validatedData['routeId']],
                 ['fromstage_stage_id', $validatedData['fromStage'][$i]],
@@ -104,7 +104,7 @@ class StageFareController extends Controller
                     ->where('fromstage_stage_id', $validatedData['fromStage'][$i])
                     ->update(['consession_fare' => $validatedData['fare']]);
                 }
-                
+
                 // if($updateFare){
                 //     return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare updated successfully!']);
                 // }
@@ -126,13 +126,13 @@ class StageFareController extends Controller
                         'tostage_stage_id' => $validatedData['toStage'][$i],
                     ]);
                 }
-                
+
                 // if($createFare){
                 //     return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare created successfully!']);
                 // }
             }
-        } 
-        return redirect()->to('/settings/managestagefare')->with(['message' => 'Stage fare created successfully!']);
+        }
+        return redirect()->to('/settings/manageStageFare')->with(['message' => 'Stage fare created successfully!']);
     }
 
     /**

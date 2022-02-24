@@ -48,7 +48,7 @@
                                     <th class="border-gray-200">{{ __('Order') }}</th>
                                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
                                     @foreach($stages as $stage)
-                                        <th class="border-gray-200">{{ $stage->stage_name}}</th>
+                                        <th class="border-gray-200">{{ $stage->stage_name }}</th>
                                     @endforeach
                                 </tr>
                                 </thead>
@@ -79,13 +79,13 @@
                                                 @if($result)
                                                     <td>
                                                         <label>
-                                                            <input name="fare[]" class="update form-control border-gray-300" type="text" value="{{ $result }}">
+                                                            <input name="fare[]" class="update form-control border-gray-300" type="text" value="{{ $result }}" required>
                                                             @if ($errors->has('fare'))
                                                                 <span class="text-danger">{{ $errors->first('fare') }}</span>
                                                             @endif
                                                         </label>
-                                                        <input name="toStage[]" type="hidden" value="{{ $toStage->id }}">
-                                                        <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}">
+                                                        <input name="toStage[]" type="hidden" value="{{ $toStage->id }}" required>
+                                                        <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}" required>
                                                     </td>
                                                 @else
                                                     <td>
@@ -110,6 +110,62 @@
 
                     <!-- Concession Fare Tab -->
                     <div class="tab-pane fade show {{ $fareTypes == 'Concession' ? 'active' : '' }}" id="nav-concession" role="tabpanel" aria-labelledby="nav-concession-tab">
+                        <div class="card card-body border-0 shadow table-wrapper table-responsive">
+                            <h2 class="mb-4 h5">{{ __('Add & View Stage Fares for Routes') }}</h2>
+
+                            <table id="adultFare" class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th class="border-gray-200">{{ __('Order') }}</th>
+                                    <th class="border-gray-200">{{ __('Stage Name') }}</th>
+                                    @foreach($stages as $stage)
+                                        <th class="border-gray-200">{{ $stage->stage_order }}</th>
+                                    @endforeach
+                                </tr>
+                                </thead>
+                                <tbody id="each-fare">
+
+                                    @foreach ($stageTo as $toStage)
+                                    <tr>
+                                        <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
+                                        <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
+                                        @for($i=0; $i<$toStage->stage_order; $i++)
+                                            @if( isset($stageFrom[$i]['id']))
+                                                @php
+                                                    $result = 0;
+                                                @endphp
+                                                @foreach ($stageFares as $stageFare)
+                                                    @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
+                                                        @php
+                                                            $result = $stageFare->consession_fare
+                                                        @endphp
+                                                    @endif
+                                                @endforeach
+                                                @if($result)
+                                                    <td>
+                                                        <span>{{$result}}</span>
+                                                    </td>
+                                                @else
+                                                    <td>
+                                                        <span>No Adult Fare</span>
+                                                    </td>
+                                                @endif
+                                            @endif
+                                        @endfor
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <!-- Button Modal -->
+                            <div class="d-block mb-md-0" style="position: relative">
+                                <button wire:click.prevent="modalDisc({{ $selectedRoute }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDiscount">Apply Discount</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End of Concession Fare Tab -->
+
+                    <!-- Concession Fare Tab -->
+                    {{--<div class="tab-pane fade show {{ $fareTypes == 'Concession' ? 'active' : '' }}" id="nav-concession" role="tabpanel" aria-labelledby="nav-concession-tab">
                         <div class="card card-body border-0 shadow table-wrapper table-responsive">
                             <h2 class="mb-4 h5">{{ __('Add & View Stage Fares for Routes') }}</h2>
 
@@ -180,7 +236,7 @@
                             <button wire:click.prevent="modalDisc({{ $selectedRoute }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDiscount">Apply Discount</button>
                             </form>
                         </div>
-                    </div>
+                    </div>--}}
                     <!-- End of Concession Fare Tab -->
 
                 </div>

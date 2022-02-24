@@ -19,6 +19,11 @@ class ManageBusDriver extends Component
     public $buses;
     public $state = [];
     public $selectedCompany = NULL;
+
+    public $selectedAddCompany = NULL;
+    public $selectedAddSector = NULL;
+    public $selectedAddRoute = NULL;
+
     //public $showEditModal = false;
 
     public function mount()
@@ -46,10 +51,32 @@ class ManageBusDriver extends Component
     public function addNew()
     {
         $this->reset();
-        $this->sectors = Sector::all();
-        $this->routes = Route::all();
-        $this->buses = Bus::all();
+        $this->companies = Company::all();
         $this->dispatchBrowserEvent('show-form');
+    }
+
+    public function updatedSelectedAddCompany($company)
+    {
+        if (!is_null($company)) {
+            $this->selectedAddCompany=$company;
+            $this->sectors = Sector::where('company_id', $company)->get();
+        }
+    }
+
+    public function updatedSelectedAddSector($sector)
+    {
+        if (!is_null($sector)) {
+            $this->selectedAddSector=$sector;
+            $this->routes = Route::where('sector_id', $sector)->get();
+        }
+    }
+
+    public function updatedSelectedAddRoute($route)
+    {
+        if (!is_null($route)) {
+            $this->selectedAddRoute=$route;
+            $this->buses = Bus::where('route_id', $route)->get();
+        }
     }
 
     public function createBusDriver()
@@ -65,12 +92,12 @@ class ManageBusDriver extends Component
             'target_collection' => ['required', 'between:0,99.99'],
             'driver_number' => ['required', 'string', 'max:255'],
             'driver_password' => ['required', 'string', 'min:8', 'confirmed'],
-            'company_id' => ['required', 'int'],
-            'sector_id' => ['required', 'int'],
-            'route_id' => ['required', 'int'],
             'bus_id' => ['required', 'int'],
         ])->validate();
 
+        $validatedData['company_id'] = $this->selectedAddCompany;
+        $validatedData['sector_id'] = $this->selectedAddSector;
+        $validatedData['route_id'] = $this->selectedAddRoute;
         $validatedData['driver_password'] = bcrypt($validatedData['driver_password']);
 
         BusDriver::create($validatedData);

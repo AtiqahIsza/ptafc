@@ -27,6 +27,8 @@
                     <th class="border-gray-200">{{ __('Driver Number') }}</th>
                     <th class="border-gray-200">{{ __('Driver Role') }}</th>
                     <th class="border-gray-200">{{ __('Hiring Company') }}</th>
+                    <th class="border-gray-200">{{ __('Bus Registration Number') }}</th>
+                    <th class="border-gray-200">{{ __('Route Name') }}</th>
                     {{--<th class="border-gray-200">{{ __('Active Card Manu. No.') }}</th>--}}
                     <th class="border-gray-200">{{ __('Status') }}</th>
                 </tr>
@@ -45,6 +47,8 @@
                             <td><span class="fw-normal">Administrator</span></td>
                         @endif
                         <td><span class="fw-normal">{{ $driver->company->company_name }}</span></td>
+                        <td><span class="fw-normal">{{ $driver->bus->bus_registration_number }}</span></td>
+                        <td><span class="fw-normal">{{ $driver->route->route_name }}</span></td>
                       {{--  <td><span class="fw-normal">{{ $driver->driverCard->manufacturing_id}}</span></td>--}}
                         @if($driver->status==1)
                             <td><span class="fw-normal">Active</span></td>
@@ -81,7 +85,7 @@
                         <div class="form-group mb-4">
                             <label for="name">Driver Name</label>
                             <div class="input-group">
-                                 <span class="input-group-text" id="basic-addon1">
+                                <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-user fa-fw"></i>
                                 </span>
                                 <input wire:model.defer="state.driver_name" class="form-control border-gray-300" id="name" placeholder="{{ __('Driver Name') }}" autofocus required>
@@ -105,7 +109,7 @@
                             </div>
                         </div>
                         <div class="form-group mb-4">
-                            <label for="idnum">Driver ID Number</label>
+                            <label for="id_number">Driver ID Number</label>
                             <div class="input-group">
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-123" viewBox="0 0 16 16">
@@ -113,8 +117,8 @@
                                     </svg>
                                 </span>
                                 <input wire:model.defer="state.id_number" class="form-control border-gray-300" id="idnum" placeholder="{{ __('Driver ID Number') }}" autofocus required>
-                                @if ($errors->has('idnum'))
-                                    <span class="text-danger">{{ $errors->first('idnum') }}</span>
+                                @if ($errors->has('id_number'))
+                                    <span class="text-danger">{{ $errors->first('id_number') }}</span>
                                 @endif
                             </div>
                         </div>
@@ -158,7 +162,6 @@
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <i class="fas fa-money-bill fa-fw"></i>
                                 </span>
-                                </span>
                                 <input wire:model.defer="state.target_collection" class="form-control border-gray-300" id="target" placeholder="{{ __('Target of Collection in RM') }}" autofocus required>
                                 @if ($errors->has('target'))
                                     <span class="text-danger">{{ $errors->first('target') }}</span>
@@ -168,10 +171,10 @@
                         <div class="form-group mb-4">
                             <label for="company">Company</label>
                             <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
+                                <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <i class="fas fa-building fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.company_id" id="company" class="form-select border-gray-300" autofocus required>
+                                <select wire:model="selectedAddCompany" id="company" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
                                     @foreach($companies as $company)
                                         <option value="{{$company->id}}">{{$company->company_name}}</option>
@@ -182,66 +185,71 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="form-group mb-4">
-                            <label for="sector">Sector</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                   <i class="fa fa-project-diagram"></i>
-                                </span>
-                                <select wire:model.defer="state.sector_id" id="sector" class="form-select border-gray-300" autofocus required>
-                                    <option value="">Choose Sector</option>
-                                    @foreach($sectors as $sector)
-                                        <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('sector'))
-                                    <span class="text-danger">{{ $errors->first('sector') }}</span>
-                                @endif
+                        @if (!is_null($selectedAddCompany))
+                            <div class="form-group mb-4">
+                                <label for="sector">Sector</label>
+                                <div class="input-group">
+                                    <span class="input-group-text border-gray-300" id="basic-addon3">
+                                       <i class="fa fa-project-diagram"></i>
+                                    </span>
+                                    <select wire:model="selectedAddSector" id="sector" class="form-select border-gray-300" autofocus required>
+                                        <option value="">Choose Sector</option>
+                                        @foreach($sectors as $sector)
+                                            <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
+                                        @endforeach
+                                    </select>
+                                    @if ($errors->has('sector'))
+                                        <span class="text-danger">{{ $errors->first('sector') }}</span>
+                                    @endif
+                                </div>
                             </div>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="route">Route</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
-                                        <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
-                                        <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
-                                    </svg>
-                                </span>
-                                <select wire:model.defer="state.route_id" id="route" class="form-select border-gray-300" autofocus required>
-                                    <option value="">Choose Route</option>
-                                    @foreach($routes as $route)
-                                        <option value="{{$route->id}}">{{$route->route_name}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('route'))
-                                    <span class="text-danger">{{ $errors->first('route') }}</span>
+                            @if (!is_null($selectedAddSector))
+                                <div class="form-group mb-4">
+                                    <label for="route">Route</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text border-gray-300" id="basic-addon3">
+                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
+                                                <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
+                                                <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
+                                             </svg>
+                                        </span>
+                                        <select wire:model="selectedAddRoute" id="route" class="form-select border-gray-300" autofocus required>
+                                            <option value="">Choose Route</option>
+                                            @foreach($routes as $route)
+                                                <option value="{{$route->id}}">{{$route->route_name}}</option>
+                                            @endforeach
+                                        </select>
+                                        @if ($errors->has('route'))
+                                            <span class="text-danger">{{ $errors->first('route') }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                @if (!is_null($selectedAddRoute))
+                                    <div class="form-group mb-4">
+                                        <label for="bus">Bus</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text border-gray-300" id="basic-addon3">
+                                                 <i class="fas fa-bus fa-fw"></i>
+                                            </span>
+                                            <select wire:model.defer="state.bus_id" id="bus" class="form-select border-gray-300" autofocus required>
+                                                <option value="">Choose Bus</option>
+                                                @foreach($buses as $bus)
+                                                    <option value="{{$bus->id}}">{{$bus->bus_registration_number}}</option>
+                                                @endforeach
+                                            </select>
+                                            @if ($errors->has('bus'))
+                                                <span class="text-danger">{{ $errors->first('bus') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
                                 @endif
-                            </div>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="bus">Bus</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                     <i class="fas fa-bus fa-fw"></i>
-                                </span>
-                                <select wire:model.defer="state.bus_id" id="bus" class="form-select border-gray-300" autofocus required>
-                                    <option value="">Choose Bus</option>
-                                    @foreach($buses as $bus)
-                                        <option value="{{$bus->id}}">{{$bus->bus_registration_number}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('bus'))
-                                    <span class="text-danger">{{ $errors->first('bus') }}</span>
-                                @endif
-                            </div>
-                        </div>
+                            @endif
+                        @endif
                         <div class="form-group mb-4">
                             <label for="driverNum">Driver Number (For PDA Login)</label>
                             <div class="input-group">
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <i class="fas fa-user fa-fw"></i>
-                                </span>
                                 </span>
                                 <input wire:model.defer="state.driver_number" class="form-control border-gray-300" id="driverNum" placeholder="{{ __('Driver Number (For PDA Login)') }}" autofocus required>
                                 @if ($errors->has('driverNum'))
@@ -257,7 +265,6 @@
                                         <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
                                     </svg>
                                 </span>
-                                </span>
                                 <input wire:model.defer="state.driver_password" type="password" class="form-control border-gray-300" id="driver_password" placeholder="{{ __('Password') }}" autofocus required>
                                 @if ($errors->has('driver_password'))
                                     <span class="text-danger">{{ $errors->first('driver_password') }}</span>
@@ -271,7 +278,6 @@
                                     <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
                                     </svg>
-                                </span>
                                 </span>
                                 <input wire:model.defer="state.driver_password_confirmation" type="password" class="form-control border-gray-300" id="driver_password_confirmation" placeholder="{{ __('Password Confirmation') }}" autofocus required>
                                 @if ($errors->has('driver_password_confirmation'))
