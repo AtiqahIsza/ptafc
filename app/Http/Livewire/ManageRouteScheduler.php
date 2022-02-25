@@ -34,6 +34,8 @@ class ManageRouteScheduler extends Component
     public $removedId;
     public $removedSchedule;
 
+    //protected $listeners = ['viewEvent' => 'viewEvent'];
+
     public function render()
     {
         return view('livewire.manage-route-scheduler');
@@ -76,12 +78,17 @@ class ManageRouteScheduler extends Component
     {
         if (!is_null($route)) {
             //$this->selectedRoute = $route;
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $route)->get();
+            //$this->schedules = RouteSchedulerMSTR::where('route_id', $route)->get();
+            $out = new ConsoleOutput();
+            $out->writeln("YOU ARE IN HERE - manage");
+            $this->emit('viewEvent', $route);
         }
+
     }
 
     public function addNew()
     {
+        $this->selectedRoute = NULL;
         $this->addNewButton = true;
     }
 }

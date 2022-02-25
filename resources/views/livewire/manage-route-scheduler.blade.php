@@ -21,7 +21,6 @@
                     <option value="{{$company->id}}">{{$company->company_name}}</option>
                 @endforeach
             </select>
-        @endif
 
             @if (!is_null($selectedCompany))
                 <select wire:model="selectedSector"  class="form-select fmxw-200 d-none d-md-inline">
@@ -30,9 +29,6 @@
                         <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
                     @endforeach
                 </select>
-            @endif
-
-
                 @if (!is_null($selectedSector))
                     <select wire:model="selectedRoute"  class="form-select fmxw-200 d-none d-md-inline">
                         <option value="">Choose Route</option>
@@ -40,19 +36,19 @@
                             <option value="{{$route->id}}">{{$route->route_name}}</option>
                         @endforeach
                     </select>
+                <br>
                 @endif
+            @endif
+        @endif
     </div>
 
-                @if (!is_null($selectedRoute) && !is_null($schedules))
-                    <br>
-                    @livewire('view-route-schedule', ['schedules' => $schedules])
-                @endif
-
+    @livewire('view-route-schedule')
 
     @if ($addNewButton)
         <br>
         @livewire('add-route-schedule')
     @endif
+    
     <div
         class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
         {{--{{ $users->links() }}--}}

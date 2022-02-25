@@ -53,7 +53,6 @@ class AddRouteSchedule extends Component
 
         $validatedData['route_id'] = $this->selectedRoute;
 
-        $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['schedule_time']);
         $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['inbound_distance']);
