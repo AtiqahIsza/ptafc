@@ -48,7 +48,7 @@
         <br>
         @livewire('add-route-schedule')
     @endif
-    
+
     <div
         class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
         {{--{{ $users->links() }}--}}

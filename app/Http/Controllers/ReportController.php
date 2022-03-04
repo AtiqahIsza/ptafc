@@ -82,4 +82,36 @@ class ReportController extends Controller
     {
         //
     }
+
+    public function viewSalesByBus()
+    {
+        return view('reports.salesByBus');
+    }
+
+    public function viewSalesByRoute()
+    {
+        return view('reports.salesByRoute');
+    }
+
+    public function viewSalesByDriver()
+    {
+        return view('reports.salesByDriver');
+    }
+
+    public function viewMonthlySummary()
+    {
+        return view('reports.monthlySummary');
+    }
+
+    public function viewDailySummary()
+    {
+        return view('reports.dailySummary');
+    }
+
+    public function viewReportSPAD()
+    {
+        return view('reports.reportSPAD');
+    }
+
+
 }

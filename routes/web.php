@@ -48,6 +48,15 @@ Route::get('/settings/manageBusStand', [\App\Http\Controllers\BusStandController
 Route::get('/settings/manageStageFare', [\App\Http\Controllers\StageFareController::class, 'index'])->name('manageStageFare');
 Route::get('/settings/manageScheduler', [\App\Http\Controllers\RouteSchedulerDetailController::class, 'index'])->name('manageScheduler');
 
+//Report
+Route::get('/report/salesByBus', [\App\Http\Controllers\ReportController::class, 'viewSalesByBus'])->name(' viewSalesByBus');
+Route::get('/report/salesByRoute', [\App\Http\Controllers\ReportController::class, 'viewSalesByRoute'])->name('viewSalesByRoute');
+Route::get('/report/salesByDriver', [\App\Http\Controllers\ReportController::class, 'viewSalesByDriver'])->name('viewSalesByDriver');
+Route::get('/report/monthlySummary', [\App\Http\Controllers\ReportController::class, 'viewMonthlySummary'])->name('viewMonthlySummary');
+Route::get('/report/dailySummary', [\App\Http\Controllers\ReportController::class, 'viewDailySummary'])->name('viewDailySummary');
+Route::get('/report/spad', [\App\Http\Controllers\ReportController::class, 'viewReportSPAD'])->name('viewReportSPAD');
+
+
 //PowerGrid
 //Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');
 
