@@ -3,7 +3,7 @@
         <h2>{{ __('Monthly Summary Report') }}</h2>
         <br>
         <!-- Form -->
-        <form wire:submit.prevent="{{ 'printMonthlySummary' }}">
+        <form wire:submit.prevent="{{ 'print' }}">
             @csrf
             <table class="table table-hover">
                 <tbody>

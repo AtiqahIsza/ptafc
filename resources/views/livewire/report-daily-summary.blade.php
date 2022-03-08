@@ -1,9 +1,9 @@
 <div class="main py-4">
     <div class="card card-body border-0 shadow table-wrapper table-responsive">
-        <h2>{{ __('Monthly Summary Report') }}</h2>
+        <h2>{{ __('Daily Summary Report') }}</h2>
         <br>
         <!-- Form -->
-        <form wire:submit.prevent="{{ 'printMonthlySummary' }}">
+        <form wire:submit.prevent="{{ 'print' }}">
             @csrf
             <table class="table table-hover">
                 <tbody>

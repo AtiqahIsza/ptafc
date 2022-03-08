@@ -3,7 +3,7 @@
         <h2>{{ __('Sales Report By Route') }}</h2>
         <br>
         <!-- Form -->
-        <form wire:submit.prevent="{{ 'printDetails' }}">
+        <form wire:submit.prevent="{{ 'print' }}">
             @csrf
             <table class="table table-hover">
                 <tbody>

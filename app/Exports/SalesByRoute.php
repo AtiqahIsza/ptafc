@@ -2,43 +2,59 @@
 
 namespace App\Exports;
 
+use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SalesByRoute implements FromArray,ShouldAutoSize, WithHeadings, WithStyles
+class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
 {
-    /**
-    * @return \Illuminate\Support\Collection
-    */
-    public $points;
+    public $stages;
+    public $range = [];
+    public $colspan;
 
-    public function __construct(array $points)
+    public $sheet;
+
+    public function __construct($data, $dates, $colspan)
     {
-        dd($points);
-        $this->points=$points;
+        $this->stages = $data;
+        $this->range = $dates;
+        $this->colspan = $colspan;
+        /*$this->sheet = $sheetName;*/
     }
 
-    public function array(): array
+    public function view(): View
     {
-        return $this->points;
-    }
-
-    public function headings(): array
-    {
-        $headings=[
-            ['a'],
-            ['b'],
-            ['c']
-        ];
-
-        return $headings;
+        //dd($this->range);
+        return view('exports.salesbyroute', [
+            'stages' => $this->stages,
+            'range' => $this->range,
+            'colspan' => $this->colspan,
+        ]);
     }
 
     public function styles(Worksheet $sheet)
+    {
+        $styleArray = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['argb' => '000000'],
+                ],
+            ],
+        ];
+        $highestRow = $sheet->getHighestRow();
+        $highestColumn = $sheet->getHighestColumn();
+        $sheet->getStyle('A1:K' . $highestColumn . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:' . $highestColumn . $highestRow)->applyFromArray($styleArray);
+        return $sheet;
+    }
+
+    /*public function styles(Worksheet $sheet)
     {
         $sheet->mergeCells('A1:B1');
         $sheet->mergeCells('A2:B2');
@@ -66,5 +82,7 @@ class SalesByRoute implements FromArray,ShouldAutoSize, WithHeadings, WithStyles
                 array('horizontal'=>'left')
             );
         }
-    }
+    }*/
+
+
 }

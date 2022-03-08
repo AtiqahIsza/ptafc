@@ -11,6 +11,7 @@ use App\Models\Route;
 use App\Models\RouteMap;
 use App\Models\RouteSchedulerMSTR;
 use App\Models\Stage;
+use App\Models\StageFare;
 use App\Models\StageMap;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -243,6 +244,43 @@ class ApiController extends Controller
         return response()->json([
             'success' => true,
             'stageMapByCompany' => $stageMapPerCompany,
+        ]);
+    }
+
+    public function getStageFareByCompany(Request $request){
+        $validator = Validator::make($request->all(), [
+            'company_id' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'data' => $validator->messages()->first(),
+            ]);
+        }
+
+        $routes = Route::select('id')->where('company_id', $request->company_id)->get();
+
+        $stageFarePerCompany = collect();
+
+        foreach($routes as $route)
+        {
+            $fares = StageFare::where('route_id', $route->id)->get()->toArray();
+            if($fares) {
+                $data['route_id'] = $route->id;
+                $data['stage_fare'] = $fares;
+                $stageFarePerCompany->add($data);
+            }
+            else {
+                $data['route_id'] = $route->id;
+                $data['stage_fare'] = 'No Stage Fare';
+                $stageFarePerCompany->add($data);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'stageFareByCompany' => $stageFarePerCompany,
         ]);
     }
 }

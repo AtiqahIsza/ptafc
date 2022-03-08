@@ -7,8 +7,10 @@ use App\Models\Bus;
 use App\Models\Route;
 use App\Models\Stage;
 use App\Models\TicketSalesTransaction;
+use App\Models\TripDetail;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,6 +20,10 @@ class ReportSalesByBus extends Component
 {
     public $buses;
     public $state = [];
+    public $heading = [];
+    public $data = [];
+    public $tot = [];
+    public $grand = [];
 
     public function render()
     {
@@ -40,14 +46,79 @@ class ReportSalesByBus extends Component
             'bus_id' => ['required', 'int'],
         ])->validate();
 
-        $allStage = Stage::all();
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+
+            $startDate->addDay();
+        }
+        $salesByBus = collect();
+
+        foreach ($all_dates as $all_date)
+        {
+            $tripDetailsDate = TripDetail::where('start_trip', $all_date)
+                ->where('end_trip', $all_date)
+                ->get();
+
+            if($tripDetailsDate) {
+
+                $grandTotal = 0.0;
+
+                foreach ($tripDetailsDate as $tripDetails) {
+
+                    $data['start_trip'] = $tripDetails->start_trip;
+                    $data['end_trip'] = $tripDetails->end_date;
+                    $data['route_desc'] = $tripDetails->route->route_name;
+                    $data['creation_by'] = $tripDetails->starrt_date;
+                    $data['closed_by'] = $tripDetails->end_date;
+                    $data['pda'] = $tripDetails->pda->imei;
+
+                    $ticketSaleTransaction = TicketSalesTransaction::where('trip_id',$tripDetails->id)->get();
+                        /*->where('bus_id', $validatedData['bus_id'])
+                        ->where('sales_date', $all_date)
+                        ->orderby('sales_date')*/
+
+                    if ($ticketSaleTransaction) {
+
+                        $totalCash = 0.0;
+                        $totalCard = 0.0;
+                        $totalTouchNGo = 0.0;
+                        $totalCancelled = 0.0;
+                        $totalBy = 0.0;
+
+                        foreach ($ticketSaleTransaction as $ticketSale) {
+
+                            $totalCash = $totalCash + $ticketSale->cash;
+                            $totalCard = $totalCard + $ticketSale->card;
+                            $totalTouchNGo = $totalTouchNGo + $ticketSale->touch_n_go;
+                            $totalCancelled = $totalTouchNGo + $ticketSale->touch_n_go;
+                        }
+
+                        $totalBy = $totalCash + $totalCash + $totalTouchNGo + $totalCancelled;
+
+                        $data['ticketSaleTransaction'] = $ticketSaleTransaction;
+                        $data['total_cash'] = $totalCash;
+                        $data['total_card'] = $totalCard;
+                        $data['total_touch_n_go'] = $totalTouchNGo;
+                        $data['total_cancelled'] = $totalCancelled;
+                        $data['total_by'] = $totalBy;
+
+                        $grandTotal = $grandTotal + $totalBy;
+
+                    }
+                    $salesByBus->add($data);
+                }
+            }
+
+        }
+        $grand['grand_total'] = $grandTotal;
+        $salesByBus->add($grand);
         $busNo = Bus::where('id', $validatedData['bus_id'])->first();
 
-        /*$range = "A1:J10";
-        $sheet->setBorder($range, 'thin');*/
-        /*$excel = new SalesByBus($allStage, $busNo, 'SalesByBus.xlsx');*/
-        /*$excel->setAllBorders('thin');*/
-        return Excel::download(new SalesByBus($allStage, $busNo), 'SalesByBus.xlsx');
+        return Excel::download(new SalesByBus($salesByBus, $busNo), 'SalesByBus.xlsx');
     }
 
     /*public function print()

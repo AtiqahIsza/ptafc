@@ -16,24 +16,22 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Borders;
 
-class SalesByBus implements FromView, WithStyles
+class SalesByBus implements FromView, WithStyles, ShouldAutoSize
 {
-    public $stages;
+    public $contents;
     public $busno;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($data, $no)
-    {
-        $this->stages = $data;
-        $this->busno = $no;
-        /*$this->sheet = $sheetName;*/
+    public function __construct($data,$busno)    {
+        $this->contents = $data;
+        $this->busno = $busno;
     }
 
     public function view(): View
     {
         return view('exports.salesbybus', [
-            'stages' => $this->stages,
+            'contents' => $this->contents,
             'busNo' => $this->busno
         ]);
     }

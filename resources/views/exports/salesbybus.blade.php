@@ -13,36 +13,31 @@
     </tr>
     <tr>
         <th colspan="11">
-            <strong>Company: </strong>
-        </th>
-    </tr>
-    <tr>
-        <th colspan="11">
             <strong> Bus No: {{ $busNo->bus_registration_number }}</strong>
         </th>
     </tr>
     </thead>
 
     <tbody>
-    @foreach($stages as $stage)
+    @foreach($contents as $content)
         <tr>
             <td colspan="11">
-                <strong>RHPN:  Status:  Creation By: </strong>
+                <strong>RHPN: {{$content->pda->imei}} Creation By: {{$content->trip->start_date}}</strong>
             </td>
         </tr>
         <tr>
             <td colspan="11">
-                <strong>Closed By: Closed At: </strong>
+                <strong>Closed By: {{$content->trip->end_date}} Closed At: </strong>
             </td>
         </tr>
         <tr>
             <td colspan="11">
-                <strong>Route Description: </strong>
+                <strong>Route Description: {{$content->route->route_name}} </strong>
             </td>
         </tr>
         <tr>
             <td colspan="11">
-                <strong>System Trip Details: </strong>
+                <strong>System Trip Details: ({{$content->trip->id}} -  {{$content->trip->start_date}} - {{$content->trip->end_date}})</strong>
             </td>
         </tr>
         <tr>
@@ -59,30 +54,29 @@
             <td style="text-align: center;"><strong>By</strong></td>
         </tr>
 
-        @foreach($stages as $stage)
-            <tr>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-                <td style="text-align: center;">{{ $stage->stage_order }}</td>
-            </tr>
-        @endforeach
+        <tr>
+            <td style="text-align: center;">{{ $i++ }}</td>
+            <td style="text-align: center;">{{ $content->sales_date }}</td>
+            <td style="text-align: center;">{{ $content->ticket_number }}</td>
+            <td style="text-align: center;">{{ $content->fromstage_stage_id }}</td>
+            <td style="text-align: center;">{{ $content->tostage_stage_id }}</td>
+            <td style="text-align: center;">{{ $content->faretype }}</td>
+            <td style="text-align: center;">{{ $stage->stage_order }}</td>
+            <td style="text-align: center;">{{ $stage->stage_order }}</td>
+            <td style="text-align: center;">{{ $stage->stage_order }}</td>
+            <td style="text-align: center;">{{ $stage->stage_order }}</td>
+            <td style="text-align: center;">{{ $stage->stage_order }}</td>
+        </tr>
+
         <tr>
             <td colspan="6" style="text-align: right;">
-                <strong>Total Sales For RHPN: </strong>
+                <strong>Total Sales For {{ $content->pda->imei }} </strong>
             </td>
-            <td><strong>Total Cash</strong></td>
-            <td><strong>Total Card</strong></td>
-            <td><strong>Total Touch N Go</strong></td>
-            <td><strong>Total Cancelled</strong></td>
-            <td><strong>Total</strong></td>
+            <td><strong>{{ $content->total_cash }}</strong></td>
+            <td><strong>{{ $content->total_card}}</strong></td>
+            <td><strong>{{ $content->total_touch_n_go }}</strong></td>
+            <td><strong>{{ $content->total_cancelled }}</strong></td>
+            <td><strong>{{ $content->total_by }}</strong></td>
         </tr>
         <tr>
             <td colspan="11">&nbsp;</td>

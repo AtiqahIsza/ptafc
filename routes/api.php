@@ -26,3 +26,4 @@ Route::post('getRouteByCompany',[ApiController::class, 'getRouteByCompany']);
 Route::post('getStageByCompany',[ApiController::class, 'getStageByCompany']);
 Route::post('getRouteMapByCompany',[ApiController::class, 'getRouteMapByCompany']);
 Route::post('getStageMapByCompany',[ApiController::class, 'getStageMapByCompany']);
+Route::post('getStageFareByCompany',[ApiController::class, 'getStageFareByCompany']);

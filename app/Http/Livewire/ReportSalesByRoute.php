@@ -2,9 +2,13 @@
 
 namespace App\Http\Livewire;
 
+use App\Exports\SalesByBus;
 use App\Exports\SalesByRoute;
+use App\Models\Bus;
 use App\Models\Route;
+use App\Models\Stage;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,6 +27,40 @@ class ReportSalesByRoute extends Component
     public function mount()
     {
         $this->routes=Route::all();
+    }
+
+    public function print()
+    {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN HERE");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required', 'int'],
+        ])->validate();
+
+        $out->writeln($validatedData['dateFrom']);
+        $out->writeln($validatedData['dateTo']);
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+
+            $startDate->addDay();
+        }
+        $colspan = ((count($all_dates) + 1)* 2) + 2;
+        //$allStage = Stage::all();
+
+        $salesByBus = collect();
+
+
+
+
+        return Excel::download(new SalesByRoute($salesByBus, $all_dates,$colspan), 'SalesByRoute.xlsx');
     }
 
     /*public function printDetails()

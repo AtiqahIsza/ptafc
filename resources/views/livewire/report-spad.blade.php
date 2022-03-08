@@ -55,23 +55,44 @@
                 </tr>
                 <tr>
                     <td colspan="2">
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Route</span>
+                        <button wire:click.prevent="printBusTransfer()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Bus Transfer</span>
                         </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                        <button wire:click.prevent="printTopAlighting()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Top Alightings</span>
+                        </button>
+                        <button wire:click.prevent="printTopBoardings()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Top Boardings</span>
+                        </button>
+                        <button wire:click.prevent="printTrip()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
                             <span>Print Trip</span>
                         </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Claim Details</span>
+                        <button wire:click.prevent="printRoute()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Route</span>
                         </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Claim Details (GPS)</span>
+                        <button wire:click.prevent="printServiceGroup()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Service Group</span>
                         </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                        <button wire:click.prevent="printSummary()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Summary</span>
+                        </button>
+                        <button wire:click.prevent="printSummaryNetwork()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Summary by Network</span>
+                        </button>
+                        <button wire:click.prevent="printSummaryRoute()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Summary by Route</span>
+                        </button>
+                        <button wire:click.prevent="printTripMissed()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Trip Missed</span>
+                        </button>
+                        <button wire:click.prevent="printPenalty()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Penalty</span>
+                        </button>
+                        <button wire:click.prevent="printClaimSummary()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
                             <span>Print Claim Summary</span>
                         </button>
-                        <button type="submit" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Trip Planned</span>
+                        <button wire:click.prevent="printClaimDetails()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                            <span>Print Claim Details</span>
                         </button>
                     </td>
                 </tr>
