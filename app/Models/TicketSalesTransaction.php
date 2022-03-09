@@ -14,7 +14,7 @@ class TicketSalesTransaction extends Model
     function Sector() {
         return $this->belongsTo(Sector::class, 'sector_id', 'id');
     }
-    function toStage() {
+    function tostage() {
         return $this->belongsTo(Stage::class, 'tostage_stage_id', 'id');
     }
     function Bus() {
@@ -32,7 +32,7 @@ class TicketSalesTransaction extends Model
     function BusDriver() {
         return $this->belongsTo(BusDriver::class, 'bus_driver_id', 'id');
     }
-    function fromStage() {
+    function fromstage() {
         return $this->belongsTo(Stage::class, 'fromstage_stage_id', 'id');
     }
     function TicketTransactionSummary() {

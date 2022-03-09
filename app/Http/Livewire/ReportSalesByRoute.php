@@ -7,6 +7,8 @@ use App\Exports\SalesByRoute;
 use App\Models\Bus;
 use App\Models\Route;
 use App\Models\Stage;
+use App\Models\StageFare;
+use App\Models\TicketSalesTransaction;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -18,6 +20,9 @@ class ReportSalesByRoute extends Component
 {
     public $routes;
     public $state = [];
+    public $data = [];
+    public $tot = [];
+    public $grand = [];
 
     public function render()
     {
@@ -53,14 +58,79 @@ class ReportSalesByRoute extends Component
             $startDate->addDay();
         }
         $colspan = ((count($all_dates) + 1)* 2) + 2;
-        //$allStage = Stage::all();
 
-        $salesByBus = collect();
+        $salesByRoute = collect();
 
+        //$allStages = Stage::where('route_id', $validatedData['route_id'])->orderby('stage_order');
+        $allStageFares = StageFare::where('route_id', $validatedData['route_id'])
+            ->orderby('fromstage_stage_id')
+            ->get();
 
+        foreach ($allStageFares  as $allStageFare)
+        {
+            $data['from_to'] = $allStageFare->fromstage->stage_name . " - " . $allStageFare->tostage->stage_name;
+            $totSales = 0.0;
+            foreach ($all_dates as $all_date)
+            {
+                $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
+                    ->where('fromstage_stage_id', $allStageFare->fromstage_stage_id)
+                    ->where('tostage_stage_id', $allStageFare->tostage_stage_id)
+                    ->where('sales_date', $all_date)
+                    ->orderby('fromstage_stage_id')
+                    ->get();
 
+                $sales = 0.0;
+                foreach ($allSales as $allSale)
+                {
+                    if($allSale->fare_type ==1) //Adult
+                    {
+                        $sales += $allStageFare->fare;
+                    }
+                    else{ //Concession
+                        $sales += $allStageFare->consession_fare;
+                    }
+                }
 
-        return Excel::download(new SalesByRoute($salesByBus, $all_dates,$colspan), 'SalesByRoute.xlsx');
+                $qty = count($allSales);
+                $data['date'] = $all_date;
+                $data['quantity'] = $qty;
+                $data['sales'] = $sales;
+
+                $salesByRoute->add($data);
+
+                $totSales += $sales;
+            }
+            $tot['total_sales'] = $totSales;
+            $salesByRoute->add($tot);
+        }
+
+        $grandTotal = collect();
+        foreach ($all_dates as $all_date)
+        {
+            foreach ($allStageFares  as $allStageFare)
+            {
+                $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
+                    ->where('sales_date', $all_date)
+                    ->get();
+
+                $sales = 0.0;
+                foreach ($allSales as $allSale)
+                {
+                    if($allSale->fare_type ==1) //Adult
+                    {
+                        $sales += $allStageFare->fare;
+                    }
+                    else{ //Concession
+                        $sales += $allStageFare->consession_fare;
+                    }
+                }
+                $grand['date'] =  $all_date;
+                $grand['tot_quantity'] = count($allSales);
+                $grand['tot_sales'] = $sales;
+                $grandTotal->add($grand);
+            }
+        }
+        return Excel::download(new SalesByRoute($salesByRoute, $grandTotal, $all_dates,$colspan), 'SalesByRoute.xlsx');
     }
 
     /*public function printDetails()

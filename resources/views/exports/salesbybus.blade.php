@@ -19,6 +19,7 @@
     </thead>
 
     <tbody>
+    @php $i = 1; @endphp
     @foreach($contents as $content)
         <tr>
             <td colspan="11">
