@@ -35,50 +35,52 @@
         <td style="text-align: center;"><strong>Total Distance</strong></td>
         <td style="text-align: center;"><strong>Income Based on Transport Letter</strong></td>
     </tr>
-
-    @foreach($routes as $route)
-        @php $i=1 @endphp
-        @foreach($stages as $stage)
+    @foreach($contents as $key1 => $data)
+        @foreach($data['data'] as $key2 => $route)
+            @foreach($route['sales'] as $key3 => $sales)
+                @php $i=1 @endphp
                 <tr>
                     <td style="text-align: center;">{{ $i++ }}</td>
-                    <td style="text-align: center;">{{ $stage->stage_name }}</td>
-                    <td style="text-align: center;">{{ $route->route_name }}</td>
-                    <td style="text-align: center;">{{ $route->route_number }}</td>
-                    <td style="text-align: center;">{{ $route->inbound_distance }}</td>
-                    <td style="text-align: center;">{{ $route->inbound_distance }}</td>
-                    <td style="text-align: center;">{{ $route->inbound_distance }}</td>
-                    <td style="text-align: center;">{{ $route->inbound_distance }}</td>
-                    <td style="text-align: center;">{{ $route->route_target }}</td>
-                    <td style="text-align: center;">{{ $route->route_target  }}</td>
-                    <td style="text-align: center;">{{ $route->route_target }}</td>
-                    <td style="text-align: center;">{{ $route->route_name }}</td>
+                    <td style="text-align: center;">{{ $data['bus_no'] }}</td>
+                    <td style="text-align: center;">{{ $data['route_name'] }}</td>
+                    <td style="text-align: center;">{{ $data['route_number'] }}</td>
+                    <td style="text-align: center;">{{ $data['count_trip'] }}</td>
+                    <td style="text-align: center;">{{ $data['distance'] }}</td>
+                    <td style="text-align: center;">{{ $data['count_bus'] }}</td>
+                    <td style="text-align: center;">{{ $data['count_actual_trip'] }}</td>
+                    <td style="text-align: center;">{{ $data['actual_distance'] }}</td>
+                    <td style="text-align: center;">{{ $data['dead_distance']  }}</td>
+                    <td style="text-align: center;">{{ $data['actual_distance'] }}</td>
+                    <td style="text-align: center;">{{ $data['route_number'] }}</td>  <!--Income Based on Transport Letter-->
                 </tr>
+            @endforeach
+            @foreach($route['total'] as $key4 => $total)
+                <tr>
+                    <td colspan="4" style="text-align: right;"><strong>Total</strong></td>
+                    <td style="text-align: center;">{{ $total['total_count_trip'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_distance'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_count_bus'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_count_actual_trip'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_dead_distance']  }}</td>
+                    <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>
+                    <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>  <!--Income Based on Transport Letter-->
+                </tr>
+            @endforeach
         @endforeach
-        <tr>
-            <td colspan="4" style="text-align: right;"><strong>Total</strong></td>
-            <td style="text-align: center;"><strong>Trip</strong></td>
-            <td style="text-align: center;"><strong>Actual Distance</strong></td>
-            <td style="text-align: center;"><strong>Number of Trip</strong></td>
-            <td style="text-align: center;"><strong>Actual Distance</strong></td>
-            <td style="text-align: center;"><strong>Total Bus</strong></td>
-            <td style="text-align: center;"><strong>Total Dead Distance</strong></td>
-            <td style="text-align: center;"><strong>Total Distance</strong></td>
-            <td style="text-align: center;"><strong>Income</strong></td>
-
-        </tr>
+        @foreach($data['grand'] as $key5 => $grand)
+            <tr>
+                <td colspan="4" style="text-align: right;"><strong>Grand Total</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_count_trip'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_distance'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_count_bus'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_count_actual_trip'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_dead_distance']  }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>
+                <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>  <!--Income Based on Transport Letter-->
+            </tr>
+        @endforeach
     @endforeach
-    <tr>
-        <td colspan="4" style="text-align: right;">
-            <strong>Final Total</strong>
-        </td>
-        <td style="text-align: center;"><strong>Trip</strong></td>
-        <td style="text-align: center;"><strong>Actual Distance</strong></td>
-        <td style="text-align: center;"><strong>Number of Trip</strong></td>
-        <td style="text-align: center;"><strong>Actual Distance</strong></td>
-        <td style="text-align: center;"><strong>Total Bus</strong></td>
-        <td style="text-align: center;"><strong>Total Dead Distance</strong></td>
-        <td style="text-align: center;"><strong>Total Distance</strong></td>
-        <td style="text-align: center;"><strong>Income</strong></td>
-    </tr>
     </tbody>
 </table>

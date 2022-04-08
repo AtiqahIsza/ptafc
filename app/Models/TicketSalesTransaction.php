@@ -11,6 +11,25 @@ class TicketSalesTransaction extends Model
 
     protected $table = 'ticket_sales_transaction';
 
+    public $timestamps = false;
+
+    //passenger_type(0=adult,1=concession)
+    //fare_type(0=cash/driver wallet, 1=debit,2=credit,3=tngo)
+    protected $fillable = [
+        'trip_id',
+        'ticket_number',
+        'bus_stand_id',
+        'fromstage_stage_id',
+        'tostage_stage_id',
+        'passenger_type',
+        'amount',
+        'actual_amount',
+        'fare_type',
+        'latitude',
+        'longitude',
+        'sales_date'
+    ];
+
     function Sector() {
         return $this->belongsTo(Sector::class, 'sector_id', 'id');
     }
@@ -40,5 +59,8 @@ class TicketSalesTransaction extends Model
     }
     function TicketCard() {
         return $this->belongsTo(TicketCard::class, 'card_id', 'id');
+    }
+    function busStand(){
+        return $this->belongsTo(BusStand::class, 'bus_stand_id', 'id');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Livewire;
 
 use App\Exports\DailySummary;
 use App\Exports\MonthlySummary;
+use App\Models\Bus;
 use App\Models\Route;
 use App\Models\Stage;
 use App\Models\TicketSalesTransaction;
@@ -52,58 +53,77 @@ class ReportDailySummary extends Component
             $totActualDistance = 0.0;
             $totDeadDistance = 0.0;
 
-            $allSales = TicketSalesTransaction::where('route_id', $allRoute->id)
-                ->where('sales_date', $validatedData['dailyDate'])
-                ->get();
-            if($allSales){
-                foreach ($allSales as $allSale){
-                    $data['bus_no'] = $allSales->bus->bus_registration_number;
-                    $data['route_name'] = $allSales->route->route_name;
-                    $data['route_number'] = $allSales->route->route_number;
+            $busPerRoutes = Bus::where('route_id', $allRoute->id)->get();
 
-                    $allTrips = TicketSalesTransaction::where('route_id', $allRoute->id)
-                        ->where('bus_id', $allSales->bus_id)
-                        ->where('sales_date', $validatedData['dailyDate'])
-                        ->get();
+            foreach($busPerRoutes as $busPerRoute) {
 
-                    $countTrips = count($allTrips);
-                    $sumDistance = $allSales->route->inbound_distance + $allSales->route->outbound_distance;
-                    $distance = $sumDistance * $countTrips;
-                    $actual_distance = $distance * $countTrips;
+                $out->writeln("YOU ARE IN HERE loop busPerRoute");
+                $allSales = TicketSalesTransaction::where('route_id', $allRoute->id)
+                    ->where('bus_id', $busPerRoute->id)
+                    ->where('sales_date', $validatedData['dailyDate'])
+                    ->get();
 
-                    $data['count_trip'] = $countTrips;
-                    $data['distance'] = $distance;
-                    $data['count_bus'] = 1;
-                    $data['count_actual_trip'] = $countTrips;
-                    $data['actual_distance'] = $actual_distance;
-                    $data['dead_distance'] = 0;
+                if ($allSales) {
+                    $out->writeln("YOU ARE IN HERE if all sales");
+                    foreach ($allSales as $allSale) {
+                        $out->writeln("YOU ARE IN HERE all sales");
+                        $countTrips = count($allSale);
+                        $sumDistance = $allSale->route->inbound_distance + $allSale->route->outbound_distance;
+                        $distance = $sumDistance * $countTrips;
+                        $actual_distance = $distance * $countTrips;
 
-                    $dailyReport->add($data);
+                        $content['bus_no'] = $allSale->bus->bus_registration_number;
+                        $content['route_name'] = $allSale->route->route_name;
+                        $content['route_number'] = $allSale->route->route_number;
+                        $content['count_trip'] = $countTrips;
+                        $content['distance'] = $distance;
+                        $content['count_bus'] = 1;
+                        $content['count_actual_trip'] = $countTrips;
+                        $content['actual_distance'] = $actual_distance;
+                        $content['dead_distance'] = 0;
 
-                    $totCountTrip += $countTrips;
-                    $totDistance += $distance;
-                    $totCountBus += 1;
-                    $totCountActualTrip += $countTrips;
-                    $totActualDistance += $actual_distance;
-                    $totDeadDistance += 0;
+                        $data[$allRoute->route_name][$allSale->bus->bus_registration_number]['sales'] = $content;
+
+                        $totCountTrip += $countTrips;
+                        $totDistance += $distance;
+                        $totCountBus += 1;
+                        $totCountActualTrip += $countTrips;
+                        $totActualDistance += $actual_distance;
+                        $totDeadDistance += 0;
+                    }
+                }else{
+                    $out->writeln("YOU ARE IN HERE no sales");
+                    $content['bus_no'] = "No sales";
+                    $content['route_name'] = "No sales";
+                    $content['route_number'] = "No sales";
+                    $content['count_trip'] = "No sales";
+                    $content['distance'] = "No sales";
+                    $content['count_bus'] = "No sales";
+                    $content['count_actual_trip'] = "No sales";
+                    $content['actual_distance'] = "No sales";
+                    $content['dead_distance'] = "No sales";
+
+                    $data[$allRoute->route_name][$busPerRoute->bus_registration_number]['sales'] = $content;
                 }
+
+                $total['total_count_trip'] = $totCountTrip;
+                $total['total_distance'] = $totDistance;
+                $total['total_count_bus'] = $totCountBus;
+                $total['total_count_actual_trip'] = $totCountActualTrip;
+                $total['total_actual_distance'] = $totActualDistance;
+                $total['total_dead_distance'] = $totDeadDistance;
+
+                $data[$allRoute->route_name][$busPerRoute->bus_registration_number]['total'] = $total;
+                //$data['total'][$busPerRoute->id] = $total;
+                //$dailyReport->add($data);
+
+                $grandCountTrip += $totCountTrip;
+                $grandDistance += $totDistance;
+                $grandCountBus += $totCountBus;
+                $grandCountActualTrip += $totCountActualTrip;
+                $grandActualDistance += $totActualDistance;
+                $grandDeadDistance += $totDeadDistance;
             }
-            $total['tot_count_trip'] = $totCountTrip;
-            $total['tot_distance'] = $totDistance;
-            $total['tot_count_bus'] = $totCountBus;
-            $total['tot_count_actual_trip'] = $totCountActualTrip;
-            $total['tot_actual_distance'] = $totActualDistance;
-            $total['tot_dead_distance'] = $totDeadDistance;
-
-            $data_tot['total'] = $total;
-            $dailyReport->add($data_tot);
-
-            $grandCountTrip += $totCountTrip;
-            $grandDistance += $totDistance;
-            $grandCountBus += $totCountBus;
-            $grandCountActualTrip += $totCountActualTrip;
-            $grandActualDistance += $totActualDistance;
-            $grandDeadDistance += $totDeadDistance;
         }
         $grand['grand_count_trip'] = $grandCountTrip;
         $grand['grand_distance'] = $grandDistance;
@@ -112,12 +132,13 @@ class ReportDailySummary extends Component
         $grand['grand_actual_distance'] = $grandActualDistance;
         $grand['grand_dead_distance'] = $grandDeadDistance;
 
-        $data_grand['grand'] = $grand;
-        $dailyReport->add($data_grand);
+        $main['data'] = $data;
+        $main['grand']= $grand;
+        $dailyReport->add($main);
 
-        $report['allData'] = $dailyReport;
+        //$report['allData'] = $dailyReport;
         //$totalPlayerAdded['cumulativeFigurePerMonth'] = $monthlyCumPlayersCount;
 
-        return Excel::download(new DailySummary($report,$validatedData['dailyDate']), 'DailyDetailsReport.xlsx');
+        return Excel::download(new DailySummary($dailyReport, $validatedData['dailyDate']), 'DailyDetailsReport.xlsx');
     }
 }

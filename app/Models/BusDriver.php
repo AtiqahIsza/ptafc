@@ -26,6 +26,7 @@ class BusDriver extends Model
         'sector_id',
         'route_id',
         'bus_id',
+        'wallet_balance'
     ];
 
     function Sector() {

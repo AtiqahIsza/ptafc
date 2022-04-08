@@ -19,20 +19,21 @@ use PhpOffice\PhpSpreadsheet\Style\Borders;
 class SalesByBus implements FromView, WithStyles, ShouldAutoSize
 {
     public $contents;
-    public $busno;
+    public $buses;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($data,$busno)    {
+    public function __construct($data,$bus)    {
         $this->contents = $data;
-        $this->busno = $busno;
+        $this->buses = $bus;
     }
 
     public function view(): View
     {
+        //dd( $this->contents);
         return view('exports.salesbybus', [
             'contents' => $this->contents,
-            'busNo' => $this->busno
+            'bus' => $this->buses
         ]);
     }
 

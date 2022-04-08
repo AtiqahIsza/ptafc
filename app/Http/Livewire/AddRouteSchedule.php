@@ -42,7 +42,8 @@ class AddRouteSchedule extends Component
         $out->writeln("YOU ARE IN HERE");
 
         $validatedData = Validator::make($this->state, [
-            'schedule_time'=> ['required', 'date_format:H:i'],
+            'schedule_start_time'=> ['required', 'date_format:H:i'],
+            'schedule_end_time'=> ['required', 'date_format:H:i'],
             'inbound_distance'=> ['required', 'between:0,99.99'],
             'outbound_distance'=> ['required', 'between:0,99.99'],
             'inbound_bus_id'=> ['required', 'int'],

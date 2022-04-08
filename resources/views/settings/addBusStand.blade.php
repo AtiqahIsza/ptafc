@@ -1,10 +1,71 @@
 @extends('layouts.app')
 
 @section('content')
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&callback=initMap&libraries=&v=weekly&channel=2"
-        async></script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&callback=initMap&libraries=&v=weekly&channel=2"></script>
     <script>
+        let poly;
+        let map;
+        const coords = [];
+
+        function initMap() {
+            // Show polygon of selected route
+            let routeArr = <?php echo json_encode($routeMaps); ?>;
+
+            for (i = 0; i < routeArr.length; i++) {
+                coords[i] = new google.maps.LatLng(
+                    parseFloat(routeArr[i]['latitude']),
+                    parseFloat(routeArr[i]['longitude'])
+                );
+            }
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12,
+                center: coords[0], // Center the map on 1st point of polygon route.
+            });
+
+            const routeMap = new google.maps.Polygon({
+                paths: coords,
+                strokeColor: "#FF0000",
+                strokeOpacity: 0.8,
+                strokeWeight: 3,
+                fillColor: "#FF0000",
+                fillOpacity: 0.35,
+                clickable: false,
+            });
+
+            routeMap.setMap(map);
+
+            poly = new google.maps.Polyline({
+                strokeColor: "#000000",
+                strokeOpacity: 1.0,
+                strokeWeight: 3,
+            });
+            poly.setMap(map);
+            // Add a listener for the click event
+            map.addListener("click", addLatLng);
+
+        }
+
+        // Handles click events on a map, and adds a new point to the Polyline.
+        function addLatLng(event) {
+            const path = poly.getPath();
+
+            // Because path is an MVCArray, we can simply append a new coordinate
+            // and it will automatically appear.
+            path.push(event.latLng);
+            // Add a new marker at the new plotted point on the polyline.
+            new google.maps.Marker({
+                position: event.latLng,
+                title: "#" + path.getLength(),
+                map: map,
+                icon: {
+                    url: '/images/bus-stop_blue.png',
+                    scaledSize: new google.maps.Size(50, 50),
+                }
+            });
+        }
+    </script>
+    {{--<script>
         let poly;
         let map;
         const coords = [];
@@ -34,7 +95,6 @@
             });
 
             routeMap.setMap(map);
-            // Show polygon of selected route
 
             poly = new google.maps.Polyline({
                 strokeColor: "#000000",
@@ -66,7 +126,7 @@
                 radius: 100,
             });
         }
-    </script>
+    </script>--}}
 
     <div class="row">
         @if (session()->has('message'))
@@ -91,7 +151,13 @@
                         </thead>
                         <tbody>
                         <tr>
-                            <td colspan="4"><span class="fw-normal">Plot Bus Stand here:</span></td>
+                            <td><strong>Enter radius (in Meter):</strong></td>
+                            <td colspan="3">
+                                <input id="radius" class="border-gray-200" type="text" placeholder="Radius in Meter" required>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4"><strong>Plot Bus Stand here:</strong></td>
                         </tr>
                         <tr>
                             <td colspan="4">
@@ -100,11 +166,11 @@
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="4">
-                                <div class="d-block mb-md-0" style="position: relative">
-                                    <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-primary">Save</button>
-                                    <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
-                                </div>
+                            <td colspan="2" style="text-align: left">
+                                <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
+                            </td>
+                            <td colspan="2" style="text-align: right">
+                                <button id="saveButton" onclick="saveBtnOnClick()" class="btn btn-gray-800">Save</button>
                             </td>
                         </tr>
                         </tbody>
@@ -124,10 +190,12 @@
         const markers = [];
         const buttonSave= $('#saveButton') //document.getElementById('saveButton');
         const routeId = $('#routeID').val(); //document.getElementById('routeID').value;
+        let radiusInput;
         //const path = poly.getPath();
 
         const saveBtnOnClick = () => {
             //e.preventDefault();
+            radiusInput = $('#radius').val();
             loopMarker(poly);
             $.ajax({
                 headers: {
@@ -158,7 +226,7 @@
                 long: point.lng(),
                 sequence: sequence,
                 route_id: routeId,
-                radius:100
+                radius:radiusInput
             });
         }
     </script>

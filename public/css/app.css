@@ -32598,7 +32598,7 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
 }
 .buttonAdd-map {
     position: absolute;
-    right: 190px;
+    right: 210px;
     top: 5px;
 }
 
@@ -32609,8 +32609,12 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
 }
 
 #map {
-    height: 400px;
+    height: 900px;
     /* The height is 400 pixels */
     width: 100%;
     /* The width is the width of the web page */
+}
+.grad1 {
+    background-color: #25383C; /* For browsers that do not support gradients */
+    background-image: linear-gradient(to bottom right, black, #25383C);
 }

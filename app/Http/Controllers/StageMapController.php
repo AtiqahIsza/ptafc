@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Route;
+use App\Models\RouteMap;
 use App\Models\Stage;
 use App\Models\StageMap;
 use Illuminate\Database\Eloquent\Model;
@@ -18,19 +20,22 @@ class StageMapController extends Controller
      */
     public function index(Request $request)
     {
-        $stage = Stage::where('id', $request->route('id'))->first();
-
-        return view('settings.addStageMap', compact('stage'));
+        //
     }
 
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+        $routeMaps = RouteMap::select('latitude', 'longitude')
+            ->where('route_id', $request->route('id'))
+            ->orderby('sequence')
+            ->get();
+        $stage = Stage::where('id', $request->route('id'))->first();
+        return view('settings.addStageMap', compact('stage','routeMaps'));
     }
 
     /**
@@ -82,7 +87,12 @@ class StageMapController extends Controller
             ->where('stage_id', $request->route('id'))
             ->orderby('sequence')
             ->get();
-        return view('settings.viewStageMap', compact('stage','stageMaps'));
+        $routeMaps = RouteMap::select('latitude', 'longitude')
+            ->where('route_id', $stage->route_id)
+            ->orderby('sequence')
+            ->get();
+        //dd($routeMaps);
+        return view('settings.viewStageMap', compact('stage','stageMaps','routeMaps'));
     }
 
     /**

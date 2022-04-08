@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DriverWalletRecord;
 use Illuminate\Http\Request;
 
 class BusDriverController extends Controller
@@ -41,7 +42,7 @@ class BusDriverController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View|\Illuminate\Http\Response
      */
     public function show($id)
     {

@@ -39,6 +39,7 @@
                         @endif
                     </td>
                 </tr>
+                @if($selectedCompany)
                 <tr>
                     <th class="border-gray-200">{{ __('Route') }}</th>
                     <td>
@@ -53,46 +54,75 @@
                         @endif
                     </td>
                 </tr>
-                <tr>
+                @endif
+                <tr style="text-align: center;">
                     <td colspan="2">
-                        <button wire:click.prevent="printBusTransfer()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Bus Transfer</span>
-                        </button>
-                        <button wire:click.prevent="printTopAlighting()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Top Alightings</span>
-                        </button>
-                        <button wire:click.prevent="printTopBoardings()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Top Boardings</span>
-                        </button>
-                        <button wire:click.prevent="printTrip()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Trip</span>
-                        </button>
-                        <button wire:click.prevent="printRoute()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Route</span>
-                        </button>
-                        <button wire:click.prevent="printServiceGroup()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Service Group</span>
-                        </button>
-                        <button wire:click.prevent="printSummary()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                        <button wire:click.prevent="printSummary()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Summary</span>
                         </button>
-                        <button wire:click.prevent="printSummaryNetwork()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Summary by Network</span>
+                        <button wire:click.prevent="printServiceGroup()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Service Group</span>
                         </button>
-                        <button wire:click.prevent="printSummaryRoute()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Summary by Route</span>
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printRoute()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Route</span>
                         </button>
-                        <button wire:click.prevent="printTripMissed()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Trip Missed</span>
+                        <button wire:click.prevent="printTrip()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Trip</span>
                         </button>
-                        <button wire:click.prevent="printPenalty()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Penalty</span>
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printTopBoardings()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Top Boardings</span>
                         </button>
-                        <button wire:click.prevent="printClaimSummary()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
+                        <button wire:click.prevent="printTopAlighting()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Top Alightings</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printBusTransfer()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Bus Transfer</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printClaimDetails()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Claim Details</span>
+                        </button>
+                        <button wire:click.prevent="printClaimSummary()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Claim Summary</span>
                         </button>
-                        <button wire:click.prevent="printClaimDetails()" class="btn btn-primary" id="btnSave" style="float: right; margin:5px;">
-                            <span>Print Claim Details</span>
+                        <button wire:click.prevent="printPenalty()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Penalty</span>
+                        </button>
+
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printTripMissed()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Trip Missed</span>
+                        </button>
+                        <button wire:click.prevent="printSummaryRoute()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Summary by Route</span>
+                        </button>
+                        <button wire:click.prevent="printSummaryNetwork()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Summary by Network</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr style="text-align: center;">
+                    <td colspan="2">
+                        <button wire:click.prevent="printISBSF()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print ISBSF Report</span>
                         </button>
                     </td>
                 </tr>

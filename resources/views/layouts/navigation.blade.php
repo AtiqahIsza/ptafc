@@ -54,6 +54,17 @@
         </div>
     </li>
 
+    <li class="nav-item {{ request()->routeIs('viewTransaction') ? 'active' : '' }}">
+        <a href="{{ route('viewTransaction') }}" class="nav-link">
+            <span class="sidebar-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="16" height="16" class="bi bi-wallet2" viewBox="0 0 16 16">
+                    <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499L12.136.326zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484L5.562 3zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z"/>
+                </svg>
+            </span>
+            <span class="mt-1 ms-2 sidebar-text">Wallet</span>
+        </a>
+    </li>
+
     <li class="nav-item">
         <span class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
               data-bs-target="#card-submenu-app">
@@ -282,7 +293,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">
+                    <a class="nav-link {{ request()->routeIs('managePDA') ? 'active' : '' }}" href="{{ route('managePDA') }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>

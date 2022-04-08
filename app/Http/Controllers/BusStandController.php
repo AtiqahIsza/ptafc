@@ -53,12 +53,13 @@ class BusStandController extends Controller
 
         try{
             foreach($busStands as $key => $value){
-                /*$out->writeln($value['lat']);
+                $out->writeln($value['lat']);
                 $out->writeln(round($value['lat'],10));
                 $out->writeln($value['long']);
                 $out->writeln(round($value['long'],10));
                 $out->writeln($value['sequence']);
-                $out->writeln($value['route_id']);*/
+                $out->writeln($value['route_id']);
+                $out->writeln($value['radius']);
 
                 $newMap = new BusStand();
                 $newMap->longitude = round($value['long'],10);
@@ -68,7 +69,7 @@ class BusStandController extends Controller
                 $newMap->radius = $value['radius'];
                 $newMap->save();
             }
-            return $this->returnResponse(1, "Route Map Successfully Stored", "Route Map Successfully Stored");
+            return $this->returnResponse(1, "Bus Stand Successfully Stored", "Bus Stand Successfully Stored");
         }
         catch(\Exception $e){
             $out->writeln($e);
@@ -90,7 +91,7 @@ class BusStandController extends Controller
             ->where('route_id', $request->route('id'))
             ->orderby('sequence')
             ->get();
-        $busStand = BusStand::select('latitude', 'longitude','radius')
+        $busStand = BusStand::select('latitude', 'longitude','radius','description')
             ->where('route_id', $request->route('id'))
             ->orderby('sequence')
             ->get();

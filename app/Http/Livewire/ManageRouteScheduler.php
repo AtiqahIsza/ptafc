@@ -13,6 +13,7 @@ use App\Models\RouteSchedule;
 use App\Models\Company;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 use Livewire\Component;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
@@ -34,7 +35,7 @@ class ManageRouteScheduler extends Component
     public $removedId;
     public $removedSchedule;
 
-    //protected $listeners = ['viewEvent' => 'viewEvent'];
+    //protected $listeners = ['refreshManageRouteScheduler' => '$refresh'];
 
     public function render()
     {

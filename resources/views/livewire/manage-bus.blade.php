@@ -113,43 +113,6 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="form-group mb-4">
-                            <label for="sector">Sector</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                   <i class="fa fa-project-diagram"></i>
-                                </span>
-                                <select wire:model.defer="state.sector_id" id="sector" class="form-control border-gray-300" autofocus required>
-                                    <option value="">Choose Sector</option>
-                                    @foreach($sectors as $sector)
-                                        <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('sector'))
-                                    <span class="text-danger">{{ $errors->first('sector') }}</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="route">Route</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
-                                        <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
-                                        <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
-                                    </svg>
-                                </span>
-                                <select wire:model.defer="state.route_id" id="route" class="form-control border-gray-300" autofocus required>
-                                    <option value="">Choose Route</option>
-                                    @foreach($routes as $route)
-                                        <option value="{{$route->id}}">{{$route->route_name}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('route'))
-                                    <span class="text-danger">{{ $errors->first('route') }}</span>
-                                @endif
-                            </div>
-                        </div>
                         @if($showEditModal==false)
                         <div class="form-group mb-4">
                             <label for="bus_manufacturing_date">Bus Manufacturing Date</label>
@@ -159,7 +122,7 @@
                                         <path d="M2.873 11.297V4.142H1.699L0 5.379v1.137l1.64-1.18h.06v5.961h1.174Zm3.213-5.09v-.063c0-.618.44-1.169 1.196-1.169.676 0 1.174.44 1.174 1.106 0 .624-.42 1.101-.807 1.526L4.99 10.553v.744h4.78v-.99H6.643v-.069L8.41 8.252c.65-.724 1.237-1.332 1.237-2.27C9.646 4.849 8.723 4 7.308 4c-1.573 0-2.36 1.064-2.36 2.15v.057h1.138Zm6.559 1.883h.786c.823 0 1.374.481 1.379 1.179.01.707-.55 1.216-1.421 1.21-.77-.005-1.326-.419-1.379-.953h-1.095c.042 1.053.938 1.918 2.464 1.918 1.478 0 2.642-.839 2.62-2.144-.02-1.143-.922-1.651-1.551-1.714v-.063c.535-.09 1.347-.66 1.326-1.678-.026-1.053-.933-1.855-2.359-1.845-1.5.005-2.317.88-2.348 1.898h1.116c.032-.498.498-.944 1.206-.944.703 0 1.206.435 1.206 1.07.005.64-.504 1.106-1.2 1.106h-.75v.96Z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.bus_manufacturing_date" type="date" class="form-control border-gray-300" id="age" autofocus required>
+                                <input wire:model.defer="state.bus_manufacturing_date" type="date" class="form-control border-gray-300" id="age" autofocus>
                                 @if ($errors->has('bus_manufacturing_date'))
                                     <span class="text-danger">{{ $errors->first('bus_manufacturing_date') }}</span>
                                 @endif
@@ -172,7 +135,7 @@
                                 <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-bus-alt fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.bus_type_id" id="type" class="form-control border-gray-300" autofocus required>
+                                <select wire:model.defer="state.bus_type_id" id="type" class="form-control border-gray-300" autofocus>
                                     <option value="">Choose Bus Type</option>
                                     @foreach($busTypes as $busType)
                                         <option value="{{$busType->id}}">{{$busType->type}}</option>
@@ -191,7 +154,7 @@
                                       <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM0 12.5h16a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.mac_address" class="form-control border-gray-300" id="mac" placeholder="{{ __('MAC Address') }}" autofocus required>
+                                <input wire:model.defer="state.mac_address" class="form-control border-gray-300" id="mac" placeholder="{{ __('MAC Address') }}" autofocus>
                                 @if ($errors->has('mac'))
                                     <span class="text-danger">{{ $errors->first('mac') }}</span>
                                 @endif

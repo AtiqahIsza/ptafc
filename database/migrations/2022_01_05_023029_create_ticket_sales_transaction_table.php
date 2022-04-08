@@ -35,6 +35,9 @@ class CreateTicketSalesTransactionTable extends Migration
             $table->string('ticket_number', 64)->nullable();
             $table->unsignedBigInteger('trip_id')->nullable()->index('FKA7F171B8EC56E347');
             $table->decimal('actual_amount')->nullable();
+            $table->unsignedTinyInteger('passenger_type')->nullable();
+            $table->unsignedBigInteger('bus_stand_in_id')->nullable()->index('FK_ticket_sales_transaction_bus_stand');
+            $table->unsignedBigInteger('bus_stand_out_id')->nullable()->index('FK_ticket_sales_transaction_bus_stand_2');
 
             $table->foreign(['sector_id'], 'FKA7F171B8EDF4A172')->references(['id'])->on('sector')->onDelete('cascade');
             $table->foreign(['tostage_stage_id'], 'FKA7F171B862B52325')->references(['id'])->on('stage')->onDelete('cascade');
@@ -46,6 +49,9 @@ class CreateTicketSalesTransactionTable extends Migration
             $table->foreign(['fromstage_stage_id'], 'FKA7F171B884E9EE14')->references(['id'])->on('stage')->onDelete('cascade');
             $table->foreign(['summary_id'], 'FKA7F171B899B4A272')->references(['id'])->on('ticket_transaction_summary')->onDelete('cascade');
             $table->foreign(['card_id'], 'FKA7F171B81483D948')->references(['id'])->on('ticket_card')->onDelete('cascade');
+            $table->foreign(['bus_stand_in_id'], 'FK_ticket_sales_transaction_bus_stand')->references(['id'])->on('bus_stand')->onDelete('cascade');
+            $table->foreign(['bus_stand_out_id'], 'FK_ticket_sales_transaction_bus_stand_2')->references(['id'])->on('bus_stand')->onDelete('cascade');
+
             $table->unique(['pda_transaction_id', 'sales_date'], 'pda_transaction_id_idx');
             $table->index(['route_id', 'sales_date', 'fare_type'], 'collection_by_route_and_type_idx');
             $table->index(['pda_id', 'sales_date', 'amount'], 'pda_sales_total_idx');

@@ -42,66 +42,67 @@
 
                             <form action={{ route('updateStageFare') }} method="post">
                                 @csrf
-                            <table id="adultFare" class="table table-hover">
-                                <thead>
-                                <tr>
-                                    <th class="border-gray-200">{{ __('Order') }}</th>
-                                    <th class="border-gray-200">{{ __('Stage Name') }}</th>
-                                    @foreach($stages as $stage)
-                                        <th class="border-gray-200">{{ $stage->stage_name }}</th>
-                                    @endforeach
-                                </tr>
-                                </thead>
-                                <tbody id="each-fare">
-
-                                <input name="routeId" type="hidden" value="{{ $selectedRoute }}">
-                                <input name="fareType" type="hidden" value="{{ $fareTypes }}">
-
-                                @foreach ($stageTo as $toStage)
+                                <table id="adultFare" class="table table-hover">
+                                    <thead>
                                     <tr>
-                                        <td style="display: none"><input name="routeId" type="hidden" value="{{ $selectedRoute }}">></td>
-                                        <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
-                                        <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
-
-                                        @for($i=0; $i<$toStage->stage_order; $i++)
-                                            @if( isset($stageFrom[$i]['id']))
-                                                @php
-                                                $result = 0;
-                                                @endphp
-                                                @foreach ($stageFares as $stageFare)
-                                                    @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
-                                                        @php
-                                                            $result = $stageFare->fare
-                                                        @endphp
-                                                    @endif
-                                                @endforeach
-
-                                                @if($result)
-                                                    <td>
-                                                        <label>
-                                                            <input name="fare[]" class="update form-control border-gray-300" type="text" value="{{ $result }}" required>
-                                                            @if ($errors->has('fare'))
-                                                                <span class="text-danger">{{ $errors->first('fare') }}</span>
-                                                            @endif
-                                                        </label>
-                                                        <input name="toStage[]" type="hidden" value="{{ $toStage->id }}" required>
-                                                        <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}" required>
-                                                    </td>
-                                                @else
-                                                    <td>
-                                                        <label>
-                                                            <input name="fare[]" class="update form-control border-gray-300" type="text" placeholder="Enter fare">
-                                                        </label>
-                                                        <input name="toStage[]" type="hidden" value="{{ $toStage->id }}">
-                                                        <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}">
-                                                    </td>
-                                                @endif
-                                            @endif
-                                        @endfor
+                                        <th class="border-gray-200">{{ __('Order') }}</th>
+                                        <th class="border-gray-200">{{ __('Stage Name') }}</th>
+                                        @foreach($stages as $stage)
+                                            <th class="border-gray-200">{{ $stage->stage_order }}</th>
+                                        @endforeach
                                     </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody id="each-fare">
+
+                                    <input name="routeId" type="hidden" value="{{ $selectedRoute }}">
+                                    <input name="fareType" type="hidden" value="{{ $fareTypes }}">
+
+                                    @foreach ($stageTo as $toStage)
+                                        <tr>
+                                            <td style="display: none"><input name="routeId" type="hidden" value="{{ $selectedRoute }}">></td>
+                                            <td><span class="fw-normal">{{ $toStage->stage_order}}</span></td>
+                                            <td><span class="fw-normal">{{ $toStage->stage_name }}</span></td>
+
+                                            @for($i=0; $i<$toStage->stage_order; $i++)
+                                                @if( isset($stageFrom[$i]['id']))
+                                                    @php
+                                                    $result = 0;
+                                                    @endphp
+                                                    @foreach ($stageFares as $stageFare)
+                                                        @if(($stageFare->tostage_stage_id == $toStage->id) && ($stageFare->fromstage_stage_id == $stageFrom[$i]['id']))
+                                                            @php
+                                                                $result = $stageFare->fare
+                                                            @endphp
+                                                        @endif
+                                                    @endforeach
+
+                                                    @if($result)
+                                                        <td>
+                                                            <label>
+                                                                <input style="width: 60px;height: 30px" name="fare[]" class="update form-control border-gray-300" type="text" value="{{ $result }}" required>
+                                                                @if ($errors->has('fare'))
+                                                                    <span class="text-danger">{{ $errors->first('fare') }}</span>
+                                                                @endif
+                                                            </label>
+                                                            <input name="toStage[]" type="hidden" value="{{ $toStage->id }}" required>
+                                                            <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}" required>
+                                                        </td>
+                                                    @else
+                                                        <td>
+                                                            <label>
+                                                                <input name="fare[]" class="update form-control border-gray-300" type="text" placeholder="Enter fare">
+                                                            </label>
+                                                            <input name="toStage[]" type="hidden" value="{{ $toStage->id }}">
+                                                            <input name="fromStage[]" type="hidden" value="{{ $stageFrom[$i]['id']}}">
+                                                        </td>
+                                                    @endif
+                                                @endif
+                                            @endfor
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            <br>
                             <button class="btn btn-primary" type="submit">Save Changes</button>
                             </form>
                         </div>

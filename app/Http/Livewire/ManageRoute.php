@@ -91,19 +91,21 @@ class ManageRoute extends Component
     {
         $validatedData = Validator::make($this->state, [
             'route_name' => ['required', 'string', 'max:255'],
-            'route_number' => ['required', 'string', 'max:255'],
+            'route_number' => ['string', 'max:255'],
             'route_target'=> ['required', 'string', 'max:255'],
-            'distance'=> ['required', 'between:0,99.99'],
-            'inbound_distance'=> ['required', 'between:0,99.99'],
-            'outbound_distance'=> ['required', 'between:0,99.99'],
+            'distance'=> ['between:0,99.99'],
+            'inbound_distance'=> ['between:0,99.99'],
+            'outbound_distance'=> ['between:0,99.99'],
             'company_id'=> ['required', 'int'],
-            'sector_id'=> ['required', 'int'],
             'status'=> ['required', 'int'],
         ])->validate();
 
-        Route::create($validatedData);
+        $create = Route::create($validatedData);
 
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route added successfully!']);
+        if($create){
+            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route added successfully!']);
+        }
+        return redirect()->to('/settings/manageRoute')->with(['message' => 'Failed To Add Route!']);
 
         //return Redirect::back()->with(['message' => 'Sector added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);

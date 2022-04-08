@@ -28,7 +28,6 @@
                 <tr>
                     <th class="border-gray-200">{{ __('Route Number') }}</th>
                     <th class="border-gray-200">{{ __('Route Name') }}</th>
-                    <th class="border-gray-200">{{ __('Sector Name') }}</th>
                     <th class="border-gray-200">{{ __('Inbound Distance (KM)') }}</th>
                     <th class="border-gray-200">{{ __('Outbound Distance (KM)') }}</th>
                     <th class="border-gray-200">{{ __('Route Map') }}</th>
@@ -40,7 +39,6 @@
                     <tr>
                         <td><span class="fw-normal">{{ $route->route_number }}</span></td>
                         <td><span class="fw-normal">{{ $route->route_name }}</span></td>
-                        <td><span class="fw-normal">{{ $route->sector->sector_name }}</span></td>
                         <td><span class="fw-normal">{{ $route->inbound_distance }}</span></td>
                         <td><span class="fw-normal">{{ $route->outbound_distance }}</span></td>
                         @php
@@ -123,7 +121,7 @@
                                         <path d="M7.293.707A1 1 0 0 0 7 1.414V4H2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h5v6h2v-6h3.532a1 1 0 0 0 .768-.36l1.933-2.32a.5.5 0 0 0 0-.64L13.3 4.36a1 1 0 0 0-.768-.36H9V1.414A1 1 0 0 0 7.293.707z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.route_number" class="form-control border-gray-300" id="routeNum" placeholder="{{ __('Route Number') }}" autofocus required>
+                                <input wire:model.defer="state.route_number" class="form-control border-gray-300" id="routeNum" placeholder="{{ __('Route Number') }}" autofocus>
                                 @if ($errors->has('routeNum'))
                                     <span class="text-danger">{{ $errors->first('routeNum') }}</span>
                                 @endif
@@ -149,7 +147,7 @@
                                         <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.distance" class="form-control border-gray-300" id="distance"  placeholder="{{ __('Distance in KM') }}" autofocus required>
+                                <input wire:model.defer="state.distance" class="form-control border-gray-300" id="distance"  placeholder="{{ __('Distance in KM') }}" autofocus>
                                 @if ($errors->has('distance'))
                                     <span class="text-danger">{{ $errors->first('distance') }}</span>
                                 @endif
@@ -163,7 +161,7 @@
                                         <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.inbound_distance" class="form-control border-gray-300" id="indistance" placeholder="{{ __('Inbound Distance in KM') }}" autofocus required>
+                                <input wire:model.defer="state.inbound_distance" class="form-control border-gray-300" id="indistance" placeholder="{{ __('Inbound Distance in KM') }}" autofocus>
                                 @if ($errors->has('indistance'))
                                     <span class="text-danger">{{ $errors->first('indistance') }}</span>
                                 @endif
@@ -177,7 +175,7 @@
                                         <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.outbound_distance" class="form-control border-gray-300" id="outdistance" placeholder="{{ __('Outbound Distance in KM') }}"  autofocus required>
+                                <input wire:model.defer="state.outbound_distance" class="form-control border-gray-300" id="outdistance" placeholder="{{ __('Outbound Distance in KM') }}"  autofocus>
                                 @if ($errors->has('outdistance'))
                                     <span class="text-danger">{{ $errors->first('outdistance') }}</span>
                                 @endif
@@ -197,23 +195,6 @@
                                 </select>
                                 @if ($errors->has('company'))
                                     <span class="text-danger">{{ $errors->first('company') }}</span>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="sector">Sector</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                     <i class="fa fa-project-diagram"></i>
-                                </span>
-                                <select wire:model.defer="state.sector_id" id="sector" class="form-control border-gray-300" autofocus required>
-                                    <option value="">Choose Sector</option>
-                                    @foreach($sectors as $sector)
-                                        <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
-                                    @endforeach
-                                </select>
-                                @if ($errors->has('sector'))
-                                    <span class="text-danger">{{ $errors->first('sector') }}</span>
                                 @endif
                             </div>
                         </div>

@@ -28,6 +28,7 @@ class CreateTripDetailsTable extends Migration
             $table->unsignedBigInteger('pda_id')->nullable()->index('FKC3CF182853504BCC');
             $table->unsignedBigInteger('route_id')->nullable()->index('FKC3CF182887F2551F');
             $table->string('trip_code', 64)->nullable();
+            $table->unsignedBigInteger('route_schedule_mstr_id')->nullable()->index('FK_trip_details_route_scheduler_mstr');
 
             $table->foreign(['route_id'], 'FKC3CF182887F2551F')->references(['id'])->on('route')->onDelete('cascade');
             $table->foreign(['bus_id'], 'FKC3CF18287E2B6AE8')->references(['id'])->on('bus')->onDelete('cascade');

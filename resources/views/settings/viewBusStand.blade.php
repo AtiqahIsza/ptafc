@@ -6,12 +6,21 @@
     <script>
         let map;
         const coordPoly = [];
-        const coordCircle = [];
+        const coordBus = [];
 
         function initMap() {
+            let forZoomArr = <?php echo json_encode($busStand); ?>;
+            let forZoom;
+
+            for (j = 0; j < forZoomArr.length; j++) {
+                forZoom = new google.maps.LatLng(
+                    parseFloat(forZoomArr[j]['latitude']),
+                    parseFloat(forZoomArr[j]['longitude'])
+                );
+            }
             map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 8,
-                center: { lat: 3.140853, lng: 101.693207 }, // Center the map on Malaysia.
+                zoom: 13,
+                center: forZoom, // Center the map on Malaysia.
             });
 
             let routeArr = <?php echo json_encode($routeMaps); ?>;
@@ -34,23 +43,50 @@
 
             let  busStandArr = <?php echo json_encode($busStand); ?>;
             for (i = 0; i < busStandArr.length; i++) {
-                coordCircle[i] = new google.maps.LatLng(
+                coordBus[i] = new google.maps.LatLng(
                     parseFloat(busStandArr[i]['latitude']),
                     parseFloat(busStandArr[i]['longitude'])
                 );
-                const busStand = new google.maps.Circle({
-                    strokeColor: '#FF0000',
+                const busStandMarker = new google.maps.Marker({
+                    position: coordBus[i],
+                    map: map,
+                    icon: {
+                        url: '/images/bus-stop_blue.png',
+                        scaledSize: new google.maps.Size(50, 50),
+                    }
+                });
+
+                //alert(busStandArr[i]['description'])
+                let contentString =
+                    '<div id="content">' +
+                        '<span>'+ busStandArr[i]['description'] +'</span>' +
+                    '</div';
+
+                const infowindow = new google.maps.InfoWindow({
+                    content: contentString,
+                });
+
+                //listener to click on info window
+                busStandMarker.addListener("click", () => {
+                    infowindow.open({
+                        anchor: busStandMarker,
+                        map,
+                        shouldFocus: false,
+                    });
+                });
+
+                const busStandCircle = new google.maps.Circle({
+                    strokeColor: '#000000',
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
-                    fillColor: '#FF0000',
+                    fillColor: '#0C0E71',
                     fillOpacity: 0.35,
                     map: map,
-                    center: coordCircle[i],
+                    center: coordBus[i],
                     radius: parseFloat(busStandArr[i]['radius']),
                 });
-                //busStand.setMap(map);
             }
-            //busStand.setMap(map);
+
         }
     </script>
 
@@ -65,18 +101,32 @@
                 <h2>View Bus Stand for Route <span>{{ $routes->route_name }}</span></h2>
             </div>
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
-                <table class="table table-hover">
+                <table class="table table-borderless">
                     <tbody>
                     <tr>
-                        <td colspan="4"><span class="fw-normal">Bus Stand:</span></td>
+                        <td>&nbsp;</td>
+                        <td style="background-color: #FF0000;width: 20px"> </td>
+                        <td><strong>Route Map</strong></td>
+                        <td>&nbsp;</td>
+                        <td style="width: 70px;">
+                            <img src="{{ url('/images/bus-stop_blue.png') }}" alt="bus-stop" style="width: 70px;">
+                        </td>
+                        <td><strong>Bus Stand</strong></td>
+                        <td>&nbsp;</td>
+                        <td style="background-color: #0C0E71;width: 20px"> </td>
+                        <td><strong>Radius of Bus Stand</strong></td>
+                        <td>&nbsp;</td>
                     </tr>
                     <tr>
-                        <td colspan="4">
+                        <td colspan="10">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td colspan="10">
                             <div id="map"></div>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="4">
+                        <td colspan="10">
                             <div class="d-block mb-md-0" style="position: relative">
                                 <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                             </div>

@@ -11,15 +11,21 @@ class RouteSchedulerMSTR extends Model
     protected $table = 'route_scheduler_mstr';
     public $timestamps = false;
 
+    //trip_code(out = 0/inbound=1)
     protected $fillable = [
-        'schedule_time',
+        'id',
+        'start_trip',
+        'end_trip',
+        'route_schedule_mstr_id',
+        'bus_id',
         'route_id',
-        'inbound_distance',
-        'outbound_distance',
-        'inbound_bus_id',
-        'outbound_bus_id',
-        'status',
-        'trip_type'
+        'driver_id',
+        'total_adult',
+        'total_concession',
+        'total_adult_amount',
+        'total_concession_amount',
+        'total_mileage',
+        'trip_code'
     ];
 
     function Route() {

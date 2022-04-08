@@ -55,26 +55,28 @@ class ReportSalesByBus extends Component
 
             $startDate->addDay();
         }
-        $salesByBus = collect();
 
+        $salesByBus = collect();
+        $grandTotal = 0.0;
         foreach ($all_dates as $all_date)
         {
             $tripDetailsDate = TripDetail::where('start_trip', $all_date)
                 ->where('end_trip', $all_date)
+                ->where('bus_id', $validatedData['bus_id'])
+                ->orderby('start_trip')
                 ->get();
 
             if($tripDetailsDate) {
-
-                $grandTotal = 0.0;
-
                 foreach ($tripDetailsDate as $tripDetails) {
 
-                    $data['start_trip'] = $tripDetails->start_trip;
-                    $data['end_trip'] = $tripDetails->end_date;
-                    $data['route_desc'] = $tripDetails->route->route_name;
-                    $data['creation_by'] = $tripDetails->starrt_date;
-                    $data['closed_by'] = $tripDetails->end_date;
-                    $data['pda'] = $tripDetails->pda->imei;
+                    $perTrip['start_trip'] = $tripDetails->start_trip;
+                    $perTrip['end_trip'] = $tripDetails->end_date;
+                    $perTrip['route_desc'] = $tripDetails->route->route_name;
+                    $perTrip['creation_by'] = $tripDetails->start_date;
+                    $perTrip['closed_by'] = $tripDetails->end_date;
+                    $perTrip['pda'] = $tripDetails->pda->imei;
+
+                    $data['perTrip'] = $perTrip;
 
                     $ticketSaleTransaction = TicketSalesTransaction::where('trip_id',$tripDetails->id)->get();
                         /*->where('bus_id', $validatedData['bus_id'])
@@ -91,28 +93,54 @@ class ReportSalesByBus extends Component
 
                         foreach ($ticketSaleTransaction as $ticketSale) {
 
-                            $totalCash = $totalCash + $ticketSale->cash;
-                            $totalCard = $totalCard + $ticketSale->card;
-                            $totalTouchNGo = $totalTouchNGo + $ticketSale->touch_n_go;
-                            $totalCancelled = $totalTouchNGo + $ticketSale->touch_n_go;
+                            if($ticketSale->fare_type==1){
+                                $totalCash = $totalCash + $ticketSale->amount;
+                                $perTime['cash'] = $ticketSale->amount;
+                                $perTime['card'] = 0;
+                                $perTime['touch_n_go'] = 0;
+
+                            } //Cash
+                            elseif($ticketSale->fare_type==2){
+                                $totalCard = $totalCard + $ticketSale->amount;
+                                $perTime['cash'] = 0;
+                                $perTime['card'] = $ticketSale->amount;
+                                $perTime['touch_n_go']= 0;
+                            } //Card
+                            else{
+                                $totalTouchNGo = $totalTouchNGo + $ticketSale->amount;
+                                $perTime['cash'] = 0;
+                                $perTime['card'] = 0;
+                                $perTime['touch_n_go'] = $ticketSale->amount;
+                            } //TouchNGo
+
+                            $data['perTrip'][$ticketSale->sales_date] = $perTime;
                         }
 
                         $totalBy = $totalCash + $totalCash + $totalTouchNGo + $totalCancelled;
 
-                        $data['ticketSaleTransaction'] = $ticketSaleTransaction;
-                        $data['total_cash'] = $totalCash;
-                        $data['total_card'] = $totalCard;
-                        $data['total_touch_n_go'] = $totalTouchNGo;
-                        $data['total_cancelled'] = $totalCancelled;
-                        $data['total_by'] = $totalBy;
+                        $perSale['ticketSaleTransaction'] = $ticketSaleTransaction;
+                        $perSale['total_cash'] = $totalCash;
+                        $perSale['total_card'] = $totalCard;
+                        $perSale['total_touch_n_go'] = $totalTouchNGo;
+                        $perSale['total_cancelled'] = $totalCancelled;
+                        $perSale['total_by'] = $totalBy;
+
+                        $data['perSale'][$tripDetails->start_trip] = $perSale;
 
                         $grandTotal = $grandTotal + $totalBy;
 
                     }
+                    else{
+                        $perTime['cash'] = 0;
+                        $perTime['card'] = 0;
+                        $perTime['touch_n_go'] = 0;
+                        $perTime['cancelled'] = 0;
+
+                        $data['perTrip'][$tripDetails->start_trip] = $perTime;
+                    }
                     $salesByBus->add($data);
                 }
             }
-
         }
         $grand['grand_total'] = $grandTotal;
         $salesByBus->add($grand);

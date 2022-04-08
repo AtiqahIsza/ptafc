@@ -32,6 +32,11 @@ Route::middleware('auth')->group(function () {
     Route::put('profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 });
 
+//Wallet
+Route::get('/wallet/view', [\App\Http\Controllers\DriverWalletRecordController::class, 'index'])->name('viewTransaction');
+Route::get('/wallet/topup', [\App\Http\Controllers\DriverWalletRecordController::class, 'topup'])->name('topupWallet');
+Route::get('/settings/manageBusDriver/wallet/{id}', [\App\Http\Controllers\DriverWalletRecordController::class, 'show'])->name('viewWalletTransaction');
+
 //Card
 Route::get('/cards/manage', [\App\Http\Controllers\TicketCardController::class, 'manageCards'])->name('manageCards');
 Route::get('/cards/view', [\App\Http\Controllers\TicketCardController::class, 'index'])->name('viewCards');
@@ -47,6 +52,7 @@ Route::get('/settings/manageStage', [\App\Http\Controllers\StageController::clas
 Route::get('/settings/manageBusStand', [\App\Http\Controllers\BusStandController::class, 'index'])->name('manageBusStand');
 Route::get('/settings/manageStageFare', [\App\Http\Controllers\StageFareController::class, 'index'])->name('manageStageFare');
 Route::get('/settings/manageScheduler', [\App\Http\Controllers\RouteSchedulerDetailController::class, 'index'])->name('manageScheduler');
+Route::get('/settings/managePDA', [\App\Http\Controllers\PDAProfileController::class, 'index'])->name('managePDA');
 
 //Report
 Route::get('/report/salesByBus', [\App\Http\Controllers\ReportController::class, 'viewSalesByBus'])->name(' viewSalesByBus');
@@ -68,7 +74,7 @@ Route::get('/settings/manageRouteMap/{id}/add', [\App\Http\Controllers\RouteMapC
 Route::post('/settings/manageRouteMap/store', [\App\Http\Controllers\RouteMapController::class, 'store'])->name('storeRouteMap');
 Route::get('/settings/manageRouteMap/{id}/view', [\App\Http\Controllers\RouteMapController::class, 'show'])->name('viewRouteMap');
 
-Route::get('/settings/manageStage/{id}/addMap', [\App\Http\Controllers\StageMapController::class, 'index'])->name('addStageMap');
+Route::get('/settings/manageStage/{id}/addMap', [\App\Http\Controllers\StageMapController::class, 'create'])->name('addStageMap');
 Route::post('/settings/manageStageMap/store', [\App\Http\Controllers\StageMapController::class, 'store'])->name('storeStageMap');
 Route::get('/settings/manageStageMap/{id}/view', [\App\Http\Controllers\StageMapController::class, 'show'])->name('viewStageMap');
 

@@ -38,6 +38,7 @@ class BusStand extends Model
         'route_id',
         'radius',
         'sequence',
+        'description'
     ];
 
     function Route() {

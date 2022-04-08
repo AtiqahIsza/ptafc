@@ -6,12 +6,35 @@
     <script>
         let poly;
         let map;
+        const coords = [];
 
         function initMap() {
+            // Show polygon of selected route
+            let routeArr = <?php echo json_encode($routeMaps); ?>;
+            for (i = 0; i < routeArr.length; i++) {
+                coords[i] = new google.maps.LatLng(
+                    parseFloat(routeArr[i]['latitude']),
+                    parseFloat(routeArr[i]['longitude'])
+                );
+            }
+
             map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 7,
-                center: { lat: 3.140853, lng: 101.693207 }, // Center the map on Malaysia.
+                zoom: 12,
+                center: coords[0], // Center the map on 1st point of polygon route.
             });
+
+            const routeMap = new google.maps.Polygon({
+                paths: coords,
+                strokeColor: "#000000",
+                strokeOpacity: 0.8,
+                strokeWeight: 3,
+                fillColor: "#fff705",
+                fillOpacity: 0.50,
+                clickable: false,
+            });
+
+            routeMap.setMap(map);
+
             poly = new google.maps.Polyline({
                 strokeColor: "#000000",
                 strokeOpacity: 1.0,

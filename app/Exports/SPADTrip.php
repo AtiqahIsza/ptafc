@@ -19,9 +19,8 @@ class SPADTrip implements FromView, WithStyles, ShouldAutoSize
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($dates, $data, $dateFrom, $dateTo,$no)
+    public function __construct($data, $dateFrom, $dateTo,$no)
     {
-        $this->allDates = $dates;
         $this->routes = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
@@ -32,7 +31,6 @@ class SPADTrip implements FromView, WithStyles, ShouldAutoSize
     public function view(): View
     {
         return view('exports.spad.trip', [
-            'allDates' => $this->allDates,
             'routes' => $this->routes,
             'routeNo' => $this->routeNo,
             'dateFrom' => $this->fromDate,

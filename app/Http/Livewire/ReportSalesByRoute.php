@@ -66,10 +66,14 @@ class ReportSalesByRoute extends Component
             ->orderby('fromstage_stage_id')
             ->get();
 
+        $grandQuantity = 100;
+        $grandSales = 12.0;
         foreach ($allStageFares  as $allStageFare)
         {
             $data['from_to'] = $allStageFare->fromstage->stage_name . " - " . $allStageFare->tostage->stage_name;
+
             $totSales = 0.0;
+            $totQuantity = 0;
             foreach ($all_dates as $all_date)
             {
                 $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
@@ -90,29 +94,36 @@ class ReportSalesByRoute extends Component
                         $sales += $allStageFare->consession_fare;
                     }
                 }
-
                 $qty = count($allSales);
-                $data['date'] = $all_date;
-                $data['quantity'] = $qty;
-                $data['sales'] = $sales;
+                $perDate['date'] = $all_date;
+                $perDate['quantity'] = $qty;
+                $perDate['sales'] = $sales;
 
-                $salesByRoute->add($data);
+                $data['perDate'][$all_date] = $perDate;
 
+                $totQuantity += $qty;
                 $totSales += $sales;
             }
-            $tot['total_sales'] = $totSales;
-            $salesByRoute->add($tot);
+            $data['total_quantity'] = $totSales;
+            $data['total_sales'] = $totSales;
+            $salesByRoute->add($data);
+
+            $grandQuantity += $totQuantity;
+            $grandSales += $totSales;
         }
 
         $grandTotal = collect();
         foreach ($all_dates as $all_date)
         {
+            $grand_tot_qty = 0;
+            $grand_tot_sales = 0.0;
             foreach ($allStageFares  as $allStageFare)
             {
                 $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
                     ->where('sales_date', $all_date)
                     ->get();
 
+                $tot_qty = 0;
                 $sales = 0.0;
                 foreach ($allSales as $allSale)
                 {
@@ -124,12 +135,21 @@ class ReportSalesByRoute extends Component
                         $sales += $allStageFare->consession_fare;
                     }
                 }
-                $grand['date'] =  $all_date;
-                $grand['tot_quantity'] = count($allSales);
-                $grand['tot_sales'] = $sales;
-                $grandTotal->add($grand);
+                $count_all_sales = count($allSales);
+
+                $grand_tot_qty += $count_all_sales;
+                $grand_tot_sales += $sales;
             }
+            //$grand_date['date'] =  $all_date;
+            $grand_date['grand_quantity'] = $grand_tot_qty;
+            $grand_date['grand_sales'] = $grand_tot_sales;
+
+            $grand['perDate'][$all_date] = $grand_date;
         }
+        $grand['grand_total_quantity'] = $grandQuantity;
+        $grand['grand_total_sales'] = $grandSales;
+
+        $grandTotal->add($grand);
         return Excel::download(new SalesByRoute($salesByRoute, $grandTotal, $all_dates,$colspan), 'SalesByRoute.xlsx');
     }
 

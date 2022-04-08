@@ -23,21 +23,17 @@
                 <thead>
                 <tr>
                     <th class="border-gray-200">{{ __('Driver Name') }}</th>
-                    <th class="border-gray-200">{{ __('Employee No') }}</th>
-                    <th class="border-gray-200">{{ __('Driver Number') }}</th>
+                    <th class="border-gray-200">{{ __('Driver ID') }}</th>
                     <th class="border-gray-200">{{ __('Driver Role') }}</th>
-                    <th class="border-gray-200">{{ __('Hiring Company') }}</th>
-                    <th class="border-gray-200">{{ __('Bus Registration Number') }}</th>
-                    <th class="border-gray-200">{{ __('Route Name') }}</th>
-                    {{--<th class="border-gray-200">{{ __('Active Card Manu. No.') }}</th>--}}
+                    <th class="border-gray-200">{{ __('Company') }}</th>
                     <th class="border-gray-200">{{ __('Status') }}</th>
+                    <th class="border-gray-200">{{ __('Action') }}</th>
                 </tr>
                 </thead>
                 <tbody>
                 @foreach ($drivers as $driver)
                     <tr>
                         <td><span class="fw-normal">{{ $driver->driver_name }}</span></td>
-                        <td><span class="fw-normal">{{ $driver->employee_number }}</span></td>
                         <td><span class="fw-normal">{{ $driver->driver_number }}</span></td>
                         @if($driver->driver_role ==1)
                             <td><span class="fw-normal">Driver</span></td>
@@ -47,9 +43,7 @@
                             <td><span class="fw-normal">Administrator</span></td>
                         @endif
                         <td><span class="fw-normal">{{ $driver->company->company_name }}</span></td>
-                        <td><span class="fw-normal">{{ $driver->bus->bus_registration_number }}</span></td>
-                        <td><span class="fw-normal">{{ $driver->route->route_name }}</span></td>
-                      {{--  <td><span class="fw-normal">{{ $driver->driverCard->manufacturing_id}}</span></td>--}}
+                        {{--  <td><span class="fw-normal">{{ $driver->driverCard->manufacturing_id}}</span></td>--}}
                         @if($driver->status==1)
                             <td><span class="fw-normal">Active</span></td>
                         @elseif($driver->status==2)
@@ -57,6 +51,12 @@
                         @else
                             <td><span class="fw-normal">Blacklisted</span></td>
                         @endif
+                        <td>
+                            <button onclick="window.location='{{ route('viewWalletTransaction', $driver->id) }}'" class="btn btn-success">View</button>
+                            <button wire:click.prevent="confirmChanges({{ $driver->id }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalConfirmation">Change Status</button>
+                            <button wire:click.prevent="resetModal({{ $driver }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalResetPassword">Reset Password</button>
+
+                        </td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -109,7 +109,7 @@
                             </div>
                         </div>
                         <div class="form-group mb-4">
-                            <label for="id_number">Driver ID Number</label>
+                            <label for="id_number">Driver ID</label>
                             <div class="input-group">
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-123" viewBox="0 0 16 16">
@@ -174,7 +174,7 @@
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                     <i class="fas fa-building fa-fw"></i>
                                 </span>
-                                <select wire:model="selectedAddCompany" id="company" class="form-select border-gray-300" autofocus required>
+                                <select wire:model.defer="state.company_id" id="company" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
                                     @foreach($companies as $company)
                                         <option value="{{$company->id}}">{{$company->company_name}}</option>
@@ -185,7 +185,7 @@
                                 @endif
                             </div>
                         </div>
-                        @if (!is_null($selectedAddCompany))
+                        {{--@if (!is_null($selectedAddCompany))
                             <div class="form-group mb-4">
                                 <label for="sector">Sector</label>
                                 <div class="input-group">
@@ -244,7 +244,7 @@
                                     </div>
                                 @endif
                             @endif
-                        @endif
+                        @endif--}}
                         <div class="form-group mb-4">
                             <label for="driverNum">Driver Number (For PDA Login)</label>
                             <div class="input-group">
@@ -289,6 +289,83 @@
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
                                 <span>Save</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-header"></div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Edit User Modal Content -->
+
+    <!-- Change Status Route Modal -->
+    <div wire:ignore.self class="modal fade" id="modalConfirmation" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Confirmation For Changing Status</h5>
+                </div>
+
+                <div class="modal-body">
+                    <h4>Are you sure you want to change the status of {{ $changedDriverName }} to {{ $desiredStatus }}</h4>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times mr-1"></i>Cancel</button>
+                    <button type="button" wire:click.prevent="changeStatus" class="btn btn-danger" data-bs-dismiss="modal"><i class="fa fa-pen mr-1"></i>Change Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Change Status Modal Content -->
+
+    <!-- Reset Password Modal Content -->
+    <div wire:ignore.self class="modal fade" id="modalResetPassword" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-md-5">
+                    <h2 class="h4 text-center">
+                        <span>Reset Password</span>
+                    </h2>
+
+                    <!-- Form -->
+                    <form wire:submit.prevent="resetPassword">
+                        @csrf
+                        <div class="form-group mb-4">
+                            <label for="driver_password">New Password (For PDA Login)</label>
+                            <div class="input-group">
+                                <span class="input-group-text border-gray-300" id="basic-addon3">
+                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </span>
+                                <input wire:model.defer="state2.driver_password" type="password" class="form-control border-gray-300" id="driver_password" placeholder="{{ __('Password') }}" autofocus required>
+                                @if ($errors->has('driver_password'))
+                                    <span class="text-danger">{{ $errors->first('driver_password') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="driver_password_confirmation">Confirm New Password (For PDA Login)</label>
+                            <div class="input-group">
+                                <span class="input-group-text border-gray-300" id="basic-addon3">
+                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </span>
+                                <input wire:model.defer="state2.driver_password_confirmation" type="password" class="form-control border-gray-300" id="driver_password_confirmation" placeholder="{{ __('Password Confirmation') }}" autofocus required>
+                                @if ($errors->has('driver_password_confirmation'))
+                                    <span class="text-danger">{{ $errors->first('driver_password_confirmation') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <span>Save Changes</span>
                             </button>
                         </div>
                     </form>

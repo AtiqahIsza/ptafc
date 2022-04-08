@@ -14,25 +14,25 @@ class ManageBusStand extends Component
 {
     public $companies;
     public $routes;
-    public $stages;
     public $busStands;
+    public $busStandsModal;
+
     public $removedBusStandRouteId;
-    public $routeMap= false;
-    public $removeBtn= false;
+
+    public $haveRouteMap= false;
+    public $haveBusStand= false;
+
     public $selectedCompany = NULL;
     public $selectedRoute= NULL;
-    public $selectedStage = NULL;
 
     public function mount()
     {
-        $this->companies = collect();
+        $this->companies = Company::all();
         $this->routes = collect();
     }
 
     public function render()
     {
-        $this->companies = Company::all();
-        $this->routes= Route::all();
         return view('livewire.manage-bus-stand');
     }
 
@@ -45,57 +45,26 @@ class ManageBusStand extends Component
 
     public function updatedSelectedRoute($route)
     {
-        $this->routeMap = false;
-        $this->removeBtn = false;
+        $this->haveRouteMap = false;
+        $this->haveBusStand = false;
         //$this->selectedRoute = Route::where('id', $route)->first();
 
         if (!is_null($route)) {
             $existRouteMap = RouteMap::where('route_id', $route)->first();
             if($existRouteMap){
-                $this->routeMap = true;
+                $this->haveRouteMap = true;
             }
             $existBusStand = BusStand::where('route_id', $route)->first();
             if($existBusStand){
-                $this->removeBtn = true;
+                $this->haveBusStand = true;
             }
             $this->busStands = BusStand::where('route_id', $route)->get();
         }
     }
 
-    public function updatedSelectedStage($stage)
-    {
-        if (!is_null($stage)) {
-            $this->busStands = BusStand::where('stage_id', $stage)->get();
-        }
-    }
-
-    public function addNew()
-    {
-        $this->dispatchBrowserEvent('show-form');
-    }
-
-    public function createBusStand()
-    {
-        $validatedData = Validator::make($this->state, [
-            'company_id'=> ['required', 'int'],
-            'route_id'=> ['required', 'int'],
-            'latitude'=> ['required', 'int'],
-            'longitude'=> ['required', 'int'],
-        ])->validate();
-
-        BusStand::create($validatedData);
-
-        return redirect()->to('/settings/manageBusStand')->with(['message' => 'Bus stand added successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Sector added successfully!']);
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
-    }
-
     public function confirmRemoval($route)
     {
-       // $routeId = Route::select('id')->where('id',$route->id)->first();
         $this->removedBusStandRouteId = $route;
-        //$this->dispatchBrowserEvent('show-delete-modal');
     }
 
     public function removeSector()
@@ -105,4 +74,29 @@ class ManageBusStand extends Component
 
         return redirect()->to('/settings/manageBusStand')->with(['message' => 'Bus Stand removed successfully!']);
     }
+
+    public function editDesc(BusStand $busstand)
+    {
+        //dd($user);
+        //$this->reset();
+        $this->busStandsModal = $busstand;
+        $this->state = $busstand->toArray();
+    }
+
+    public function updateDesc()
+    {
+        $validatedData = Validator::make($this->state,[
+            'description' => ['required', 'string', 'max:255'],
+        ])->validate();
+
+        $this->busStandsModal->update($validatedData);
+
+        return redirect()->to('/settings/manageBusStand')->with(['message' => 'Bus Stand updated successfully!']);
+
+        //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
+        //$this->emit('hide-form');
+        //session()->flash('message', 'Sector successfully updated!');
+        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
+    }
+
 }

@@ -11,27 +11,26 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADRoute implements FromView, WithStyles, ShouldAutoSize
 {
-    public $routes;
+    public $contents;
     public $routeNo;
     public $fromDate;
     public $toDate;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo,$no)
+    public function __construct($data, $dateFrom, $dateTo)
     {
-        $this->routes = $data;
+        $this->contents = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
-        $this->routeNo = $no;
         /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View
     {
+        //dd($this->contents);
         return view('exports.spad.route', [
-            'routes' => $this->routes,
-            'routeNo' => $this->routeNo,
+            'contents' => $this->contents,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate
         ]);
@@ -48,8 +47,8 @@ class SPADRoute implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:V' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:V' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:P' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:P' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

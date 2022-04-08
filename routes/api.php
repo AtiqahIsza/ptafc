@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ApiController;
+use App\Http\Controllers\Api\DataController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,3 +28,15 @@ Route::post('getStageByCompany',[ApiController::class, 'getStageByCompany']);
 Route::post('getRouteMapByCompany',[ApiController::class, 'getRouteMapByCompany']);
 Route::post('getStageMapByCompany',[ApiController::class, 'getStageMapByCompany']);
 Route::post('getStageFareByCompany',[ApiController::class, 'getStageFareByCompany']);
+Route::post('getRouteScheduleByCompany',[ApiController::class, 'getRouteScheduleByCompany']);
+Route::post('checkPDA',[ApiController::class, 'checkPDA']);
+
+//save to db
+Route::post('saveDriverWallet',[ApiController::class, 'saveDriverWallet']);
+Route::post('saveTicketSalesTransaction',[ApiController::class, 'saveTicketSalesTransaction']);
+
+//load 3 file data
+Route::post('loadTripData', [DataController::class, 'loadTripData']);
+Route::post('loadTicketSalesData', [DataController::class, 'loadTicketSalesData']);
+Route::post('loadGPSHistoryData', [DataController::class, 'loadGPSHistoryData']);
+

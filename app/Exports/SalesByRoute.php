@@ -32,6 +32,7 @@ class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
     public function view(): View
     {
         //dd($this->contents);
+        //dd($this->grandTotal);
         return view('exports.salesbyroute', [
             'contents' => $this->contents,
             'grandTotal' => $this->grandTotal,

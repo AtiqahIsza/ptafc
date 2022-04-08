@@ -20,4 +20,7 @@ class RouteSchedulerDetail extends Model
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'route_id');
     }
+    function RouteScheduleMSTR() {
+        return $this->belongsTo(RouteSchedulerMSTR::class, 'route_schedule_mstr_id', 'id');
+    }
 }

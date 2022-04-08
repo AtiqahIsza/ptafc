@@ -15,7 +15,8 @@ class CreateBusSchedulerMstrTable extends Migration
     {
         Schema::create('bus_scheduler_mstr', function (Blueprint $table) {
             $table->id();
-            $table->dateTime('schedule_time')->nullable();
+            $table->dateTime('schedule_start_time')->nullable();
+            $table->dateTime('schedule_end_time')->nullable();
             $table->unsignedBigInteger('route_id')->nullable()->index('FK5E29F4787F2551F');
             $table->unsignedBigInteger('inbound_bus_id')->nullable()->index('FK_bus_scheduler_mstr_bus');
             $table->unsignedBigInteger('outbound_bus_id')->nullable()->index('FK_bus_scheduler_mstr_bus_2');

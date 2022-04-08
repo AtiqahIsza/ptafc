@@ -67,8 +67,6 @@ class ManageBus extends Component
             'bus_registration_number' => ['required', 'string', 'max:255'],
             'bus_series_number' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'int'],
-            'sector_id' => ['required', 'int'],
-            'route_id' => ['required', 'int'],
             'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
             'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
@@ -97,18 +95,17 @@ class ManageBus extends Component
             'bus_registration_number' => ['required', 'string', 'max:255'],
             'bus_series_number' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'int'],
-            'sector_id' => ['required', 'int'],
-            'route_id' => ['required', 'int'],
-            'bus_manufacturing_date' => ['required'],
+            'bus_manufacturing_date',
             'bus_type_id' => ['required', 'int'],
-            'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
+            'mac_address' => ['regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
 
+        $create = Bus::create($validatedData);
 
-
-        Bus::create($validatedData);
-
-        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus added successfully!']);
+        if($create){
+            return redirect()->to('/settings/manageBus')->with(['message' => 'Bus added successfully!']);
+        }
+        return redirect()->to('/settings/manageBus')->with(['message' => 'Failed To Add Bus!']);
 
         //return Redirect::back()->with(['message' => 'Bus added successfully!']);
         //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);

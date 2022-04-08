@@ -1,7 +1,7 @@
 <table style="border-color: #000000; border-style: solid;">
     <thead>
     <tr>
-        <th rowspan="2" colspan="{{$colspan}}" style="vertical-align: middle; text-align: center;">
+        <th colspan="{{$colspan}}" style="vertical-align: middle; text-align: center;">
             <strong>Sale Report By Route</strong>
         </th>
     </tr>
@@ -30,22 +30,31 @@
             <td>Qty</td>
             <td>Sales</td>
     </tr>
-    @php $i=0 @endphp
-    @foreach($contents as $content)
+    @php $i=1 @endphp
+    @foreach($contents as $key1 => $value)
         <tr>
-            <td style="text-align: center;">{{ $i++ }}</td> //No
-            <td style="text-align: center;">{{ $content['from_to'] }}</td> //From-to
-            @foreach($range as $ranges)
-                <td style="text-align: center;">{{ $content['quantity'] }}</td> //Qty
-                <td style="text-align: center;">{{ $content['sales'] }}</td> //Sales
+            <td style="text-align: center;">{{ $i++ }}</td>
+            <td style="text-align: center;">{{ $value['from_to'] }}</td>
+            @foreach($value['perDate'] as $key2 => $perDate)
+            {{--@foreach($range as $ranges)--}}
+                {{--@foreach($perDate as $perDates)--}}
+                <td style="text-align: center;">{{ $perDate['quantity'] }}</td>
+                <td style="text-align: center;"><strong>{{ $perDate['sales'] }}</strong></td>
+                {{--@endforeach--}}
             @endforeach
+            <td style="text-align: center;">{{ $value['total_quantity'] }}</td>
+            <td style="text-align: center;"><strong>{{ $value['total_sales'] }}</strong></td>
         </tr>
     @endforeach
     <tr>
         <td colspan="2">Grand Total:</td>
-        @foreach($grandTotal as $grand)
-            <td style="text-align: center;">{{ $grand['tot_quantity'] }}</td> //Tot_Qty
-            <td style="text-align: center;">{{ $grand['tot_sales'] }}</td> //Tot_Sales
+        @foreach($grandTotal as $key1 => $value)
+            @foreach($value['perDate'] as $key2 => $grand)
+                <td style="text-align: center;">{{ $grand['grand_quantity'] }}</td>
+                <td style="text-align: center;"><strong> {{ $grand['grand_sales'] }} </strong></td>
+            @endforeach
+            <td style="text-align: center;">{{ $value['grand_total_quantity'] }}</td>
+            <td style="text-align: center;"><strong>{{ $value['grand_total_sales'] }}</strong></td>
         @endforeach
     </tr>
     </tbody>

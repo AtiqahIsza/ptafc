@@ -12,21 +12,21 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class DailySummary implements FromView, WithStyles, ShouldAutoSize
 {
     public $dateDaily;
-    public $routes;
+    public $contents;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($dataRoute, $dailyDate)
+    public function __construct($contents, $dailyDate)
     {
         $this->dateDaily = $dailyDate;
-        $this->routes = $dataRoute;
+        $this->contents = $contents;
     }
 
     public function view(): View
     {
-        dd($this->routes);
+        //dd($this->contents);
         return view('exports.dailysummary', [
-            'routes' => $this->routes,
+            'contents' => $this->contents,
             'dateDaily' => $this->dateDaily,
         ]);
     }

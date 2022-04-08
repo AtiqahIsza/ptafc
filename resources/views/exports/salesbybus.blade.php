@@ -13,7 +13,7 @@
     </tr>
     <tr>
         <th colspan="11">
-            <strong> Bus No: {{ $busNo->bus_registration_number }}</strong>
+            <strong> Bus No: {{ $bus->bus_registration_number }}</strong>
         </th>
     </tr>
     </thead>

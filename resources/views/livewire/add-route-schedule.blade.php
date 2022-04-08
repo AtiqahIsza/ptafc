@@ -1,4 +1,4 @@
-<div class="card card-body border-0 shadow table-wrapper table-responsive">
+<div class="card card-body border-3 shadow table-wrapper table-responsive">
     <h2 class="mb-4 h5">{{ __('Add New Route Schedule') }}</h2>
 
     <!-- Form -->
@@ -7,11 +7,20 @@
     <table class="table table-hover">
         <tbody>
         <tr>
-            <th class="border-gray-200">{{ __('Time') }}</th>
+            <th class="border-gray-200">{{ __('Start Time') }}</th>
             <td>
-                <input wire:model.defer="state.schedule_time" class="form-control border-gray-300" type="time" autofocus required>
-                @if ($errors->has('schedule_time'))
-                    <span class="text-danger">{{ $errors->first('schedule_time') }}</span>
+                <input wire:model.defer="state.schedule_start_time" class="form-control border-gray-300" type="time" autofocus required>
+                @if ($errors->has('schedule_start_time'))
+                    <span class="text-danger">{{ $errors->first('schedule_start_time') }}</span>
+                @endif
+            </td>
+        </tr>
+        <tr>
+            <th class="border-gray-200">{{ __('End Time') }}</th>
+            <td>
+                <input wire:model.defer="state.schedule_end_time" class="form-control border-gray-300" type="time" autofocus required>
+                @if ($errors->has('schedule_end_time'))
+                    <span class="text-danger">{{ $errors->first('schedule_end_time') }}</span>
                 @endif
             </td>
         </tr>
