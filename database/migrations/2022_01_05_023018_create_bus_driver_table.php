@@ -28,6 +28,7 @@ class CreateBusDriverTable extends Migration
             $table->unsignedBigInteger('route_id')->nullable()->index('FK4417C6C787F2551F');
             $table->unsignedBigInteger('sector_id')->nullable()->index('FK4417C6C7EDF4A172');
             $table->unsignedTinyInteger('status')->nullable();
+            $table->decimal('wallet_balance')->nullable();
 
             $table->foreign(['route_id'], 'FK4417C6C787F2551F')->references(['id'])->on('route')->onDelete('cascade');
             $table->foreign(['sector_id'], 'FK4417C6C7EDF4A172')->references(['id'])->on('sector')->onDelete('cascade');

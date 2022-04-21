@@ -50,8 +50,8 @@
                         <th class="border-gray-200">{{ __('Company Name:') }}</th>
                         <th class="border-gray-200"><span class="badge bg-primary">{{ $route->company->company_name }}</span></th>
                         <th>&nbsp;</th>
-                        <th class="border-gray-200">{{ __('Sector Name:') }}</th>
-                        <th class="border-gray-200"><span class="badge bg-primary">{{ $route->sector->sector_name }}</span></th>
+                        <th class="border-gray-200">{{ __('Route Name:') }}</th>
+                        <th class="border-gray-200"><span class="badge bg-primary">{{ $route->route_name }}</span></th>
                         <th>&nbsp;</th>
                     </thead>
                     <tbody>

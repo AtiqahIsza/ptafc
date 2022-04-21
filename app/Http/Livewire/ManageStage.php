@@ -105,8 +105,8 @@ class ManageStage extends Component
     public function createStage()
     {
         $validatedData = Validator::make($this->state, [
-            'stage_name' => ['required', 'string', 'max:32'],
-            'stage_number' => ['required', 'string', 'max:8'],
+            'stage_name' => ['required', 'string', 'max:255'],
+            'stage_number' => ['string', 'max:8'],
             'stage_order'=> ['required', 'int'],
             'no_of_km'=> ['required', 'between:0,99.99'],
             'route_id'=> ['required', 'int'],

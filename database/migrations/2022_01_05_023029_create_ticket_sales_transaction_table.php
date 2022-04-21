@@ -31,7 +31,7 @@ class CreateTicketSalesTransactionTable extends Migration
             $table->unsignedBigInteger('pda_id')->nullable()->index('FKA7F171B853504BCC');
             $table->decimal('balance_in_card')->nullable();
             $table->unsignedInteger('card_trx_sequence')->nullable();
-            $table->string('trip_number', 8)->nullable();
+            $table->string('trip_number', 64)->nullable();
             $table->string('ticket_number', 64)->nullable();
             $table->unsignedBigInteger('trip_id')->nullable()->index('FKA7F171B8EC56E347');
             $table->decimal('actual_amount')->nullable();

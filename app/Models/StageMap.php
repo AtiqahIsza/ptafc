@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $latitude
  * @property string $longitude
+ * @property string $altitude
  * @property int $sequence
  * @property int $stage_id
  * @method static Builder|RouteMap newModelQuery()
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static Builder|RouteMap whereId($value)
  * @method static Builder|RouteMap whereLatitude($value)
  * @method static Builder|RouteMap whereLongitude($value)
+ * @method static Builder|RouteMap whereAltitude($value)
  * @method static Builder|RouteMap whereSequence($value)
  * @method static Builder|RouteMap whereStageId($value)
  */
@@ -35,6 +37,7 @@ class StageMap extends Model
     protected $fillable = [
         'latitude',
         'longitude',
+        'altitude',
         'sequence',
         'stage_id',
     ];

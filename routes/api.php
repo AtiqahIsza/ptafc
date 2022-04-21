@@ -39,4 +39,4 @@ Route::post('saveTicketSalesTransaction',[ApiController::class, 'saveTicketSales
 Route::post('loadTripData', [DataController::class, 'loadTripData']);
 Route::post('loadTicketSalesData', [DataController::class, 'loadTicketSalesData']);
 Route::post('loadGPSHistoryData', [DataController::class, 'loadGPSHistoryData']);
-
+Route::post('loadVehiclePositionData', [DataController::class, 'loadVehiclePositionData']);

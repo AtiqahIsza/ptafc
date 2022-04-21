@@ -72,17 +72,21 @@ class StageFareController extends Controller
      */
     public function update(Request $request)
     {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN  updateStageFare()");
         $validatedData = Validator::make($request->all(), [
             'fare' => ['required', 'array'],
-            'fare.*' => ['required', 'string', 'max:255'],
+            'fare.*' => ['required', 'string'],
             'fromStage' => ['required', 'array'],
-            'fromStage.*' => ['required', 'string', 'max:255'],
+            'fromStage.*' => ['required', 'string'],
             'toStage'=> ['required', 'array'],
-            'toStage.*' => ['required', 'string', 'max:255'],
-            'routeId'=> ['required', 'string', 'max:255'],
-            'fareType'=> ['required', 'string', 'max:255'],
+            'toStage.*' => ['required', 'string'],
+            'routeId'=> ['required', 'int'],
+            'fareType'=> ['required', 'string'],
         ])->validate();
+        $out->writeln("YOU ARE after validatedData");
 
+        //dd($validatedData['fare']);
         foreach ($validatedData['fare'] as $i => $validatedData['fare']) {
             $existedFare = StageFare::where([
                 ['route_id', $validatedData['routeId']],

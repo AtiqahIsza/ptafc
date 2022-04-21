@@ -82,6 +82,16 @@ Route::get('/settings/manageBusStand/{id}/addMap', [\App\Http\Controllers\BusSta
 Route::post('/settings/manageBusStand/store', [\App\Http\Controllers\BusStandController::class, 'store'])->name('storeBusStand');
 Route::get('/settings/manageBusStand/{id}/view', [\App\Http\Controllers\BusStandController::class, 'show'])->name('viewBusStand');
 
+//Upload KML File
+Route::post('/settings/uploadFile', [\App\Http\Controllers\RouteMapController::class, 'uploadFile'])->name('uploadFile');
+
+//Dashboard
+Route::get('/home/getPassengerType', [\App\Http\Controllers\HomeController::class, 'getPassengerType'])->name('getPassengerType');
+Route::get('/home/getTotalSalesPerDay', [\App\Http\Controllers\HomeController::class, 'getTotalSalesPerDay'])->name('getTotalSalesPerDay');
+Route::get('/home/getTotalSalesPerMonth', [\App\Http\Controllers\HomeController::class, 'getTotalSalesPerMonth'])->name('getTotalSalesPerMonth');
+Route::get('/home/getCollectionByCompany', [\App\Http\Controllers\HomeController::class, 'getCollectionByCompany'])->name('getCollectionByCompany');
+Route::get('/home/getCollectionByCompanyBar', [\App\Http\Controllers\HomeController::class, 'getCollectionByCompanyBar'])->name('getCollectionByCompanyBar');
+
 /*//Authentication (Login & Register)
 Route::get('login', [AuthController::class, 'index'])->name('login');
 Route::post('post-login', [AuthController::class, 'postLogin'])->name('login.post');

@@ -32602,6 +32602,12 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
     top: 5px;
 }
 
+.buttonUpload {
+    position: absolute;
+    right: 135px;
+    top: 5px;
+}
+
 /* Always set the map height explicitly to define the size of the div
        * element that contains the map. */
 .map {
@@ -32614,6 +32620,7 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
     width: 100%;
     /* The width is the width of the web page */
 }
+
 .grad1 {
     background-color: #25383C; /* For browsers that do not support gradients */
     background-image: linear-gradient(to bottom right, black, #25383C);

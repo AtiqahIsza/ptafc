@@ -24,20 +24,27 @@
     <!-- JQuery Script -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     {{--<script src="js/captcha/jquery.clientsidecaptcha.js" type="text/javascript"></script>--}}
-
+    @stack('app_script')
     <!-- Map Script -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
 
     <!-- Alpine v3 -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Full Calendar Calendar -->
+    <!--Pie Chart
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/series-label.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>-->
+
+    <!-- Full Calendar Calendar
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.js"></script>-->
 
     <!-- TUI Calendar -->
     <link rel="stylesheet" type="text/css" href="https://uicdn.toast.com/tui-calendar/latest/tui-calendar.css" />
@@ -49,6 +56,11 @@
     <script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.js"></script>
     <script src="https://uicdn.toast.com/tui-calendar/latest/tui-calendar.js"></script>
 
+    <!-- Chartist -->
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.css"/>
+    <script src="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+    <script src="https://unpkg.com/chartist-plugin-tooltips@0.0.17"></script>
+    <script src="https://unpkg.com/chartist-plugin-pointlabels@0.0.6"></script>
     {{--<!-- Tailwind -->
     <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">--}}
 </head>

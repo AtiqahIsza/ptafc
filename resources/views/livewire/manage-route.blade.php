@@ -5,10 +5,10 @@
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Route
         </button>
-        {{--<button onclick="{{ route('addRouteMap' ) }}" class="buttonAdd-map btn btn-gray-800 d-inline-flex align-items-center me-2">
-            <i class="fa fa-plus-circle mr-1 fa-fw"></i>
-            Add Route Map
-        </button>--}}
+        <button class="buttonUpload btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalUpload">
+            <i class="fa fa-file-upload mr-1 fa-fw"></i>
+            Upload KML File
+        </button>
     </div>
     <div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline"  >
@@ -231,6 +231,44 @@
         </div>
     </div>
     <!-- End of Edit User Modal Content -->
+
+    <!-- Upload KML File Modal Content -->
+    <div wire:ignore.self class="modal fade" id="modalUpload" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-md-5">
+                    <h2 class="h4 text-center">
+                        <span>Upload KML File</span>
+                    </h2>
+                    <br>
+
+                    <!-- Form -->
+                    <form action="{{ route('uploadFile')}}" method="post" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-group mb-4">
+                            <div class="input-group">
+                                <input class="form-control border-gray-300" type="file" id="file" name="file" autofocus required>
+                                @if ($errors->has('file'))
+                                    <span class="text-danger">{{ $errors->first('file') }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="btnSave">
+                                <span>Upload</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-header"></div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Upload KML File Modal Content -->
 
     <!-- Remove Route Modal -->
     <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">

@@ -9,27 +9,29 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SPADSummary implements FromView, WithStyles, ShouldAutoSize
+class SPADClaimSummary implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
+    public $routeNo;
     public $fromDate;
     public $toDate;
     public $sheet;
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($data, $dates, $dateFrom, $dateTo)
+    public function __construct($dates, $data, $dateFrom, $dateTo)
     {
         $this->allDates = $dates;
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
+        /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View
     {
         //dd($this->reports);
-        return view('exports.spad.summary', [
+        return view('exports.spad.claimsummary', [
             'allDates' => $this->allDates,
             'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
@@ -48,8 +50,8 @@ class SPADSummary implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:X' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:X' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:J' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:J' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

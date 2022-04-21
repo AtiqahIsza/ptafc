@@ -11,15 +11,6 @@ class RouteSchedulerDetail extends Model
 
     protected $table = 'route_scheduler_details';
 
-    function toStage() {
-        return $this->belongsTo(Stage::class, 'tostage_stage_id', 'id');
-    }
-    function fromStage() {
-        return $this->belongsTo(Stage::class, 'fromstage_stage_id', 'd');
-    }
-    function Route() {
-        return $this->belongsTo(Route::class, 'route_id', 'route_id');
-    }
     function RouteScheduleMSTR() {
         return $this->belongsTo(RouteSchedulerMSTR::class, 'route_schedule_mstr_id', 'id');
     }

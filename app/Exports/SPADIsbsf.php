@@ -11,17 +11,21 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADIsbsf implements FromView, WithStyles, ShouldAutoSize
 {
-    public $contents;
+    public $reports;
     public $fromDate;
     public $toDate;
     public $allDates;
     public $colspan;
     public $sheet;
+    public $months;
+    public $days;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo, $colspan, $allDates)
+    public function __construct($data, $dateFrom, $dateTo, $colspan, $allDates, $months, $days)
     {
-        $this->contents = $data;
+        $this->months = $months;
+        $this->days = $days;
+        $this->reports= $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
         $this->allDates = $allDates;
@@ -30,9 +34,11 @@ class SPADIsbsf implements FromView, WithStyles, ShouldAutoSize
 
     public function view(): View
     {
-        //dd($this->contents);
+        //dd($this->reports);
         return view('exports.spad.isbsf', [
-            'contents' => $this->contents,
+            'reports' => $this->reports,
+            'month' => $this->months,
+            'days' => $this->days,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate,
             'allDates'=> $this->allDates,

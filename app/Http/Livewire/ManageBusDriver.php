@@ -27,6 +27,8 @@ class ManageBusDriver extends Component
 
     public $changedDriverId;
     public $changedDriverName;
+    public $removedDriverId;
+    public $removedDriverName;
     public $desiredStatus;
     //public $showEditModal = false;
 
@@ -136,6 +138,49 @@ class ManageBusDriver extends Component
         return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Password Reset Successfully!']);
     }
 
+    public function editModal(BusDriver $driver)
+    {
+        $this->reset();
+        $this->drivers = $driver;
+        $this->state = $driver->toArray();
+    }
+
+    public function updateBusDriver()
+    {
+        $validatedData = Validator::make($this->state, [
+            'driver_name' => ['required', 'string', 'max:255'],
+            'employee_number' => ['required', 'string', 'max:255'],
+            'id_number' => ['required', 'string', 'max:255'],
+            'driver_role' => ['required', 'int'],
+            'status' => ['required', 'int'],
+            'target_collection' => ['required', 'between:0,99.99'],
+            'company_id' => ['required', 'int'],
+            'driver_number' => ['required', 'string', 'max:255'],
+        ])->validate();
+
+
+        $this->drivers->update($validatedData);
+
+        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus driver updated successfully!']);
+
+    }
+
+    public function confirmRemove($id)
+    {
+        $this->removedDriverId = $id;
+        $sql = BusDriver::where('id', $id)->first();
+        $this->removedDriverName = $sql->driver_name;
+    }
+
+    public function removeDriver()
+    {
+        $busdriver = BusDriver::findOrFail($this->removedDriverId);
+        $busdriver->delete();
+
+        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus driver removed successfully!']);
+
+    }
+
     public function confirmChanges($id)
     {
         $this->changedDriverId = $id;
@@ -169,4 +214,6 @@ class ManageBusDriver extends Component
         return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Status Changed Failed!']);
 
     }
+
+
 }

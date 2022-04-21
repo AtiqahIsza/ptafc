@@ -11,16 +11,18 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADRoute implements FromView, WithStyles, ShouldAutoSize
 {
-    public $contents;
+    public $reports;
     public $routeNo;
     public $fromDate;
     public $toDate;
     public $sheet;
+    public $networkArea;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo)
+    public function __construct($networkArea, $data, $dateFrom, $dateTo)
     {
-        $this->contents = $data;
+        $this->networkArea = $networkArea;
+        $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
         /*$this->sheet = $sheetName;*/
@@ -28,9 +30,10 @@ class SPADRoute implements FromView, WithStyles, ShouldAutoSize
 
     public function view(): View
     {
-        //dd($this->contents);
+        //dd($this->reports);
         return view('exports.spad.route', [
-            'contents' => $this->contents,
+            'networkArea' => $this->networkArea,
+            'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate
         ]);
@@ -47,8 +50,8 @@ class SPADRoute implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:P' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:P' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:O' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:O' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

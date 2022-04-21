@@ -22,7 +22,7 @@ class CreateTripDetailsTable extends Migration
             $table->bigInteger('number_of_ticket')->nullable();
             $table->dateTime('start_trip');
             $table->decimal('total_collection')->nullable();
-            $table->string('trip_number', 8)->nullable();
+            $table->string('trip_number', 64)->nullable();
             $table->unsignedBigInteger('bus_id')->nullable()->index('FKC3CF18287E2B6AE8');
             $table->unsignedBigInteger('driver_id')->nullable()->index('FKC3CF1828A8D29F52');
             $table->unsignedBigInteger('pda_id')->nullable()->index('FKC3CF182853504BCC');

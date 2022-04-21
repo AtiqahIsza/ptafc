@@ -9,6 +9,7 @@ class VehiclePosition extends Model
 {
     use HasFactory;
     protected $table = 'vehicle_position';
+    public $timestamps = false;
 
     protected $fillable = [
         'vehicle_reg_no',
@@ -17,7 +18,7 @@ class VehiclePosition extends Model
         'latitude',
         'longitude',
         'altitude',
-        'timestamp',
+        'date_time',
         'speed',
         'bearing',
         'odometer',
@@ -26,6 +27,19 @@ class VehiclePosition extends Model
         'd2d3',
         'rssi',
         'lac',
-        'cell_id'
+        'cell_id',
+        'mcc',
+        'msg_id',
+        'activity_id',
+        'addon_json',
+        'bus_id',
+        'driver_id'
     ];
+
+    function Bus() {
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
+    }
+    function Driver() {
+        return $this->belongsTo(BusDriver::class, 'driver_id', 'id');
+    }
 }

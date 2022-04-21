@@ -11,26 +11,29 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADServiceGroup implements FromView, WithStyles, ShouldAutoSize
 {
-    public $contents;
+    public $reports;
+    public $networkArea;
     public $fromDate;
     public $toDate;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo)
+    public function __construct($networkArea,$data, $dateFrom, $dateTo)
     {
-        $this->contents = $data;
+        $this->networkArea = $networkArea;
+        $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
     }
 
     public function view(): View
     {
-        //dd($this->contents);
+        //dd($this->reports);
         return view('exports.spad.servicegroup', [
-            'contents' => $this->contents,
+            'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
-            'dateTo' => $this->toDate
+            'dateTo' => $this->toDate,
+            'networkArea' => $this->networkArea,
         ]);
     }
 
@@ -45,8 +48,8 @@ class SPADServiceGroup implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:H' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:H' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:G' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:G' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

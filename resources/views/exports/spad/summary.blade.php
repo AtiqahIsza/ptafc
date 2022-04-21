@@ -85,6 +85,7 @@
                             <td style="text-align: center;">{{ $data['trip_missed_in'] }}</td>
                             <td style="text-align: center;">{{ $data['km_planned_in'] }}</td>
                             <td style="text-align: center;">{{ $data['km_served_in'] }}</td>
+                            <td style="text-align: center;">{{ $data['km_served_gps_in'] }}</td>
                             <td style="text-align: center;">{{ $data['early_departure_in'] }}</td>
                             <td style="text-align: center;">{{ $data['late_departure_in'] }}</td>
                             <td style="text-align: center;">{{ $data['early_end_in'] }}</td>
@@ -113,6 +114,7 @@
                             <td style="text-align: center;">{{ $data['trip_missed_out'] }}</td>
                             <td style="text-align: center;">{{ $data['km_planned_out'] }}</td>
                             <td style="text-align: center;">{{ $data['km_served_out'] }}</td>
+                            <td style="text-align: center;">{{ $data['km_served_gps_out'] }}</td>
                             <td style="text-align: center;">{{ $data['early_departure_out'] }}</td>
                             <td style="text-align: center;">{{ $data['late_departure_out'] }}</td>
                             <td style="text-align: center;">{{ $data['early_end_out'] }}</td>

@@ -2,12 +2,14 @@
 
 namespace App\Http\Livewire;
 
+use App\Models\BusStand;
 use App\Models\Company;
 use App\Models\Route;
 use App\Models\RouteMap;
 use App\Models\Sector;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ManageRoute extends Component
 {
@@ -20,6 +22,8 @@ class ManageRoute extends Component
     public $state = [];
     public $selectedCompany = NULL;
     public $showEditModal = false;
+
+    public $file;
 
     public function mount()
     {
@@ -60,13 +64,12 @@ class ManageRoute extends Component
     {
         $validatedData = Validator::make($this->state,[
             'route_name' => ['required', 'string', 'max:255'],
-            'route_number' => ['required', 'string', 'max:255'],
+            'route_number' => ['string', 'max:255'],
             'route_target'=> ['required', 'string', 'max:255'],
-            'distance'=> ['required', 'between:0,99.99'],
-            'inbound_distance'=> ['required', 'between:0,99.99'],
-            'outbound_distance'=> ['required', 'between:0,99.99'],
+            'distance'=> ['between:0,99.99'],
+            'inbound_distance'=> ['between:0,99.99'],
+            'outbound_distance'=> ['between:0,99.99'],
             'company_id'=> ['required', 'int'],
-            'sector_id'=> ['required', 'int'],
             'status'=> ['required', 'int'],
         ])->validate();
 
@@ -99,6 +102,16 @@ class ManageRoute extends Component
             'company_id'=> ['required', 'int'],
             'status'=> ['required', 'int'],
         ])->validate();
+
+        $existRouteNumber = Route::where('route_number', $validatedData['route_number'])->first();
+        $existRouteName = Route::where('route_name', $validatedData['route_name'])->first();
+
+        if($existRouteNumber ){
+            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route number already exist!']);
+        }
+        if($existRouteName ){
+            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route name already exist!']);
+        }
 
         $create = Route::create($validatedData);
 

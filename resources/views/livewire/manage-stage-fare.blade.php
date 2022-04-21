@@ -48,7 +48,7 @@
                                         <th class="border-gray-200">{{ __('Order') }}</th>
                                         <th class="border-gray-200">{{ __('Stage Name') }}</th>
                                         @foreach($stages as $stage)
-                                            <th class="border-gray-200">{{ $stage->stage_order }}</th>
+                                            <th class="border-gray-200">{{ $stage->stage_name }}</th>
                                         @endforeach
                                     </tr>
                                     </thead>
@@ -120,7 +120,7 @@
                                     <th class="border-gray-200">{{ __('Order') }}</th>
                                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
                                     @foreach($stages as $stage)
-                                        <th class="border-gray-200">{{ $stage->stage_order }}</th>
+                                        <th class="border-gray-200">{{ $stage->stage_name }}</th>
                                     @endforeach
                                 </tr>
                                 </thead>

@@ -11,7 +11,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADClaimDetails implements FromView, WithStyles, ShouldAutoSize
 {
-    public $routes;
+    public $reports;
     public $routeNo;
     public $fromDate;
     public $toDate;
@@ -19,22 +19,21 @@ class SPADClaimDetails implements FromView, WithStyles, ShouldAutoSize
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($dates, $data, $dateFrom, $dateTo,$no)
+    public function __construct($dates, $data, $dateFrom, $dateTo)
     {
         $this->allDates = $dates;
-        $this->routes = $data;
+        $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
-        $this->routeNo = $no;
         /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View
     {
+        //dd($this->reports);
         return view('exports.spad.claimdetails', [
             'allDates' => $this->allDates,
-            'routes' => $this->routes,
-            'routeNo' => $this->routeNo,
+            'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate
         ]);
@@ -51,8 +50,8 @@ class SPADClaimDetails implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:AO' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:AO' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:AH' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:AH' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

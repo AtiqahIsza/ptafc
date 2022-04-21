@@ -11,7 +11,7 @@
                                 src="https://ui-avatars.com/api/?background=random&name={{ Auth::user()->name }}"
                                 alt="{{ Auth::user()->name }}">
                             <div class="media-body ms-2 text-dark align-items-center d-none d-lg-block">
-                                <span class="mb-0 font-small fw-bold text-gray-900">{{ auth()->user()->name }}</span>
+                                <span class="mb-0 font-small fw-bold text-gray-900">{{ auth()->user()->full_name }}</span>
                             </div>
                         </div>
                     </a>
