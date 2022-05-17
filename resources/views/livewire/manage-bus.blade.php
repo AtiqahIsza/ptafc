@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Buses</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" >
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Bus
         </button>
@@ -24,8 +24,8 @@
                 <tr>
                     <th class="border-gray-200">{{ __('Registration Number') }}</th>
                     <th class="border-gray-200">{{ __('Series Number') }}</th>
-                    <th class="border-gray-200">{{ __('Route') }}</th>
-                    <th class="border-gray-200">{{ __('Sector') }}</th>
+                    <th class="border-gray-200">{{ __('Registration Date') }}</th>
+                    <th class="border-gray-200">{{ __('Age') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
                 </thead>
@@ -34,12 +34,12 @@
                     <tr>
                         <td><span class="fw-normal">{{ $bus->bus_registration_number }}</span></td>
                         <td><span class="fw-normal">{{ $bus->bus_series_number }}</span></td>
-                        <td><span class="fw-normal">{{ $bus->route->route_name }}</span></td>
-                        <td><span class="fw-normal">{{ $bus->sector->sector_name}}</span></td>
+                        <td><span class="fw-normal">{{ $bus->bus_manufacturing_date }}</span></td>
+                        <td><span class="fw-normal">{{ $bus->bus_age }}</span></td>
                         <td>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $bus }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $bus->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button>
+                            <button wire:click.prevent="edit({{ $bus }})" class="btn btn-warning">Edit</button>
+                            <button wire:click.prevent="confirmRemoval({{ $bus->id }})" class="btn btn-danger">Remove</button>
                         </td>
                     </tr>
                 @endforeach
@@ -104,8 +104,8 @@
                                 </span>
                                 <select wire:model.defer="state.company_id" id="company" class="form-control border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{$company->id}}">{{$company->company_name}}</option>
+                                    @foreach($editedCompanies as $editedCompany)
+                                        <option value="{{$editedCompany->id}}">{{$editedCompany->company_name}}</option>
                                     @endforeach
                                 </select>
                                 @if ($errors->has('company'))
@@ -117,7 +117,7 @@
                         <div class="form-group mb-4">
                             <label for="bus_manufacturing_date">Bus Manufacturing Date</label>
                             <div class="input-group">
-                                <span class="input-group-text border-gray-300" id="basic-addon3">
+                                <span class="input-group-text" id="basic-addon1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-123" viewBox="0 0 16 16">
                                         <path d="M2.873 11.297V4.142H1.699L0 5.379v1.137l1.64-1.18h.06v5.961h1.174Zm3.213-5.09v-.063c0-.618.44-1.169 1.196-1.169.676 0 1.174.44 1.174 1.106 0 .624-.42 1.101-.807 1.526L4.99 10.553v.744h4.78v-.99H6.643v-.069L8.41 8.252c.65-.724 1.237-1.332 1.237-2.27C9.646 4.849 8.723 4 7.308 4c-1.573 0-2.36 1.064-2.36 2.15v.057h1.138Zm6.559 1.883h.786c.823 0 1.374.481 1.379 1.179.01.707-.55 1.216-1.421 1.21-.77-.005-1.326-.419-1.379-.953h-1.095c.042 1.053.938 1.918 2.464 1.918 1.478 0 2.642-.839 2.62-2.144-.02-1.143-.922-1.651-1.551-1.714v-.063c.535-.09 1.347-.66 1.326-1.678-.026-1.053-.933-1.855-2.359-1.845-1.5.005-2.317.88-2.348 1.898h1.116c.032-.498.498-.944 1.206-.944.703 0 1.206.435 1.206 1.07.005.64-.504 1.106-1.2 1.106h-.75v.96Z"/>
                                     </svg>
@@ -149,7 +149,7 @@
                         <div class="form-group mb-4">
                             <label for="mac">MAC Address</label>
                             <div class="input-group">
-                                <span class="input-group-text border-gray-300" id="basic-addon3">
+                                <span class="input-group-text" id="basic-addon1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-laptop-fill" viewBox="0 0 16 16">
                                       <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5V12h14V3.5A1.5 1.5 0 0 0 13.5 2h-11zM0 12.5h16a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 12.5z"/>
                                     </svg>
@@ -183,11 +183,11 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5>Remove Sector</h5>
+                    <h5>Remove Bus</h5>
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this sector?</h4>
+                    <h4>Are you sure you want to remove {{ $removedBus }}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -199,21 +199,30 @@
     </div>
     <!-- End of Remove User Modal Content -->
 </div>
-@section('script')
+@push('script')
     <script>
         window.addEventListener('show-form', event => {
             $('#modalEdit').modal('show');
         });
-        window.addEventListener('hide-form', event => {
+        window.addEventListener('hide-form-edit', event => {
             $('#modalEdit').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Bus updated successfully!');
         });
-        window.addEventListener('show-delete-form', event => {
+        window.addEventListener('hide-form-add', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'New bus added successfully!');
+        });
+        window.addEventListener('hide-form-failed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation Failed!');
+        });
+
+        window.addEventListener('show-delete-modal', event => {
             $('#confirmationModal').modal('show');
         });
         window.addEventListener('hide-delete-modal', event => {
             $('#confirmationModal').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Bus removed successfully!');
         })
     </script>
-@endsection
+@endpush

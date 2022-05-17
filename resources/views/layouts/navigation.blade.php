@@ -1,12 +1,7 @@
 <ul class="nav flex-column pt-3 pt-md-0">
     <li class="nav-item">
         <a href="{{ route('home') }}" class="nav-link d-flex align-items-center">
-            <span class="sidebar-icon me-3">
-                <img src="{{ asset('images/logo-512x512.png') }}" height="20" width="20">
-            </span>
-            <span class="mt-1 ms-1 sidebar-text">
-                myBAS
-            </span>
+            <img src="{{ asset('images/MARALINER-logo.png') }}" height="60" width="400">
         </a>
     </li>
 
@@ -62,6 +57,17 @@
                 </svg>
             </span>
             <span class="mt-1 ms-2 sidebar-text">Wallet</span>
+        </a>
+    </li>
+
+    <li class="nav-item {{ request()->routeIs('vehicleHistory') ? 'active' : '' }}">
+        <a href="{{ route('vehicleHistory') }}" class="nav-link">
+            <span class="sidebar-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+            </span>
+            <span class="mt-1 ms-2 sidebar-text">Vehicle Position History</span>
         </a>
     </li>
 
@@ -228,14 +234,14 @@
                         <span class="sidebar-text">Manage Companies</span>
                     </a>
                 </li>
-                <li class="nav-item">
+               {{-- <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('manageSector') ? 'active' : '' }}" href="{{ route('manageSector') }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
                         <span class="sidebar-text">Manage Sectors</span>
                     </a>
-                </li>
+                </li>--}}
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('manageRoute') ? 'active' : '' }}" href="{{ route('manageRoute') }}">
                         <span class="sidebar-icon">

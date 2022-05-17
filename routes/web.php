@@ -37,6 +37,10 @@ Route::get('/wallet/view', [\App\Http\Controllers\DriverWalletRecordController::
 Route::get('/wallet/topup', [\App\Http\Controllers\DriverWalletRecordController::class, 'topup'])->name('topupWallet');
 Route::get('/settings/manageBusDriver/wallet/{id}', [\App\Http\Controllers\DriverWalletRecordController::class, 'show'])->name('viewWalletTransaction');
 
+//Vehicle Position
+Route::get('/gps', [App\Http\Controllers\VehiclePositionController::class, 'index'])->name('vehicleHistory');
+Route::post('/gps/view', [\App\Http\Controllers\VehiclePositionController::class, 'show'])->name('viewGPS');
+
 //Card
 Route::get('/cards/manage', [\App\Http\Controllers\TicketCardController::class, 'manageCards'])->name('manageCards');
 Route::get('/cards/view', [\App\Http\Controllers\TicketCardController::class, 'index'])->name('viewCards');
@@ -61,7 +65,6 @@ Route::get('/report/salesByDriver', [\App\Http\Controllers\ReportController::cla
 Route::get('/report/monthlySummary', [\App\Http\Controllers\ReportController::class, 'viewMonthlySummary'])->name('viewMonthlySummary');
 Route::get('/report/dailySummary', [\App\Http\Controllers\ReportController::class, 'viewDailySummary'])->name('viewDailySummary');
 Route::get('/report/spad', [\App\Http\Controllers\ReportController::class, 'viewReportSPAD'])->name('viewReportSPAD');
-
 
 //PowerGrid
 //Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');

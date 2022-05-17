@@ -195,13 +195,15 @@ class HomeController extends Controller
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
                 foreach ($allTrips as $allTrip){
-                    $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                    $start_time = date("H:i", strtotime($allTrip->start_trip));
+                    if ($allTrip->route_schedule_mstr_id != NULL) {
+                        $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
+                        $start_time = date("H:i", strtotime($allTrip->start_trip));
 
-                    $diff = strtotime($scheduleTime) - strtotime($start_time);
+                        $diff = strtotime($scheduleTime) - strtotime($start_time);
 
-                    if ($diff > 5 || $diff < -5) {
-                       $countEarlyLate++;
+                        if ($diff > 5 || $diff < -5) {
+                            $countEarlyLate++;
+                        }
                     }
                 }
             }
@@ -227,14 +229,16 @@ class HomeController extends Controller
                 $endDay = new Carbon($all_date_prev . '11:59:59');
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
-                foreach ($allTrips as $allTrip){
-                    $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                    $start_time = date("H:i", strtotime($allTrip->start_trip));
+                foreach ($allTrips as $allTrip) {
+                    if ($allTrip->route_schedule_mstr_id != NULL) {
+                        $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
+                        $start_time = date("H:i", strtotime($allTrip->start_trip));
 
-                    $diff = strtotime($scheduleTime) - strtotime($start_time);
+                        $diff = strtotime($scheduleTime) - strtotime($start_time);
 
-                    if ($diff > 5 || $diff < -5) {
-                        $countEarlyLatePrev++;
+                        if ($diff > 5 || $diff < -5) {
+                            $countEarlyLatePrev++;
+                        }
                     }
                 }
             }
@@ -269,7 +273,15 @@ class HomeController extends Controller
         {
             $error['error_log'] = $e;
             $out->writeln($e);
-            return $this->returnResponse (2, $error, 'Error Encountered. See Log');
+            $data = [
+                'early_late_trip' => $e,
+                'start_date' => $e,
+                'end_date' => $e,
+                'increment' => 0
+            ];
+
+            return $data;
+            //return $this->returnResponse (2, $error, 'Error Encountered. See Log');
         }
     }
 

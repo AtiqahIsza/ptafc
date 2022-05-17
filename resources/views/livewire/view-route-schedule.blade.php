@@ -4,7 +4,8 @@
     <table class="table table-hover">
         <thead>
         <tr>
-            <th class="border-gray-200">{{ __('Time') }}</th>
+            <th class="border-gray-200">{{ __('Start Time') }}</th>
+            <th class="border-gray-200">{{ __('End Time') }}</th>
             <th class="border-gray-200">{{ __('Route Name') }}</th>
             <th class="border-gray-200">{{ __('Inbound Distance') }}</th>
             <th class="border-gray-200">{{ __('Outbound Distance') }}</th>
@@ -18,7 +19,8 @@
         <tbody>
         @foreach ($schedules as $schedule)
             <tr>
-                <td><span class="fw-normal">{{ $schedule->schedule_time }}</span></td>
+                <td><span class="fw-normal">{{ $schedule->schedule_start_time }}</span></td>
+                <td><span class="fw-normal">{{ $schedule->schedule_end_time }}</span></td>
                 <td><span class="fw-normal">{{ $schedule->route->route_name }}</span></td>
                 <td><span class="fw-normal">{{ $schedule->inbound_distance }}</span></td>
                 <td><span class="fw-normal">{{ $schedule->outbound_distance }}</span></td>
@@ -82,14 +84,26 @@
                     <form wire:submit.prevent="{{ 'updateRouteSchedule' }}">
                         @csrf
                         <div class="form-group mb-4">
-                            <label for="schedule_time">Time</label>
+                            <label for="schedule_time">Start Time</label>
                             <div class="input-group">
                             <span class="input-group-text border-gray-300" id="basic-addon3">
                                 <i class="fas fa-clock fa-fw"></i>
                             </span>
-                                <input wire:model.defer="state.schedule_time" class="form-control border-gray-300" type="time" autofocus required>
-                                @if ($errors->has('schedule_time'))
-                                    <span class="text-danger">{{ $errors->first('schedule_time') }}</span>
+                                <input wire:model.defer="state.schedule_start_time" class="form-control border-gray-300" type="time" autofocus required>
+                                @if ($errors->has('schedule_start_time'))
+                                    <span class="text-danger">{{ $errors->first('schedule_start_time') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="schedule_time">End Time</label>
+                            <div class="input-group">
+                            <span class="input-group-text border-gray-300" id="basic-addon3">
+                                <i class="fas fa-clock fa-fw"></i>
+                            </span>
+                                <input wire:model.defer="state.schedule_end_time" class="form-control border-gray-300" type="time" autofocus required>
+                                @if ($errors->has('schedule_end_time'))
+                                    <span class="text-danger">{{ $errors->first('schedule_end_time') }}</span>
                                 @endif
                             </div>
                         </div>

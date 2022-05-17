@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SPADTopBoarding implements FromView, WithStyles, ShouldAutoSize
+class SPADTopAlighting implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
     public $networkArea;
@@ -31,7 +31,7 @@ class SPADTopBoarding implements FromView, WithStyles, ShouldAutoSize
     public function view(): View
     {
         //dd($this->reports);
-        return view('exports.spad.topboarding', [
+        return view('exports.spad.topalighting', [
             'reports' => $this->reports,
             'networkArea' => $this->networkArea,
             'dateFrom' => $this->fromDate,

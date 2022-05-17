@@ -6,14 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="icon" href="{{ URL::asset('favicon.ico') }}" type="image/x-icon"/>
-    <title>MyBas</title>
+    <link rel="icon" href="{{ URL::asset('maraliner_icon.ico') }}" type="image/x-icon"/>
+    <title>Maraliner</title>
 
     <!-- Styles -->
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
     <!-- Scripts -->
     <script src="{{ asset('js/app.js') }}" defer></script>
+    @stack('script')
 
     @livewireStyles
     <link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/css/jquery-editable.css" rel="stylesheet"/>
@@ -76,9 +77,6 @@
         @include('layouts.footer')
     </main>
     @livewire('livewire-ui-modal')
-    {{--<livewire:edit-user />--}}
-
-
 
     @livewireScripts
 
@@ -92,7 +90,6 @@
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     @yield('scripts')
-
 </body>
 
 </html>

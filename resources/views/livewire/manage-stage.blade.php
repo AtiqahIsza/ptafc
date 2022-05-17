@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Stages</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Stage
         </button>
@@ -30,7 +30,7 @@
             <table class="table table-hover">
                 <thead>
                 <tr>
-                    <th class="border-gray-200">{{ __('Sequence Number') }}</th>
+                    <th class="border-gray-200">{{ __('Sequence') }}</th>
                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
                     <th class="border-gray-200">{{ __('Stage Number') }}</th>
                     <th class="border-gray-200">{{ __('Distance (KM)') }}</th>
@@ -60,7 +60,7 @@
                             <td>
                                 <!-- Button for preview stage map-->
                                 <button onclick="window.location='{{ route('viewStageMap', $stage->id) }}'" class="btn btn-success">View</button>
-                                <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#mapConfirmationModal">Remove</button>
+                                <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger">Remove</button>
                             </td>
                         @else
                             <td>
@@ -70,8 +70,8 @@
                         @endif
                         <td>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $stage }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $stage->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button>
+                            <button wire:click.prevent="edit({{ $stage }})" class="btn btn-warning">Edit</button>
+                            <button wire:click.prevent="confirmRemoval({{ $stage->id }})" class="btn btn-danger">Remove</button>
                         </td>
                     </tr>
                 @endforeach
@@ -126,7 +126,7 @@
                                         <path d="M7.293.707A1 1 0 0 0 7 1.414V4H2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h5v6h2v-6h3.532a1 1 0 0 0 .768-.36l1.933-2.32a.5.5 0 0 0 0-.64L13.3 4.36a1 1 0 0 0-.768-.36H9V1.414A1 1 0 0 0 7.293.707z"/>
                                     </svg>
                                 </span>
-                                <input wire:model.defer="state.stage_number" class="form-control border-gray-300" id="stageNum" placeholder="{{ __('Stage Number') }}" autofocus>
+                                <input wire:model.defer="state.stage_number" class="form-control border-gray-300" id="stageNum" placeholder="{{ __('Stage Number') }}">
                                 @if ($errors->has('stageNum'))
                                     <span class="text-danger">{{ $errors->first('stageNum') }}</span>
                                 @endif
@@ -166,32 +166,47 @@
                             </div>
                         </div>
 
-                        @if($showEditModal==false)
-                            <div class="form-group mb-4">
-                                <label for=route">Route</label>
-                                <div class="input-group">
-                                    <span class="input-group-text" id="basic-addon1">
-                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
-                                            <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
-                                            <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
-                                        </svg>
-                                    </span>
-                                    <select wire:model.defer="state.route_id" id="route" class="form-control border-gray-300" autofocus required>
-                                        <option value="">Choose Route</option>
-                                        @foreach($routes as $route)
-                                            <option value="{{$route->id}}">{{$route->route_name}}</option>
-                                        @endforeach
-                                    </select>
-                                    @if ($errors->has('route'))
-                                        <span class="text-danger">{{ $errors->first('route') }}</span>
-                                    @endif
-                                </div>
+                        <div class="form-group mb-4">
+                            <label for="company">Company</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="basic-addon1">
+                                    <i class="fas fa-building fa-fw"></i>
+                                </span>
+                                <select wire:model="selectedEditCompany" class="form-select border-gray-300" autofocus required>
+                                    <option value="">Choose Company</option>
+                                    @foreach($editedCompanies as $editedCompany)
+                                        <option value="{{$editedCompany->id}}">{{$editedCompany->company_name}}</option>
+                                    @endforeach
+                                </select>
+                                @if ($errors->has('company'))
+                                    <span class="text-danger">{{ $errors->first('company') }}</span>
+                                @endif
                             </div>
-                        @endif
-
-                        @if($showEditModal)
+                        </div>
+                        {{--@if($showEditModal)
                             <input wire:model.defer="state.route_id" type="hidden" class="form-control border-gray-300" id="route_id">
-                        @endif
+                        @endif--}}
+
+                        <div class="form-group mb-4">
+                            <label for=route">Route</label>
+                            <div class="input-group">
+                                <span class="input-group-text border-gray-300" id="basic-addon3">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
+                                        <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
+                                    </svg>
+                                </span>
+                                <select wire:model.defer="state.route_id" id="route" class="form-select border-gray-300" autofocus required>
+                                    <option value="">Choose Route</option>
+                                    @foreach($editedRoutes as $editedRoute)
+                                        <option value="{{$editedRoute->id}}">{{$editedRoute->route_name}}</option>
+                                    @endforeach
+                                </select>
+                                @if ($errors->has('route'))
+                                    <span class="text-danger">{{ $errors->first('route') }}</span>
+                                @endif
+                            </div>
+                        </div>
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
@@ -219,7 +234,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this stage?</h4>
+                    <h4>Are you sure you want to remove {{$removedStage}}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -240,7 +255,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this stage map?</h4>
+                    <h4>Are you sure you want to remove stage map of {{$removedStage}}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -252,22 +267,42 @@
     </div>
     <!-- End of Remove Stage Map Modal Content -->
 </div>
-
-@section('script')
+@push('script')
     <script>
         window.addEventListener('show-form', event => {
             $('#modalEdit').modal('show');
         });
-        window.addEventListener('hide-form', event => {
+        window.addEventListener('hide-form-edit', event => {
             $('#modalEdit').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Stage updated successfully!');
         });
-        window.addEventListener('show-delete-form', event => {
+        window.addEventListener('hide-form-add', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'New stage added successfully!');
+        });
+        window.addEventListener('hide-form-failed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation Failed!');
+        });
+        window.addEventListener('show-error-existed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Failed! Sequence of order already exist for this stage!');
+        });
+
+        window.addEventListener('show-delete-modal', event => {
             $('#confirmationModal').modal('show');
         });
         window.addEventListener('hide-delete-modal', event => {
             $('#confirmationModal').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Stage removed successfully!');
+        })
+
+        window.addEventListener('show-delete-map-modal', event => {
+            $('#mapConfirmationModal').modal('show');
+        });
+        window.addEventListener('hide-delete-map-modal', event => {
+            $('#mapConfirmationModal').modal('hide');
+            toastr.success(event.detail.message, 'Stage map removed successfully!');
         })
     </script>
-@endsection
+@endpush

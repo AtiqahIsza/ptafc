@@ -11,28 +11,29 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SPADTrip implements FromView, WithStyles, ShouldAutoSize
 {
-    public $routes;
-    public $routeNo;
+    public $reports;
+    public $networkArea;
     public $fromDate;
     public $toDate;
     public $sheet;
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo,$no)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea)
     {
-        $this->routes = $data;
+        $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
-        $this->routeNo = $no;
+        $this->networkArea = $networkArea;
         /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View
     {
+        //dd($this->reports);
         return view('exports.spad.trip', [
-            'routes' => $this->routes,
-            'routeNo' => $this->routeNo,
+            'reports' => $this->reports,
+            'networkArea' => $this->networkArea,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate
         ]);
@@ -49,8 +50,8 @@ class SPADTrip implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:Z' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:Z' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:S' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:S' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Bus Drivers</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalAdd">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Bus Driver
         </button>
@@ -52,11 +52,11 @@
                             <td><span class="fw-normal">Blacklisted</span></td>
                         @endif
                         <td>
-                            <button wire:click.prevent="editModal({{ $driver }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
+                            <button wire:click.prevent="editModal({{ $driver }})" class="btn btn-warning">Edit</button>
                             <button onclick="window.location='{{ route('viewWalletTransaction', $driver->id) }}'" class="btn btn-success">View Wallet</button>
                             {{--<button wire:click.prevent="confirmChanges({{ $driver->id }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalConfirmation">Change Status</button>--}}
-                            <button wire:click.prevent="resetModal({{ $driver }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalResetPassword">Reset Password</button>
-                            <button wire:click.prevent="confirmRemove({{ $driver->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRemove"><i class="fas fa-trash fa-fw"></i></button>
+                            <button wire:click.prevent="resetModal({{ $driver }})" class="btn btn-danger">Reset Password</button>
+                            <button wire:click.prevent="confirmRemove({{ $driver->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button>
                         </td>
                     </tr>
                 @endforeach
@@ -177,8 +177,8 @@
                                 </span>
                                 <select wire:model.defer="state.company_id" id="company" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{$company->id}}">{{$company->company_name}}</option>
+                                    @foreach($editedCompanies as $editedCompany)
+                                        <option value="{{$editedCompany->id}}">{{$editedCompany->company_name}}</option>
                                     @endforeach
                                 </select>
                                 @if ($errors->has('company'))
@@ -186,66 +186,6 @@
                                 @endif
                             </div>
                         </div>
-                        {{--@if (!is_null($selectedAddCompany))
-                            <div class="form-group mb-4">
-                                <label for="sector">Sector</label>
-                                <div class="input-group">
-                                    <span class="input-group-text border-gray-300" id="basic-addon3">
-                                       <i class="fa fa-project-diagram"></i>
-                                    </span>
-                                    <select wire:model="selectedAddSector" id="sector" class="form-select border-gray-300" autofocus required>
-                                        <option value="">Choose Sector</option>
-                                        @foreach($sectors as $sector)
-                                            <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
-                                        @endforeach
-                                    </select>
-                                    @if ($errors->has('sector'))
-                                        <span class="text-danger">{{ $errors->first('sector') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                            @if (!is_null($selectedAddSector))
-                                <div class="form-group mb-4">
-                                    <label for="route">Route</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text border-gray-300" id="basic-addon3">
-                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">
-                                                <path fill-rule="evenodd" d="M3.1 11.2a.5.5 0 0 1 .4-.2H6a.5.5 0 0 1 0 1H3.75L1.5 15h13l-2.25-3H10a.5.5 0 0 1 0-1h2.5a.5.5 0 0 1 .4.2l3 4a.5.5 0 0 1-.4.8H.5a.5.5 0 0 1-.4-.8l3-4z"/>
-                                                <path fill-rule="evenodd" d="M4 4a4 4 0 1 1 4.5 3.969V13.5a.5.5 0 0 1-1 0V7.97A4 4 0 0 1 4 3.999z"/>
-                                             </svg>
-                                        </span>
-                                        <select wire:model="selectedAddRoute" id="route" class="form-select border-gray-300" autofocus required>
-                                            <option value="">Choose Route</option>
-                                            @foreach($routes as $route)
-                                                <option value="{{$route->id}}">{{$route->route_name}}</option>
-                                            @endforeach
-                                        </select>
-                                        @if ($errors->has('route'))
-                                            <span class="text-danger">{{ $errors->first('route') }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                @if (!is_null($selectedAddRoute))
-                                    <div class="form-group mb-4">
-                                        <label for="bus">Bus</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text border-gray-300" id="basic-addon3">
-                                                 <i class="fas fa-bus fa-fw"></i>
-                                            </span>
-                                            <select wire:model.defer="state.bus_id" id="bus" class="form-select border-gray-300" autofocus required>
-                                                <option value="">Choose Bus</option>
-                                                @foreach($buses as $bus)
-                                                    <option value="{{$bus->id}}">{{$bus->bus_registration_number}}</option>
-                                                @endforeach
-                                            </select>
-                                            @if ($errors->has('bus'))
-                                                <span class="text-danger">{{ $errors->first('bus') }}</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endif
-                            @endif
-                        @endif--}}
                         <div class="form-group mb-4">
                             <label for="driverNum">Driver Number (For PDA Login)</label>
                             <div class="input-group">
@@ -409,8 +349,8 @@
                                 </span>
                                 <select wire:model.defer="state.company_id" id="company" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{$company->id}}">{{$company->company_name}}</option>
+                                    @foreach($editedCompanies as $editedCompany)
+                                        <option value="{{$editedCompany->id}}">{{$editedCompany->company_name}}</option>
                                     @endforeach
                                 </select>
                                 @if ($errors->has('company'))
@@ -541,21 +481,51 @@
     </div>
     <!-- End of Remove Modal Content -->
 </div>
-@section('script')
+@push('script')
     <script>
-        window.addEventListener('show-form', event => {
+        window.addEventListener('show-form-edit', event => {
+            $('#modalEdit').modal('show');
+        });
+        window.addEventListener('hide-form-edit', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'Bus driver updated successfully!');
+        });
+
+        window.addEventListener('show-form-add', event => {
             $('#modalAdd').modal('show');
         });
-        window.addEventListener('hide-form', event => {
+        window.addEventListener('hide-form-add', event => {
             $('#modalAdd').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'New bus driver added successfully!');
         });
-        window.addEventListener('show-delete-form', event => {
-            $('#confirmationModal').modal('show');
+
+        window.addEventListener('show-status-modal', event => {
+            $('#modalConfirmation').modal('show');
         });
-        window.addEventListener('hide-delete-modal', event => {
-            $('#confirmationModal').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+        window.addEventListener('hide-status-modal', event => {
+            $('#modalConfirmation').modal('hide');
+            toastr.success(event.detail.message, 'Status changed successfully!');
         })
+
+        window.addEventListener('show-reset-modal', event => {
+            $('#modalResetPassword').modal('show');
+        });
+        window.addEventListener('hide-reset-modal', event => {
+            $('#modalResetPassword').modal('hide');
+            toastr.success(event.detail.message, 'Password reset successfully!');
+        })
+
+        window.addEventListener('show-remove-modal', event => {
+            $('#modalRemove').modal('show');
+        });
+        window.addEventListener('hide-remove-modal', event => {
+            $('#modalRemove').modal('hide');
+            toastr.success(event.detail.message, 'Bus driver removed successfully!');
+        })
+
+        window.addEventListener('hide-form-failed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation Failed!');
+        });
     </script>
-@endsection
+@endpush

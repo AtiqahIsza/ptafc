@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Companies</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Company
         </button>
@@ -14,6 +14,7 @@
             @endforeach
         </select>
     </div>
+    <br>
 
     @if (!is_null($selectedRegion))
         <div class="card card-body border-0 shadow table-wrapper table-responsive">
@@ -40,8 +41,8 @@
                         <td><span class="fw-normal">{{ $company->state}}</span></td>
                         <td>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $company }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $company->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button>
+                            <button wire:click.prevent="edit({{ $company }})" class="btn btn-warning">Edit</button>
+                            <button wire:click.prevent="confirmRemoval({{ $company->id }})" class="btn btn-danger">Remove</button>
                         </td>
 
                     </tr>
@@ -235,7 +236,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this company?</h4>
+                    <h4>Are you sure you want to remove {{ $removedCompany }}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -247,3 +248,30 @@
     </div>
     <!-- End of Remove User Modal Content -->
 </div>
+@push('script')
+    <script>
+        window.addEventListener('show-form', event => {
+            $('#modalEdit').modal('show');
+        });
+        window.addEventListener('hide-form-edit', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'Route updated successfully!');
+        });
+        window.addEventListener('hide-form-add', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'New route added successfully!');
+        });
+        window.addEventListener('hide-form-failed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation Failed!');
+        });
+
+        window.addEventListener('show-delete-modal', event => {
+            $('#confirmationModal').modal('show');
+        });
+        window.addEventListener('hide-delete-modal', event => {
+            $('#confirmationModal').modal('hide');
+            toastr.success(event.detail.message, 'Route removed successfully!');
+        })
+    </script>
+@endpush

@@ -19,12 +19,13 @@ class ManageBus extends Component
     public $sectors;
     public $routes;
     public $busTypes;
+    public $editedBuses;
+    public $editedCompanies;
     public $removedBusId;
+    public $removedBus;
     public $state = [];
     public $selectedCompany = NULL;
     public $showEditModal = false;
-    public $sectorId = 0;
-    public $manufacturing_date;
 
     public function mount()
     {
@@ -33,31 +34,31 @@ class ManageBus extends Component
         $this->sectors = collect();
         $this->routes = collect();
         $this->busTypes = collect();
+        $this->editedBuses = collect();
+        $this->editedCompanies = collect();
+        $this->removedBus = collect();
     }
 
     public function render()
     {
-        $this->companies = Company::all();
-        $this->sectors = Sector::all();
-        $this->routes = Route::all();
-        $this->busTypes = BusType::all();
+        $this->companies = Company::orderBy('company_name')->get();
         return view('livewire.manage-bus');
     }
 
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->buses = Bus::where('company_id', $company)->get();
+            $this->buses = Bus::where('company_id', $company)->orderBy('bus_registration_number')->get();
         }
     }
 
     public function edit(Bus $bus)
     {
-        //dd($user);
-        $this->reset();
         $this->showEditModal = true;
-        $this->buses = $bus;
+        $this->editedBuses = $bus;
         $this->state = $bus->toArray();
+        $this->busTypes = BusType::all();
+        $this->editedCompanies = Company::all();
         $this->dispatchBrowserEvent('show-form');
     }
 
@@ -72,20 +73,22 @@ class ManageBus extends Component
             'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
 
-        $this->buses->update($validatedData);
+        $success = $this->editedBuses->update($validatedData);
 
-        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus updated successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Bus updated successfully!']);
-        //$this->emit('hide-form');
-        //session()->flash('message', 'Sector successfully updated!');
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
+        if($success){
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
+            $this->dispatchBrowserEvent('hide-form-edit');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function addNew()
     {
-        $this->reset();
+        $this->state = [];
         $this->showEditModal = false;
+        $this->busTypes = BusType::all();
+        $this->editedCompanies = Company::all();
         $this->dispatchBrowserEvent('show-form');
     }
 
@@ -95,36 +98,44 @@ class ManageBus extends Component
             'bus_registration_number' => ['required', 'string', 'max:255'],
             'bus_series_number' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'int'],
-            'bus_manufacturing_date',
+            'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
             'mac_address' => ['regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
 
+        $age = Carbon::parse($validatedData['bus_manufacturing_date'])->diff(Carbon::now())->y;
+        $validatedData['bus_age'] = "$age";
+
+        //dd($validatedData);
+
         $create = Bus::create($validatedData);
 
         if($create){
-            return redirect()->to('/settings/manageBus')->with(['message' => 'Bus added successfully!']);
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
+            $this->dispatchBrowserEvent('hide-form-add');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
         }
-        return redirect()->to('/settings/manageBus')->with(['message' => 'Failed To Add Bus!']);
-
-        //return Redirect::back()->with(['message' => 'Bus added successfully!']);
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
     }
 
     public function confirmRemoval($id)
     {
         $this->removedBusId = $id;
+        $selectedRemoved = Bus::where('id', $this->removedBusId)->first();
+        $this->removedBus = $selectedRemoved->bus_registration_number;
         $this->dispatchBrowserEvent('show-delete-modal');
     }
 
     public function removeBus()
     {
-        $sector = Bus::findOrFail($this->removedBusId);
-        $sector->delete();
+        $remove = Bus::findOrFail($this->removedBusId);
+        $successRemove = $remove->delete();
 
-        return redirect()->to('/settings/manageBus')->with(['message' => 'Bus removed successfully!']);
-
-        //return Redirect::back()->with(['message' => 'Bus removed successfully!']);
-        //$this->dispatchBrowserEvent('hide-delete-modal', ['message' => 'Company deleted successfully!']);
+        if($successRemove) {
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
+            $this->dispatchBrowserEvent('hide-delete-modal');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 }

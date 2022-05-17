@@ -195,22 +195,26 @@
 
         const saveBtnOnClick = () => {
             //e.preventDefault();
-            radiusInput = $('#radius').val();
-            loopMarker(poly);
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                url: "{{ route('storeBusStand') }}",
-                type: 'POST',
-                data: {markers : markers},
-                success: function (response) {
-                    console.log(response);
-                },
-                error: function (response) {
-                    console.log("Error " + response);
-                }
-            })
+            if($('#radius').val()=='') {
+                alert('Please insert radius of bus stands');
+            }else{
+                radiusInput = $('#radius').val();
+                loopMarker(poly);
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    url: "{{ route('storeBusStand') }}",
+                    type: 'POST',
+                    data: {markers : markers},
+                    success: function (response) {
+                        console.log(response);
+                    },
+                    error: function (response) {
+                        console.log("Error " + response);
+                    }
+                })
+            }
         }
 
         function loopMarker(poly) {

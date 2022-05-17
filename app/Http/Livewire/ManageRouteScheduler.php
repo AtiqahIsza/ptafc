@@ -22,40 +22,42 @@ class ManageRouteScheduler extends Component
     public $companies;
     public $regions;
     public $routes;
-    public $sectors;
     public $schedules;
-
     public $selectedRegion = NULL;
     public $selectedCompany = NULL;
-    public $selectedSector = NULL;
     public $selectedRoute = NULL;
-
     public $addNewButton = false;
-
     public $removedId;
     public $removedSchedule;
-
-    //protected $listeners = ['refreshManageRouteScheduler' => '$refresh'];
+    public $editSchedules;
+    public $editButton = false;
+    public $state = [];
+    public $buses;
 
     public function render()
     {
+        $this->regions = RegionCode::orderBy('description')->get();
         return view('livewire.manage-route-scheduler');
     }
 
     public function mount()
     {
-        $this->regions = RegionCode::all();
-        $this->sectors = collect();
+        $this->regions = collect();
         $this->companies = collect();
         $this->routes = collect();
         $this->schedules = collect();
+        $this->buses = collect();
+        $this->state = collect();
+        $this->removedSchedule = collect();
     }
 
     public function updatedSelectedRegion($region)
     {
         if (!is_null($region)) {
             $this->selectedRegion = $region;
-            $this->companies = Company::where('region_id', $region)->get();
+            $this->companies = Company::where('region_id', $region)
+                ->orderBy('company_name')
+                ->get();
         }
     }
 
@@ -63,15 +65,9 @@ class ManageRouteScheduler extends Component
     {
         if (!is_null($company)) {
             $this->selectedCompany = $company;
-            $this->sectors = Sector::where('company_id', $company)->get();
-        }
-    }
-
-    public function updatedSelectedSector($sector)
-    {
-        if (!is_null($sector)) {
-            $this->selectedSector = $sector;
-            $this->routes = Route::where('sector_id', $sector)->get();
+            $this->routes = Route::where('company_id', $company)
+                ->orderBy('route_name')
+                ->get();
         }
     }
 
@@ -82,9 +78,12 @@ class ManageRouteScheduler extends Component
             //$this->schedules = RouteSchedulerMSTR::where('route_id', $route)->get();
             $out = new ConsoleOutput();
             $out->writeln("YOU ARE IN HERE - manage");
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $route)
+                ->orderBy('schedule_start_time')
+                ->get();
+
             $this->emit('viewEvent', $route);
         }
-
     }
 
     public function addNew()

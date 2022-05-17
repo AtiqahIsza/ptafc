@@ -9,33 +9,34 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SPADTopBoarding implements FromView, WithStyles, ShouldAutoSize
+class SPADSummaryByRoute implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
     public $networkArea;
     public $fromDate;
     public $toDate;
     public $sheet;
-    public $allDates = [];
+    public $routeNo;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo, $networkArea)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea, $routeNo)
     {
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
         $this->networkArea = $networkArea;
-        /*$this->sheet = $sheetName;*/
+        $this->routeNo = $routeNo;
     }
 
     public function view(): View
     {
         //dd($this->reports);
-        return view('exports.spad.topboarding', [
+        return view('exports.spad.summarybyroute', [
             'reports' => $this->reports,
             'networkArea' => $this->networkArea,
             'dateFrom' => $this->fromDate,
-            'dateTo' => $this->toDate
+            'dateTo' => $this->toDate,
+            'routeNo' => $this->routeNo
         ]);
     }
 
@@ -50,8 +51,8 @@ class SPADTopBoarding implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:H' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:H' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:M' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:M' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

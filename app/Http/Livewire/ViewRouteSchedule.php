@@ -55,7 +55,8 @@ class ViewRouteSchedule extends Component
         $out->writeln("YOU ARE IN HERE");
 
         $validatedData = Validator::make($this->state, [
-            'schedule_time'=> ['required', 'date_format:H:i'],
+            'schedule_start_time'=> ['required'],
+            'schedule_end_time'=> ['required'],
             'inbound_distance'=> ['required', 'between:0,99.99'],
             'outbound_distance'=> ['required', 'between:0,99.99'],
             'inbound_bus_id'=> ['required', 'int'],
@@ -65,7 +66,7 @@ class ViewRouteSchedule extends Component
             'route_id' => ['required', 'int']
         ])->validate();
 
-        $out->writeln($validatedData['schedule_time']);
+        $out->writeln($validatedData['schedule_start_time']);
         $out->writeln($validatedData['route_id']);
         $out->writeln($validatedData['inbound_distance']);
         $out->writeln($validatedData['outbound_distance']);
@@ -73,8 +74,6 @@ class ViewRouteSchedule extends Component
         $out->writeln($validatedData['outbound_bus_id']);
         $out->writeln($validatedData['status']);
         $out->writeln($validatedData['trip_type']);
-
-
 
         $this->editSchedules->update($validatedData);
 

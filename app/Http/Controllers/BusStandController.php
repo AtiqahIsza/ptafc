@@ -131,4 +131,13 @@ class BusStandController extends Controller
     {
         //
     }
+
+    public function returnResponse ($statusCode, $payload, $statusDescription) : JsonResponse
+    {
+        $response['statusCode'] = $statusCode ;
+        $response['payload'] = $payload;
+        $response['statusDescription'] = $statusDescription;
+
+        return response()->json($response);
+    }
 }

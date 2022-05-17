@@ -7,9 +7,11 @@ use App\Models\Company;
 use App\Models\Route;
 use App\Models\RouteMap;
 use App\Models\Sector;
+use App\Models\Stage;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class ManageRoute extends Component
 {
@@ -17,8 +19,11 @@ class ManageRoute extends Component
     public $sectors;
     public $routes;
     public $routeMaps;
+    public $editedRoutes;
+    public $editedCompanies;
     public $removedRouteId;
     public $removedRouteMapId;
+    public $removedRoute;
     public $state = [];
     public $selectedCompany = NULL;
     public $showEditModal = false;
@@ -27,17 +32,16 @@ class ManageRoute extends Component
 
     public function mount()
     {
-        $this->sectors = collect();
         $this->companies = collect();
         $this->routes = collect();
         $this->routeMaps = collect();
+        $this->editedRoutes = collect();
+        $this->editedCompanies = collect();
     }
 
     public function render()
     {
-        $this->companies = Company::all();
-        $this->sectors = Sector::all();
-        $this->routeMaps = RouteMap::all();
+        $this->companies = Company::orderBy('company_name')->get();
 
         return view('livewire.manage-route');
     }
@@ -45,23 +49,32 @@ class ManageRoute extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-
-            $this->routes = Route::where('company_id', $company)->get();
+            $this->routes = Route::where('company_id', $company)
+                ->orderBy('route_number')
+                ->get();
+            $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
         }
     }
 
-    public function edit(Route $route)
+    public function edit(Route $selectedRoute)
     {
-        //dd($user);
-        $this->reset();
+        $this->routes = Route::where('company_id', $this->selectedCompany)
+            ->orderBy('route_number')
+            ->get();
+        $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+
         $this->showEditModal = true;
-        $this->routes = $route;
-        $this->state = $route->toArray();
+        $this->editedRoutes = $selectedRoute;
+        $this->editedCompanies = Company::all();
+        $this->state = $selectedRoute->toArray();
         $this->dispatchBrowserEvent('show-form');
     }
 
     public function updateRoute()
     {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN updateRoute()");
+
         $validatedData = Validator::make($this->state,[
             'route_name' => ['required', 'string', 'max:255'],
             'route_number' => ['string', 'max:255'],
@@ -73,25 +86,61 @@ class ManageRoute extends Component
             'status'=> ['required', 'int'],
         ])->validate();
 
-        $this->routes->update($validatedData);
+        $existedRouteNo = Route::where('route_number', $validatedData['route_number'])->first();
+        $existRouteName = Route::where('route_name', $validatedData['route_name'])->first();
+        $attributes = $this->editedRoutes->getAttributes();
 
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route updated successfully!']);
+        //$out->writeln("YOU ARE IN existedRouteNo " . $existedRouteNo );
+        //$out->writeln("YOU ARE IN existRouteName " . $existRouteName );
 
-        //return Redirect::back()->with(['message' => 'Sector updated successfully!']);
-        //$this->emit('hide-form');
-        //session()->flash('message', 'Sector successfully updated!');
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector updated successfully!']);
+        if(!is_null($existedRouteNo)) {
+            $out->writeln("YOU ARE IN existedRouteNo");
+            if($existedRouteNo->id != $attributes['id']) {
+                $out->writeln("YOU ARE IN existedRouteNo != attr[id]");
+                $this->dispatchBrowserEvent('failed-add-route-no');
+            }
+        }
+        elseif(!is_null($existRouteName)){
+            $out->writeln("YOU ARE IN existedRouteName");
+            if($existRouteName->id != $attributes['id']) {
+                $out->writeln("YOU ARE IN existedRouteName != attr[id]");
+                $this->dispatchBrowserEvent('failed-add-route-name');
+            }
+        }
+
+        $out->writeln("YOU ARE IN update");
+        $success = $this->editedRoutes->update($validatedData);
+
+        if($success){
+            $this->routes = Route::where('company_id', $this->selectedCompany)
+                ->orderBy('route_number')
+                ->get();
+            $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+            $this->dispatchBrowserEvent('hide-form-edit');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
+
     }
 
     public function addNew()
     {
-        $this->reset();
+        $this->state = [];
+        $this->routes = Route::where('company_id', $this->selectedCompany)
+            ->orderBy('route_number')
+            ->get();
+        $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+
         $this->showEditModal = false;
+        $this->editedCompanies = Company::all();
         $this->dispatchBrowserEvent('show-form');
     }
 
     public function createRoute()
     {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN createRoute()");
+
         $validatedData = Validator::make($this->state, [
             'route_name' => ['required', 'string', 'max:255'],
             'route_number' => ['string', 'max:255'],
@@ -106,50 +155,112 @@ class ManageRoute extends Component
         $existRouteNumber = Route::where('route_number', $validatedData['route_number'])->first();
         $existRouteName = Route::where('route_name', $validatedData['route_name'])->first();
 
-        if($existRouteNumber ){
-            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route number already exist!']);
+        if(!empty($existRouteNumber)){
+            $this->dispatchBrowserEvent('failed-add-route-no');
         }
-        if($existRouteName ){
-            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route name already exist!']);
+        elseif(!empty($existRouteName->id)){
+            $this->dispatchBrowserEvent('failed-add-route-name');
+        }else{
+            $create = Route::create($validatedData);
+
+            if($create){
+                $this->routes = Route::where('company_id', $this->selectedCompany)
+                    ->orderBy('route_number')
+                    ->get();
+                $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+                $this->dispatchBrowserEvent('hide-form-add');
+            }else{
+                $this->dispatchBrowserEvent('hide-form-failed');
+            }
         }
-
-        $create = Route::create($validatedData);
-
-        if($create){
-            return redirect()->to('/settings/manageRoute')->with(['message' => 'Route added successfully!']);
-        }
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Failed To Add Route!']);
-
-        //return Redirect::back()->with(['message' => 'Sector added successfully!']);
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
     }
 
     public function confirmRemoval($id)
     {
         $this->removedRouteId = $id;
+        $selectedRemoved = Route::where('id', $this->removedRouteId)->first();
+        $this->removedRoute = $selectedRemoved->route_name;
+        $this->routes = Route::where('company_id', $this->selectedCompany)
+            ->orderBy('route_number')
+            ->get();
+        $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
         $this->dispatchBrowserEvent('show-delete-modal');
     }
 
     public function removeRoute()
     {
-        $route = Route::findOrFail($this->removedRouteId);
-        $route->delete();
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN removeRoute()");
 
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route removed successfully!']);
+        $route = Route::findOrFail($this->removedRouteId);
+        $successRemove = $route->delete();
+
+        if($successRemove) {
+            $out->writeln("YOU ARE IN succesRemove");
+
+            $removeMap = RouteMap::where('route_id', $this->removedRouteId)->get();
+            if (!empty($removeMap)) {
+                $out->writeln("YOU ARE IN removeMap not empty ");
+                $successRemoveMap = RouteMap::where('route_id', $this->removedRouteId)->delete();
+            }
+
+            $removeStage = Stage::where('route_id',$this->removedRouteId)->get();
+            if (!empty($removeStage)) {
+                $out->writeln("YOU ARE IN removeStage not empty ");
+                $successRemoveStage = Stage::where('route_id',$this->removedRouteId)->delete();
+            }
+
+            $removeBusStand = BusStand::where('route_id',$this->removedRouteId)->get();
+            if (!empty($removeBusStand)) {
+                $out->writeln("YOU ARE IN removeBusStand not empty ");
+                $successBusRemoveStand = Stage::where('route_id',$this->removedRouteId)->delete();
+            }
+
+            $this->routes = Route::where('company_id', $this->selectedCompany)
+                ->orderBy('route_number')
+                ->get();
+            $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+            $this->dispatchBrowserEvent('hide-delete-modal');
+
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
-    public function confirmRemovalMap($route)
+    public function confirmRemovalMap($id)
     {
-        // $routeId = Route::select('id')->where('id',$route->id)->first();
-        $this->removedRouteMapId = $route;
-        //$this->dispatchBrowserEvent('show-delete-modal');
+        $this->removedRouteMapId = $id;
+        $selectedRemoved = Route::where('id', $this->removedRouteMapId)->first();
+        $this->removedRoute = $selectedRemoved->route_name;
+        $this->routes = Route::where('company_id', $this->selectedCompany)
+            ->orderBy('route_number')
+            ->get();
+        $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+        $this->dispatchBrowserEvent('show-delete-map-modal');
     }
 
     public function removeRouteMap()
     {
-        $routeMap = RouteMap::where('route_id',$this->removedRouteMapId);
-        $routeMap->delete();
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN  removeRouteMap()");
 
-        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route Map removed successfully!']);
+        $routeMap = RouteMap::where('route_id',$this->removedRouteMapId);
+        $successRemoveMap = $routeMap->delete();
+
+        if($successRemoveMap){
+            $busStand = BusStand::where('route_id',$this->removedRouteMapId);
+            $successBusRemoveStand = $busStand->delete();
+            if($successBusRemoveStand){
+                $this->routes = Route::where('company_id', $this->selectedCompany)
+                    ->orderBy('route_number')
+                    ->get();
+                $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
+                $this->dispatchBrowserEvent('hide-delete-modal');
+            }else{
+                $this->dispatchBrowserEvent('hide-form-failed');
+            }
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 }

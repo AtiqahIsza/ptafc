@@ -1,7 +1,7 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Routes</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Route
         </button>
@@ -56,7 +56,7 @@
                             <td>
                                 <!-- Button for preview stage map-->
                                 <button onclick="window.location='{{ route('viewRouteMap', $route->id) }}'" class="btn btn-success">View</button>
-                                <button wire:click.prevent="confirmRemovalMap({{ $route->id }})"  class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#mapConfirmationModal">Remove</button>
+                                <button wire:click.prevent="confirmRemovalMap({{ $route->id }})"  class="btn btn-danger">Remove</button>
                             </td>
                         @else
                             <td>
@@ -66,8 +66,8 @@
                         @endif
                         <td>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $route }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $route->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button>
+                            <button wire:click.prevent="edit({{ $route }})" class="btn btn-warning">Edit</button>
+                            <button wire:click.prevent="confirmRemoval({{ $route->id }})" class="btn btn-danger">Remove</button>
                         </td>
                     </tr>
                 @endforeach
@@ -187,10 +187,10 @@
                                 <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-building fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.company_id" class="form-control border-gray-300" autofocus required>
+                                <select wire:model.defer="state.company_id" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Company</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{$company->id}}">{{$company->company_name}}</option>
+                                    @foreach($editedCompanies as $editedCompany)
+                                        <option value="{{$editedCompany->id}}">{{$editedCompany->company_name}}</option>
                                     @endforeach
                                 </select>
                                 @if ($errors->has('company'))
@@ -204,7 +204,7 @@
                                 <span class="input-group-text" id="basic-addon1">
                                     <i class="fas fa-user-check fa-fw"></i>
                                 </span>
-                                <select wire:model.defer="state.status" id="status" class="form-control border-gray-300" autofocus required>
+                                <select wire:model.defer="state.status" id="status" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Status</option>
                                     <option value="1">Active</option>
                                     <option value="2">Inactive</option>
@@ -279,7 +279,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this route?</h4>
+                    <h4>Are you sure you want to remove {{ $removedRoute }}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -300,7 +300,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove this route map?</h4>
+                    <h4>Are you sure you want to remove map of {{ $removedRoute }}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -312,22 +312,46 @@
     </div>
     <!-- End of Remove Route Map Modal Content -->
 </div>
-
-@section('script')
+@push('script')
     <script>
         window.addEventListener('show-form', event => {
             $('#modalEdit').modal('show');
         });
-        window.addEventListener('hide-form', event => {
+        window.addEventListener('hide-form-edit', event => {
             $('#modalEdit').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Route updated successfully!');
         });
-        window.addEventListener('show-delete-form', event => {
+        window.addEventListener('hide-form-add', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'New route added successfully!');
+        });
+        window.addEventListener('hide-form-failed', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation Failed!');
+        });
+        window.addEventListener('failed-add-route-no', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Failed! Route number already exist!');
+        });
+        window.addEventListener('failed-add-route-name', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Failed! Route name already exist!');
+        });
+
+        window.addEventListener('show-delete-modal', event => {
             $('#confirmationModal').modal('show');
         });
         window.addEventListener('hide-delete-modal', event => {
             $('#confirmationModal').modal('hide');
-            toastr.success(event.detail.message, 'Success!');
+            toastr.success(event.detail.message, 'Route removed successfully!');
+        })
+
+        window.addEventListener('show-delete-map-modal', event => {
+            $('#mapConfirmationModal').modal('show');
+        });
+        window.addEventListener('hide-delete-map-modal', event => {
+            $('#mapConfirmationModal').modal('hide');
+            toastr.success(event.detail.message, 'Route map removed successfully!');
         })
     </script>
-@endsection
+@endpush

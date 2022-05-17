@@ -274,4 +274,5 @@ class RouteMapController extends Controller
         }
         return redirect()->to('/settings/manageRoute')->with(['message' => 'File Upload Failed!']);
     }
+
 }

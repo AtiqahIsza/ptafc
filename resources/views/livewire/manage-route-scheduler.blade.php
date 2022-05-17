@@ -14,34 +14,21 @@
             @endforeach
         </select>
 
-        @if (!is_null($selectedRegion))
-            <select wire:model="selectedCompany"  class="form-select fmxw-200 d-none d-md-inline">
-                <option value="">Choose Company</option>
-                @foreach($companies as $company)
-                    <option value="{{$company->id}}">{{$company->company_name}}</option>
-                @endforeach
-            </select>
+        <select wire:model="selectedCompany"  class="form-select fmxw-200 d-none d-md-inline">
+            <option value="">Choose Company</option>
+            @foreach($companies as $company)
+                <option value="{{$company->id}}">{{$company->company_name}}</option>
+            @endforeach
+        </select>
 
-            @if (!is_null($selectedCompany))
-                <select wire:model="selectedSector"  class="form-select fmxw-200 d-none d-md-inline">
-                    <option value="">Choose Sector</option>
-                    @foreach($sectors as $sector)
-                        <option value="{{$sector->id}}">{{$sector->sector_name}}</option>
-                    @endforeach
-                </select>
-                @if (!is_null($selectedSector))
-                    <select wire:model="selectedRoute"  class="form-select fmxw-200 d-none d-md-inline">
-                        <option value="">Choose Route</option>
-                        @foreach($routes as $route)
-                            <option value="{{$route->id}}">{{$route->route_name}}</option>
-                        @endforeach
-                    </select>
-                <br>
-                @endif
-            @endif
-        @endif
+        <select wire:model="selectedRoute"  class="form-select fmxw-200 d-none d-md-inline">
+            <option value="">Choose Route</option>
+            @foreach($routes as $route)
+                <option value="{{$route->id}}">{{$route->route_name}}</option>
+            @endforeach
+        </select>
     </div>
-
+    <br>
     @livewire('view-route-schedule')
 
     @if ($addNewButton)

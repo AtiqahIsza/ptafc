@@ -12,8 +12,9 @@ class ManageCompany extends Component
 {
     public $companies;
     public $regions;
-    //public $userEdit;
+    public $editedCompanies;
     public $removedCompanyId;
+    public $removedCompany;
     public $state = [];
     public $selectedRegion = NULL;
     public $showEditModal = false;
@@ -39,10 +40,9 @@ class ManageCompany extends Component
 
     public function edit(Company $company)
     {
-        //dd($user);
-        $this->reset();
         $this->showEditModal = true;
-        $this->companies = $company;
+        $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+        $this->editedCompanies = $company;
         $this->state = $company->toArray();
         $this->dispatchBrowserEvent('show-form');
     }
@@ -61,20 +61,19 @@ class ManageCompany extends Component
             'minimum_balance' => ['required', 'between:0,99.99'],
         ])->validate();
 
-        $this->companies->update($validatedData);
+        $success = $this->editedCompanies->update($validatedData);
 
-        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company updated successfully!']);
-
-        /*$this->dispatchBrowserEvent('hide-form', ['message' => 'Company updated successfully!']);
-        $this->emit('hideModalEvent');
-        $this->alert('success', 'Company updated successfully', [
-            'position' => 'top',
-        ]);*/
+        if($success){
+            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->dispatchBrowserEvent('hide-form-edit');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function addNew()
     {
-        $this->reset();
+        $this->state = [];
         $this->showEditModal = false;
         $this->dispatchBrowserEvent('show-form');
     }
@@ -93,25 +92,34 @@ class ManageCompany extends Component
             'minimum_balance' => ['required', 'between:0,99.99'],
         ])->validate();
 
-        Company::create($validatedData);
+        $create = Company::create($validatedData);
 
-        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company added successfully!']);
-
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Company added successfully!']);
+        if($create){
+            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->dispatchBrowserEvent('hide-form-add');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function confirmRemoval($companyId)
     {
         $this->removedCompanyId = $companyId;
+        $selectedRemoved = Company::where('id', $this->removedCompanyId)->first();
+        $this->removedCompany = $selectedRemoved->company_name;
         $this->dispatchBrowserEvent('show-delete-modal');
     }
 
     public function removeCompany()
     {
         $company = Company::findOrFail($this->removedCompanyId);
-        $company ->delete();
+        $successRemove = $company ->delete();
 
-        return redirect()->to('/settings/manageCompany')->with(['message' => 'Company removed successfully!']);
-        //$this->dispatchBrowserEvent('hide-delete-modal', ['message' => 'Company deleted successfully!']);
+        if($successRemove) {
+            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->dispatchBrowserEvent('hide-delete-modal');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 }

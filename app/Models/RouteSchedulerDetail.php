@@ -12,6 +12,6 @@ class RouteSchedulerDetail extends Model
     protected $table = 'route_scheduler_details';
 
     function RouteScheduleMSTR() {
-        return $this->belongsTo(RouteSchedulerMSTR::class, 'route_schedule_mstr_id', 'id');
+        return $this->belongsTo(RouteSchedulerMSTR::class, 'route_scheduler_mstr_id', 'id');
     }
 }

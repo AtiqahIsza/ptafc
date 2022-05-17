@@ -11,7 +11,7 @@ class RouteSchedulerMSTR extends Model
     protected $table = 'route_scheduler_mstr';
     public $timestamps = false;
 
-    //trip_code(out = 0/inbound=1)
+    //trip_type(weekday=2/weekend=1)
     protected $fillable = [
         'id',
         'schedule_start_time',

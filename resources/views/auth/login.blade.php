@@ -5,7 +5,7 @@
             <div class="col-12 d-flex align-items-center justify-content-center">
                 <div class="bg-white shadow-soft border rounded border-light p-4 p-lg-5 w-100 fmxw-500">
                     <div class="text-center text-md-center mb-4 mt-md-0">
-                        <h1 class="mb-3 h3">{{ __('Welcome back') }}</h1>
+                        <img src="{{ asset('images/MARALINER-logo.png') }}" height="100" width="400">
                     </div>
                     <form class="mt-4" action="{{ route('login') }}" method="POST">
                         @csrf

@@ -17,13 +17,14 @@ class ManageBusDriver extends Component
     public $sectors;
     public $routes;
     public $buses;
+
     public $state = [];
     public $state2 = [];
-    public $selectedCompany = NULL;
 
-    public $selectedAddCompany = NULL;
-    public $selectedAddSector = NULL;
-    public $selectedAddRoute = NULL;
+    public $editedDrivers;
+    public $editedCompanies;
+
+    public $selectedCompany = NULL;
 
     public $changedDriverId;
     public $changedDriverName;
@@ -39,6 +40,8 @@ class ManageBusDriver extends Component
         $this->sectors = collect();
         $this->routes = collect();
         $this->buses = collect();
+        $this->editedDrivers = collect();
+        $this->editedCompanies = collect();
         $this->changedDriverId = collect();
         $this->changedDriverName = collect();
         $this->desiredStatus = collect();
@@ -53,45 +56,19 @@ class ManageBusDriver extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->drivers = BusDriver::where('company_id', $company)->get();
+            $this->drivers = BusDriver::where('company_id', $company)->orderBy('driver_name')->get();
         }
     }
 
     public function addNew()
     {
-        $this->reset();
-        $this->companies = Company::all();
-        $this->dispatchBrowserEvent('show-form');
+        $this->state = [];
+        $this->editedCompanies = Company::all();
+        $this->dispatchBrowserEvent('show-form-add');
     }
-
-    /*public function updatedSelectedAddCompany($company)
-    {
-        if (!is_null($company)) {
-            $this->selectedAddCompany=$company;
-            $this->sectors = Sector::where('company_id', $company)->get();
-        }
-    }
-
-    public function updatedSelectedAddSector($sector)
-    {
-        if (!is_null($sector)) {
-            $this->selectedAddSector=$sector;
-            $this->routes = Route::where('sector_id', $sector)->get();
-        }
-    }
-
-    public function updatedSelectedAddRoute($route)
-    {
-        if (!is_null($route)) {
-            $this->selectedAddRoute=$route;
-            $this->buses = Bus::where('route_id', $route)->get();
-        }
-    }*/
 
     public function createBusDriver()
     {
-        //dd($this->buses);
-
         $validatedData = Validator::make($this->state, [
             'driver_name' => ['required', 'string', 'max:255'],
             'employee_number' => ['required', 'string', 'max:255'],
@@ -109,20 +86,18 @@ class ManageBusDriver extends Component
         $create = BusDriver::create($validatedData);
 
         if($create){
-            return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus Driver Added Successfully!']);
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->dispatchBrowserEvent('hide-form-add');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
         }
-        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Failed To Add Bus Driver!']);
-
-
-        //return Redirect::back()->with(['message' => 'Bus added successfully!']);
-        //$this->dispatchBrowserEvent('hide-form', ['message' => 'Sector added successfully!']);
     }
 
     public function resetModal(BusDriver $driver)
     {
-        $this->reset();
-        $this->drivers = $driver;
-        $this->dispatchBrowserEvent('show-form');
+        $this->state2 = [];
+        $this->editedDrivers = $driver;
+        $this->dispatchBrowserEvent('show-reset-modal');
     }
 
     public function resetPassword()
@@ -133,16 +108,21 @@ class ManageBusDriver extends Component
 
         $validatedData['driver_password'] = bcrypt($validatedData['driver_password']);
 
-        $this->drivers->update($validatedData);
-
-        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Password Reset Successfully!']);
+        $success = $this->editedDrivers->update($validatedData);
+        if($success){
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->dispatchBrowserEvent('hide-reset-modal');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function editModal(BusDriver $driver)
     {
-        $this->reset();
-        $this->drivers = $driver;
+        $this->editedDrivers = $driver;
+        $this->editedCompanies = Company::all();
         $this->state = $driver->toArray();
+        $this->dispatchBrowserEvent('show-form-edit');
     }
 
     public function updateBusDriver()
@@ -158,61 +138,69 @@ class ManageBusDriver extends Component
             'driver_number' => ['required', 'string', 'max:255'],
         ])->validate();
 
+        $success = $this->editedDrivers->update($validatedData);
 
-        $this->drivers->update($validatedData);
-
-        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus driver updated successfully!']);
-
+        if($success){
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->dispatchBrowserEvent('hide-form-edit');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function confirmRemove($id)
     {
         $this->removedDriverId = $id;
-        $sql = BusDriver::where('id', $id)->first();
-        $this->removedDriverName = $sql->driver_name;
+        $selectedRemoved = BusDriver::where('id', $this->removedDriverId)->first();
+        $this->removedDriverName = $selectedRemoved->driver_name;
+        $this->dispatchBrowserEvent('show-remove-modal');
     }
 
     public function removeDriver()
     {
         $busdriver = BusDriver::findOrFail($this->removedDriverId);
-        $busdriver->delete();
+        $successRemove = $busdriver->delete();
 
-        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Bus driver removed successfully!']);
-
+        if($successRemove) {
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->dispatchBrowserEvent('hide-remove-modal');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
     }
 
     public function confirmChanges($id)
     {
         $this->changedDriverId = $id;
+        $selectedChanged = BusDriver::where('id', $id)->first();
+        $this->changedDriverName = $selectedChanged->driver_name;
 
-        $sql = BusDriver::where('id', $id)->first();
-        $this->changedDriverName = $sql->driver_name;
-
-        if($sql->status==1){
+        if($selectedChanged->status==1){
             $this->desiredStatus = 'INACTIVE';
         }
         else{
             $this->desiredStatus = 'ACTIVE';
         }
+        $this->dispatchBrowserEvent('show-status-modal');
     }
 
     public function changeStatus()
     {
         $busdriver = BusDriver::findOrFail($this->changedDriverId);
-        if ($busdriver->status == 1) {
-            $busdriver->update(['status', 2]);
-            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 2]);
-
-        } else {
-            $busdriver->update(['status', 1]);
-            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 1]);
+        if($busdriver->status == 1) {
+            $updateStatus = $busdriver->update(['status', 2]);
+            //$updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 2]);
+        }else {
+            $updateStatus = $busdriver->update(['status', 1]);
+            //$updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 1]);
         }
 
         if ($updateStatus){
-            return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Status Changed Successfully!']);
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->dispatchBrowserEvent('hide-status-modal');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
         }
-        return redirect()->to('/settings/manageBusDriver')->with(['message' => 'Status Changed Failed!']);
-
     }
 
 
