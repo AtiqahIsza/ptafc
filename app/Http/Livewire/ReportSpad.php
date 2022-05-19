@@ -27,6 +27,7 @@ use App\Models\RouteSchedulerMSTR;
 use App\Models\Stage;
 use App\Models\TicketSalesTransaction;
 use App\Models\TripDetail;
+use App\Models\VehiclePosition;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
@@ -3013,8 +3014,8 @@ class ReportSpad extends Component
 
         if($this->selectedCompany){
             //Trip specific route specific company
-            $selectedCompany = Company::where('id', $this->selectedCompany)->first();
-            $networkArea = $selectedCompany->company_name;
+            $companyDetails = Company::where('id', $this->selectedCompany)->first();
+            $networkArea = $companyDetails->company_name;
             $grandPassengerCount = 0;
             $grandSalesAmount  = 0;
             $grandAdult  = 0;
@@ -4679,6 +4680,11 @@ class ReportSpad extends Component
         //
     }
 
+    public function printTransferPoint()
+    {
+        //
+    }
+
     public function printPenalty(){
         //
     }
@@ -6291,7 +6297,84 @@ class ReportSpad extends Component
     }
 
     public function printClaimDetailGPS(){
-        //
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printClaimDetailGPS()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required','int'],
+        ])->validate();
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+
+            $startDate->addDay();
+        }
+
+        $claimDetailGPSSPAD = collect();
+
+        if($this->selectedCompany) {
+            //Claim Details GPS specific route specific company
+            $selectedCompany = Company::where('id', $this->selectedCompany)->first();
+            $networkArea = $selectedCompany->company_name;
+
+            if (!empty($this->state['route_id'])) {
+                $out->writeln("YOU ARE IN HERE Claim Details GPS specific route specific company");
+                $selectedRoute = Route::where('id', $this->state['route_id'])->first();
+                $routeNo = $selectedRoute->route_number;
+                $routeNameIn = $selectedRoute->route_name;
+                $data = [];
+
+                foreach ($all_dates as $all_date) {
+                    $out->writeln("YOU ARE IN HERE Claim Details GPS all_date loop");
+
+                    $firstDate = new Carbon($all_date);
+                    $lastDate = new Carbon($all_date . '11:59:59');
+
+                    $tripPerDates = TripDetail::where('route_id', $routeNo)
+                        ->whereBetween('start_trip', [$firstDate,$lastDate])
+                        ->get();
+
+                    if (count($tripPerDates) > 0) {
+                        foreach ($tripPerDates as $tripPerDate) {
+                            if ($tripPerDate->trip_code == 1) {
+                                $title = $tripPerDate->id . ' - ' . $routeNo . ' - ' . $routeNameIn . ' - IB  - ' . ' - ';
+                            } else {
+                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $routeNameIn)));
+                                $title = $tripPerDate->id . ' - ' . $routeNo . ' - ' . $routeNameOut . ' - OB  - ' . ' - ';
+                            }
+
+                            $vehiclePositions = VehiclePosition::where('trip_id', $tripPerDate->id)->get();
+
+                            $i=0;
+                            $allGPS = [];
+                            if (count($vehiclePositions) > 0) {
+                                foreach ($vehiclePositions as $vehiclePosition) {
+                                    //duration = upload_date - creation_date
+                                    $duration = strtotime($vehiclePosition->date_time) - strtotime($vehiclePosition->date_time);
+                                    $gps['bus_no'] = $vehiclePosition->Bus->bus_registration_number;
+                                    $gps['creation_date'] = $vehiclePosition->date_time;
+                                    $gps['speed'] = $vehiclePosition->speed;
+                                    $gps['pmhs_status'] = 'PMHS STATUS';
+                                    $gps['pmhs_upload_date'] = 'PMHS UPLOAD DATE';
+                                    $gps['pmhs_id'] = 'PMHS ID';
+                                    $gps['duration'] = $duration;
+
+                                    $allGPS[$i++] = $gps;
+                                }
+                            }
+                            $data[$title] = $allGPS;
+                        }
+                    }
+                }
+                $claimDetailGPSSPAD->add($data);
+            }
+        }
     }
 
     public function printClaimSummary()

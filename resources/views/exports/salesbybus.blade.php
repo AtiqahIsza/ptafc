@@ -6,82 +6,123 @@
         </th>
     </tr>
     <tr>
-        &nbsp;
-    </tr>
-    <tr>
-        <td colspan="11">&nbsp;</td>
+        <th colspan="11">
+            &nbsp;
+        </th>
     </tr>
     <tr>
         <th colspan="11">
-            <strong> Bus No: {{ $bus->bus_registration_number }}</strong>
+            <strong> Network Area: {{ $company }}</strong>
         </th>
     </tr>
     </thead>
-
     <tbody>
-    @php $i = 1; @endphp
-    @foreach($contents as $content)
-        <tr>
-            <td colspan="11">
-                <strong>RHPN: {{$content->pda->imei}} Creation By: {{$content->trip->start_date}}</strong>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="11">
-                <strong>Closed By: {{$content->trip->end_date}} Closed At: </strong>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="11">
-                <strong>Route Description: {{$content->route->route_name}} </strong>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="11">
-                <strong>System Trip Details: ({{$content->trip->id}} -  {{$content->trip->start_date}} - {{$content->trip->end_date}})</strong>
-            </td>
-        </tr>
-        <tr>
-            <td style="text-align: center;"><strong>No</strong></td>
-            <td style="text-align: center;"><strong>Sales Date</strong></td>
-            <td style="text-align: center;"><strong>Ticket No</strong></td>
-            <td style="text-align: center;"><strong>From</strong></td>
-            <td style="text-align: center;"><strong>To</strong></td>
-            <td style="text-align: center;"><strong>Type</strong></td>
-            <td style="text-align: center;"><strong>Cash</strong></td>
-            <td style="text-align: center;"><strong>Card</strong></td>
-            <td style="text-align: center;"><strong>Touch N Go</strong></td>
-            <td style="text-align: center;"><strong>Cancelled</strong></td>
-            <td style="text-align: center;"><strong>By</strong></td>
-        </tr>
-
-        <tr>
-            <td style="text-align: center;">{{ $i++ }}</td>
-            <td style="text-align: center;">{{ $content->sales_date }}</td>
-            <td style="text-align: center;">{{ $content->ticket_number }}</td>
-            <td style="text-align: center;">{{ $content->fromstage_stage_id }}</td>
-            <td style="text-align: center;">{{ $content->tostage_stage_id }}</td>
-            <td style="text-align: center;">{{ $content->faretype }}</td>
-            <td style="text-align: center;">{{ $stage->stage_order }}</td>
-            <td style="text-align: center;">{{ $stage->stage_order }}</td>
-            <td style="text-align: center;">{{ $stage->stage_order }}</td>
-            <td style="text-align: center;">{{ $stage->stage_order }}</td>
-            <td style="text-align: center;">{{ $stage->stage_order }}</td>
-        </tr>
-
-        <tr>
-            <td colspan="6" style="text-align: right;">
-                <strong>Total Sales For {{ $content->pda->imei }} </strong>
-            </td>
-            <td><strong>{{ $content->total_cash }}</strong></td>
-            <td><strong>{{ $content->total_card}}</strong></td>
-            <td><strong>{{ $content->total_touch_n_go }}</strong></td>
-            <td><strong>{{ $content->total_cancelled }}</strong></td>
-            <td><strong>{{ $content->total_by }}</strong></td>
-        </tr>
-        <tr>
-            <td colspan="11">&nbsp;</td>
-        </tr>
+    @foreach($reports as $key1 => $reportValue)
+        @foreach($reportValue as $key2 => $allBusesArr)
+            @if($key2=="grand_sales")
+                <tr>
+                    <td colspan="6" style="text-align: right;">
+                        <strong>Grand Total Sales</strong>
+                    </td>
+                    @foreach($allBusesArr as $key11 => $grand)
+                        <td><strong>{{ $grand }}</strong></td>
+                    @endforeach
+                </tr>
+            @else
+                @foreach($allBusesArr as $key3 => $perBus)
+                    @foreach($perBus as $key4 => $allDates)
+                        @if($key4=='total_sales_per_bus' && $allDates != NULL)
+                            <tr>
+                                <td colspan="6" style="text-align: right;">
+                                    <strong>Total Sales For Bus No: {{$key3}}</strong>
+                                </td>
+                                @foreach($allDates as $key5 => $totalBus)
+                                    <td><strong>{{ $totalBus }}</strong></td>
+                                @endforeach
+                            </tr>
+                        @elseif($allDates != NULL)
+                            <tr>
+                                <td colspan="11">&nbsp;</td>
+                            </tr>
+                            <tr>
+                                <th colspan="11">
+                                    <strong> Bus No: {{ $key3 }}</strong>
+                                </th>
+                            </tr>
+                            @foreach($allDates as $key5 => $allTrips)
+                                @foreach($allTrips as $key6 => $perTrip)
+                                    @if($key6=='total_sales_per_trip')
+                                        <tr>
+                                            <td colspan="6" style="text-align: right;">
+                                                <strong>Total Sales For Trip No: {{$tripNo}}</strong>
+                                            </td>
+                                            @foreach($perTrip as $key9 => $total)
+                                                <td><strong>{{ $total }}</strong></td>
+                                            @endforeach
+                                        </tr>
+                                    @elseif($key6=='all_tickets')
+                                        <tr>
+                                            <td style="text-align: center;"><strong>No</strong></td>
+                                            <td style="text-align: center;"><strong>Sales Date</strong></td>
+                                            <td style="text-align: center;"><strong>Ticket No</strong></td>
+                                            <td style="text-align: center;"><strong>From</strong></td>
+                                            <td style="text-align: center;"><strong>To</strong></td>
+                                            <td style="text-align: center;"><strong>Type</strong></td>
+                                            <td style="text-align: center;"><strong>Cash</strong></td>
+                                            <td style="text-align: center;"><strong>Card</strong></td>
+                                            <td style="text-align: center;"><strong>Touch N Go</strong></td>
+                                            <td style="text-align: center;"><strong>Cancelled</strong></td>
+                                            <td style="text-align: center;"><strong>By</strong></td>
+                                        </tr>
+                                        @php $i = 1; @endphp
+                                        @if($perTrip!=NULL)
+                                            @foreach($perTrip as $key8 => $perTicket)
+                                                <tr>
+                                                    <td style="text-align: center;">{{ $i++ }}</td>
+                                                    @foreach($perTicket as $key10 => $ticketData)
+                                                        <td style="text-align: center;">{{ $ticketData }}</td>
+                                                    @endforeach
+                                                </tr>
+                                            @endforeach
+                                        @else
+                                            <tr>
+                                                <td style="text-align: center;">{{ $i++ }}</td>
+                                                <td colspan="10" style="text-align: center;"><strong>****NO SALES</strong></td>
+                                            </tr>
+                                        @endif
+                                    @else
+                                        @php $tripNo = $key6@endphp
+                                        <tr>
+                                            <td colspan="11">&nbsp;</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="11">
+                                                <strong>Trip Number: {{$perTrip['trip_number']}} Creation By: {{$perTrip['creation_by']}}</strong>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="11">
+                                                <strong>Closed By: {{$perTrip['closed_by']}} Closed At: {{$perTrip['closed_at']}}</strong>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="11">
+                                                <strong>Route Description: {{$perTrip['route_desc']}} Trip Type: {{$perTrip['trip_type']}}</strong>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="11">
+                                                <strong>System Trip Details: {{$perTrip['trip_details']}}</strong>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
+                            @endforeach
+                        @endif
+                    @endforeach
+                @endforeach
+            @endif
+        @endforeach
     @endforeach
     </tbody>
 </table>

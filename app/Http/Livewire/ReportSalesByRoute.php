@@ -5,20 +5,25 @@ namespace App\Http\Livewire;
 use App\Exports\SalesByBus;
 use App\Exports\SalesByRoute;
 use App\Models\Bus;
+use App\Models\Company;
 use App\Models\Route;
 use App\Models\Stage;
 use App\Models\StageFare;
 use App\Models\TicketSalesTransaction;
+use App\Models\TripDetail;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
+use phpDocumentor\Reflection\Types\Collection;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
 class ReportSalesByRoute extends Component
 {
     public $routes;
+    public $companies;
+    public $selectedCompany;
     public $state = [];
     public $data = [];
     public $tot = [];
@@ -26,20 +31,29 @@ class ReportSalesByRoute extends Component
 
     public function render()
     {
+        $this->companies = Company::all();
         return view('livewire.report-sales-by-route');
     }
 
     public function mount()
     {
-        $this->routes=Route::all();
+        $this->companies = collect();
+        $this->routes=collect();
+    }
+
+    public function updatedSelectedCompany($company)
+    {
+        if (!is_null($company)) {
+            $this->routes = Route::where('company_id', $company)->get();
+        }
     }
 
     public function print()
     {
         $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN HERE");
+        $out->writeln("YOU ARE IN HERE salesByRoute print()");
 
-        $validatedData = Validator::make($this->state,[
+        $validatedData = Validator::make($this->state, [
             'dateFrom' => ['required', 'date'],
             'dateTo' => ['required', 'date'],
             'route_id' => ['required', 'int'],
@@ -52,174 +66,117 @@ class ReportSalesByRoute extends Component
         $endDate = new Carbon($validatedData['dateTo']);
         $all_dates = array();
 
-        while ($startDate->lte($endDate)){
+        while ($startDate->lte($endDate)) {
             $all_dates[] = $startDate->toDateString();
 
             $startDate->addDay();
         }
-        $colspan = ((count($all_dates) + 1)* 2) + 2;
+        $colspan = ((count($all_dates) + 1) * 2) + 2;
 
         $salesByRoute = collect();
+        $grandCollect = collect();
 
-        //$allStages = Stage::where('route_id', $validatedData['route_id'])->orderby('stage_order');
-        $allStageFares = StageFare::where('route_id', $validatedData['route_id'])
-            ->orderby('fromstage_stage_id')
-            ->get();
+        $firstStages = Stage::where('route_id', $validatedData['route_id'])->orderby('stage_order')->get();
+        if (count($firstStages) > 0){
+            foreach ($firstStages as $firstStage) {
+                $secondStages = Stage::where('route_id', $validatedData['route_id'])->orderby('stage_order')->get();
 
-        $grandQuantity = 100;
-        $grandSales = 12.0;
-        foreach ($allStageFares  as $allStageFare)
-        {
-            $data['from_to'] = $allStageFare->fromstage->stage_name . " - " . $allStageFare->tostage->stage_name;
+                if (count($secondStages) > 0) {
+                    foreach ($secondStages as $secondStage) {
+                        $fromto = $firstStage->stage_name . ' - ' . $secondStage->stage_name;
+                        $totalCount=0;
+                        $totalSales =0;
+                        foreach ($all_dates as $all_date) {
+                            $firstDate = new Carbon($all_date);
+                            $lastDate = new Carbon($all_date . '11:59:59');
+                            $countQty = 0;
+                            $sales = 0.0;
 
-            $totSales = 0.0;
-            $totQuantity = 0;
-            foreach ($all_dates as $all_date)
-            {
-                $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
-                    ->where('fromstage_stage_id', $allStageFare->fromstage_stage_id)
-                    ->where('tostage_stage_id', $allStageFare->tostage_stage_id)
-                    ->where('sales_date', $all_date)
-                    ->orderby('fromstage_stage_id')
-                    ->get();
+                            $tripPerRoutes = TripDetail::where('route_id',  $validatedData['route_id'])
+                                ->whereBetween('start_trip', [$firstDate, $lastDate])
+                                ->get();
 
-                $sales = 0.0;
-                foreach ($allSales as $allSale)
-                {
-                    if($allSale->fare_type ==1) //Adult
-                    {
-                        $sales += $allStageFare->fare;
-                    }
-                    else{ //Concession
-                        $sales += $allStageFare->consession_fare;
-                    }
-                }
-                $qty = count($allSales);
-                $perDate['date'] = $all_date;
-                $perDate['quantity'] = $qty;
-                $perDate['sales'] = $sales;
+                            if (count($tripPerRoutes) > 0) {
+                                foreach ($tripPerRoutes as $tripPerRoute) {
+                                    $salesPerDate = TicketSalesTransaction::where('trip_id', $tripPerRoute->id)
+                                        ->where('fromstage_stage_id', $firstStage->id)
+                                        ->where('tostage_stage_id', $secondStage->id)
+                                        ->whereBetween('sales_date', [$firstDate, $lastDate])
+                                        ->orderby('fromstage_stage_id')
+                                        ->get();
 
-                $data['perDate'][$all_date] = $perDate;
+                                    if (count($salesPerDate) > 0) {
+                                        foreach ($salesPerDate as $salePerDate) {
+                                            $countQty++;
+                                            $sales += $salePerDate->actual_amount;
+                                        }
+                                    }
+                                }
+                            }
+                            $perDate['qty'] = $countQty;
+                            $perDate['sales'] = $sales;
+                            $stage[$all_date] = $perDate;
 
-                $totQuantity += $qty;
-                $totSales += $sales;
-            }
-            $data['total_quantity'] = $totSales;
-            $data['total_sales'] = $totSales;
-            $salesByRoute->add($data);
+                            $totalCount += $countQty;
+                            $totalSales += $sales;
+                        }
 
-            $grandQuantity += $totQuantity;
-            $grandSales += $totSales;
-        }
+                        $perStage['all_date'] = $stage;
 
-        $grandTotal = collect();
-        foreach ($all_dates as $all_date)
-        {
-            $grand_tot_qty = 0;
-            $grand_tot_sales = 0.0;
-            foreach ($allStageFares  as $allStageFare)
-            {
-                $allSales= TicketSalesTransaction::where('route_id', $validatedData['route_id'])
-                    ->where('sales_date', $all_date)
-                    ->get();
+                        $totalStage['qty'] = $totalCount;
+                        $totalStage['sales'] = $totalSales;
+                        $perStage['total_per_stage'] = $totalStage;
 
-                $tot_qty = 0;
-                $sales = 0.0;
-                foreach ($allSales as $allSale)
-                {
-                    if($allSale->fare_type ==1) //Adult
-                    {
-                        $sales += $allStageFare->fare;
-                    }
-                    else{ //Concession
-                        $sales += $allStageFare->consession_fare;
+                        $data[$fromto] = $perStage;
                     }
                 }
-                $count_all_sales = count($allSales);
-
-                $grand_tot_qty += $count_all_sales;
-                $grand_tot_sales += $sales;
             }
-            //$grand_date['date'] =  $all_date;
-            $grand_date['grand_quantity'] = $grand_tot_qty;
-            $grand_date['grand_sales'] = $grand_tot_sales;
-
-            $grand['perDate'][$all_date] = $grand_date;
         }
-        $grand['grand_total_quantity'] = $grandQuantity;
-        $grand['grand_total_sales'] = $grandSales;
+        $salesByRoute->add($data);
 
-        $grandTotal->add($grand);
-        return Excel::download(new SalesByRoute($salesByRoute, $grandTotal, $all_dates,$colspan), 'SalesByRoute.xlsx');
+        //Calculate Grand
+        $grandStage = [];
+        $grandCount=0;
+        $grandSales=0;
+        foreach ($all_dates as $all_date) {
+            $firstDate = new Carbon($all_date);
+            $lastDate = new Carbon($all_date . '11:59:59');
+            $totalQty = 0;
+            $totalSales = 0.0;
+
+            $tripPerRoutes = TripDetail::where('route_id',  $validatedData['route_id'])
+                ->whereBetween('start_trip', [$firstDate, $lastDate])
+                ->get();
+
+            if (count($tripPerRoutes) > 0) {
+                foreach ($tripPerRoutes as $tripPerRoute) {
+                    $salesPerDate = TicketSalesTransaction::where('trip_id', $tripPerRoute->id)
+                        ->whereBetween('sales_date', [$firstDate, $lastDate])
+                        ->get();
+
+                    if (count($salesPerDate) > 0) {
+                        foreach ($salesPerDate as $salePerDate) {
+                            $totalQty++;
+                            $totalSales += $salePerDate->actual_amount;
+                        }
+                    }
+                }
+            }
+            $perDate['qty'] = $totalQty;
+            $perDate['sales'] = $totalSales;
+            $grandStage[$all_date] = $perDate;
+
+            $grandCount += $totalQty;
+            $grandSales += $totalSales;
+        }
+
+        $grand_total['all_stage'] = $grandStage;
+        $grand['grand_qty'] = $grandCount;
+        $grand['grand_sales'] = $grandSales;
+        $grand_total['grand_sales_by_route'] = $grand;
+
+        $grandCollect->add($grand_total);
+
+        return Excel::download(new SalesByRoute($salesByRoute, $grandCollect, $all_dates, $colspan), 'SalesByRoute.xlsx');
     }
-
-    /*public function printDetails()
-    {
-        $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN HERE");
-
-        $validatedData = Validator::make($this->state,[
-            'dateFrom' => ['required', 'date'],
-            'dateTo' => ['required', 'date'],
-            'route_id' => ['required', 'int'],
-        ])->validate();
-
-        $out->writeln("dateFrom:" . $validatedData['dateFrom']);
-        $out->writeln("dateTo:" . $validatedData['dateTo']);
-        $out->writeln("route_id:" . $validatedData['route_id']);
-
-        $dateRange = CarbonPeriod::create($validatedData['dateFrom'], $validatedData['dateTo']);
-        $saleRoutes = Route::where('id', $validatedData['route_id'])->get();
-        dd($saleRoutes->toArray());
-
-        $arr[] = array(
-            'Bus Registration Number',
-            'Creation By',
-            'Closed By',
-            'Route Description',
-            'System Trip Details',
-            'No',
-            'Sales Date',
-            'Ticket No',
-            'From',
-            'To',
-            'Type',
-            'Cash',
-            'Card',
-            'Touch & Go',
-            'Cancelled',
-            'By',
-            'Total Sales'
-        );
-        $arr = [];
-
-        $i=0;
-        foreach ($saleRoutes as $saleRoute) {
-            $i = $i++;
-
-            $arr[] = array(
-                'No' => $i,
-                'Bus Registration Number' => $saleRoute->route_number,
-                'Creation By' => $saleRoute->inbound_distance,
-                'Closed By' => $saleRoute->outbound_distance,
-                'Route Description' => $saleRoute->route_name,
-                'System Trip Details' => $saleRoute->company->company_name,
-                'Sales Date' => $saleRoute->sector->sector_name,
-                'Ticket No' => $saleRoute->route_target,
-                'From' => $saleRoute->fromstage_stage_id,
-                'To' => $saleRoute->tostage_stage_id,
-                'Type' => $saleRoute->distance,
-
-            );
-            if($saleRoute->status) {
-                $arr['Total Sales'] = 'ACTIVE';
-            }
-            else {
-                $arr['Total Sales'] = 'INACTIVE';
-            }
-        }
-
-        $export = new SalesByRoute([$arr]);
-        return Excel::download($export,'Sales Report By Bus.xlsx');
-    }*/
 }

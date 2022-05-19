@@ -14,7 +14,7 @@ class TicketSalesTransaction extends Model
     public $timestamps = false;
 
     //passenger_type(0=adult,1=concession)
-    //fare_type(0=cash/driver wallet, 1=debit,2=credit,3=tngo)
+    //fare_type(0=cash/driver wallet, 1=card,2=tngo)
     protected $fillable = [
         'trip_id',
         'ticket_number',

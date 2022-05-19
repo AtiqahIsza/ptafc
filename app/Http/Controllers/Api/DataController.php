@@ -65,7 +65,7 @@ class DataController extends Controller
             if(!empty($checkRoute)){
                 $newTrip->route_id = $parse[5];
             }
-            $checkDriver = BusDriver::where('id', $parse[5])->first();
+            $checkDriver = BusDriver::where('id', $parse[6])->first();
             if(!empty($checkDriver)){
                 $newTrip->driver_id = $parse[6];
             }
@@ -103,12 +103,12 @@ class DataController extends Controller
 
         $data = $request->file('fileToUpload');
         $reads = file($data);
-        $index = 0;
+        //$index = 0;
         $saved = 0;
         foreach ($reads as $read) {
-            $index++;
+            //$index++;
             //skip  first line
-            if ($index > 1) {
+            //if ($index > 1) {
                 $parse = str_getcsv($read, ',');
                 $newTicket = new TicketSalesTransaction();
 
@@ -159,7 +159,7 @@ class DataController extends Controller
                 if($successSave){
                     $saved++;
                 }
-            }
+            //}
         }
         return response()->json([
             'success' => true,

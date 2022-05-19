@@ -26,9 +26,23 @@
                     </td>
                 </tr>
                 <tr>
+                    <th class="border-gray-200">{{ __('Company') }}</th>
+                    <td>
+                        <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300">
+                            <option value="">Choose Company</option>
+                            @foreach($companies as $company)
+                                <option value="{{$company->id}}">{{$company->company_name}}</option>
+                            @endforeach
+                        </select>
+                        @if ($errors->has('company_id'))
+                            <span class="text-danger">{{ $errors->first('company_id') }}</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
                     <th class="border-gray-200">{{ __('Route') }}</th>
                     <td>
-                        <select style="width:100%" wire:model.defer="state.route_id" id="route_id" class="form-select border-gray-300" autofocus required>
+                        <select style="width:100%" wire:model="state.route_id" id="route_id" class="form-select border-gray-300" autofocus required>
                             <option value="">Choose Route</option>
                             @foreach($routes as $route)
                                 <option value="{{$route->id}}">{{$route->route_name}}</option>

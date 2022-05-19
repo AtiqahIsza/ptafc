@@ -15,7 +15,7 @@
     </tr>
     <tr>
         <th colspan="12">
-            <strong> Company: </strong>
+            <strong> Company: {{$dateDaily}}</strong>
         </th>
     </tr>
     </thead>

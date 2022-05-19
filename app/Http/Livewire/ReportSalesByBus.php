@@ -4,6 +4,7 @@ namespace App\Http\Livewire;
 
 use App\Exports\SalesByBus;
 use App\Models\Bus;
+use App\Models\Company;
 use App\Models\Route;
 use App\Models\Stage;
 use App\Models\TicketSalesTransaction;
@@ -19,6 +20,8 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 class ReportSalesByBus extends Component
 {
     public $buses;
+    public $companies;
+    public $selectedCompany;
     public $state = [];
     public $heading = [];
     public $data = [];
@@ -27,23 +30,32 @@ class ReportSalesByBus extends Component
 
     public function render()
     {
+        $this->companies = Company::all();
         return view('livewire.report-sales-by-bus');
     }
 
     public function mount()
     {
-        $this->buses=Bus::all();
+        $this->buses=collect();
+        $this->companies=collect();
+    }
+
+    public function updatedSelectedCompany($company)
+    {
+        if (!is_null($company)) {
+            $this->buses = Bus::where('company_id', $company)->get();
+        }
     }
 
     public function print()
     {
         $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN HERE");
+        $out->writeln("YOU ARE IN HERE salesByBus print()");
 
         $validatedData = Validator::make($this->state,[
             'dateFrom' => ['required', 'date'],
             'dateTo' => ['required', 'date'],
-            'bus_id' => ['required', 'int'],
+            'bus_id' => ['int'],
         ])->validate();
 
         $startDate = new Carbon($validatedData['dateFrom']);
@@ -52,101 +64,446 @@ class ReportSalesByBus extends Component
 
         while ($startDate->lte($endDate)){
             $all_dates[] = $startDate->toDateString();
-
             $startDate->addDay();
         }
 
         $salesByBus = collect();
-        $grandTotal = 0.0;
-        foreach ($all_dates as $all_date)
-        {
-            $tripDetailsDate = TripDetail::where('start_trip', $all_date)
-                ->where('end_trip', $all_date)
-                ->where('bus_id', $validatedData['bus_id'])
-                ->orderby('start_trip')
-                ->get();
+        $grandBy = 0;
+        $grandCash = 0;
+        $grandCard = 0;
+        $grandTouchNGo = 0;
+        $grandCancelled = 0;
+        if($this->selectedCompany){
+            $companyDetails = Company::where('id', $this->selectedCompany)->first();
+            $companyName = $companyDetails->company_name;
 
-            if($tripDetailsDate) {
-                foreach ($tripDetailsDate as $tripDetails) {
+            if(!empty($this->state['bus_id'])){
+                $busDetails = Bus::where('id', $this->state['bus_id'])->first();
+                $busNo = $busDetails->bus_registration_number;
 
-                    $perTrip['start_trip'] = $tripDetails->start_trip;
-                    $perTrip['end_trip'] = $tripDetails->end_date;
-                    $perTrip['route_desc'] = $tripDetails->route->route_name;
-                    $perTrip['creation_by'] = $tripDetails->start_date;
-                    $perTrip['closed_by'] = $tripDetails->end_date;
-                    $perTrip['pda'] = $tripDetails->pda->imei;
+                $AllBusTrip = [];
+                $AllDates = [];
+                $finalTotalBy = 0;
+                $finalTotalCash = 0;
+                $finalTotalCard = 0;
+                $finalTotalTouchNGo = 0;
+                $finalTotalCancelled = 0;
 
-                    $data['perTrip'] = $perTrip;
+                foreach ($all_dates as $all_date) {
+                    $AllTrips = [];
+                    $trip = 0;
+                    $firstDate = new Carbon($all_date);
+                    $lastDate = new Carbon($all_date . '11:59:59');
+                    $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
+                        ->where('bus_id', $busDetails->id)
+                        ->orderby('start_trip')
+                        ->get();
 
-                    $ticketSaleTransaction = TicketSalesTransaction::where('trip_id',$tripDetails->id)->get();
-                        /*->where('bus_id', $validatedData['bus_id'])
-                        ->where('sales_date', $all_date)
-                        ->orderby('sales_date')*/
+                    if (count($tripPerDates) > 0) {
+                        foreach ($tripPerDates as $tripDetails) {
+                            $perTrip['trip_number'] = $tripDetails->trip_number;
+                            $perTrip['status'] = 'Closed';
+                            $perTrip['creation_by'] = $tripDetails->start_trip;
+                            $perTrip['closed_by'] = $tripDetails->end_trip;
+                            $perTrip['closed_at'] = '***NO SALE';
 
-                    if ($ticketSaleTransaction) {
+                            $ticketSaleTransaction = TicketSalesTransaction::where('trip_id', $tripDetails->id)->get();
 
-                        $totalCash = 0.0;
-                        $totalCard = 0.0;
-                        $totalTouchNGo = 0.0;
-                        $totalCancelled = 0.0;
-                        $totalBy = 0.0;
+                            $total_trip = [];
+                            $totalCash = 0;
+                            $totalCard = 0;
+                            $totalTouchNGo = 0;
+                            $totalCancelled = 0;
+                            $totalBy = 0;
+                            $allTickets = [];
+                            $i = 0;
+                            if (count($ticketSaleTransaction) > 0) {
+                                $perTrip['closed_at'] = 'Sales Screen';
 
-                        foreach ($ticketSaleTransaction as $ticketSale) {
+                                foreach ($ticketSaleTransaction as $ticketSale) {
+                                    $perTicket['sales_date'] = $ticketSale->sales_date;
+                                    $perTicket['ticket_number'] = $ticketSale->ticket_number;
+                                    $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                    $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                    if ($ticketSale->passenger_type == 0) {
+                                        $perTicket['Type'] = 'ADULT';
+                                    } else {
+                                        $perTicket['Type'] = 'CONCESSION';
+                                    }
 
-                            if($ticketSale->fare_type==1){
-                                $totalCash = $totalCash + $ticketSale->amount;
-                                $perTime['cash'] = $ticketSale->amount;
-                                $perTime['card'] = 0;
-                                $perTime['touch_n_go'] = 0;
+                                    if ($ticketSale->fare_type == 0) {
+                                        $totalCash += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = $ticketSale->actual_amount;
+                                        $perTicket['card'] = 0;
+                                        $perTicket['touch_n_go'] = 0;
+                                    } //Cash
+                                    elseif ($ticketSale->fare_type == 1) {
+                                        $totalCard += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = 0;
+                                        $perTicket['card'] = $ticketSale->actual_amount;
+                                        $perTicket['touch_n_go'] = 0;
+                                    } //Card
+                                    else {
+                                        $totalTouchNGo += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = 0;
+                                        $perTicket['card'] = 0;
+                                        $perTicket['touch_n_go'] = $ticketSale->actual_amount;
+                                    } //TouchNGo
 
-                            } //Cash
-                            elseif($ticketSale->fare_type==2){
-                                $totalCard = $totalCard + $ticketSale->amount;
-                                $perTime['cash'] = 0;
-                                $perTime['card'] = $ticketSale->amount;
-                                $perTime['touch_n_go']= 0;
-                            } //Card
-                            else{
-                                $totalTouchNGo = $totalTouchNGo + $ticketSale->amount;
-                                $perTime['cash'] = 0;
-                                $perTime['card'] = 0;
-                                $perTime['touch_n_go'] = $ticketSale->amount;
-                            } //TouchNGo
+                                    $allTickets[$i++] = $perTicket;
+                                }
+                            }
 
-                            $data['perTrip'][$ticketSale->sales_date] = $perTime;
+                            if ($tripDetails->trip_code == 0) {
+                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $tripDetails->Route->route_name)));
+                                $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $routeNameOut;
+                                $perTrip['trip_type'] = 'OB';
+
+                            } else {
+                                $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $tripDetails->Route->route_name;
+                                $perTrip['trip_type'] = 'IB';
+                            }
+
+                            $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
+                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
+                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+
+                            $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
+
+                            $perSale['total_cash'] = $totalCash;
+                            $perSale['total_card'] = $totalCard;
+                            $perSale['total_touch_n_go'] = $totalTouchNGo;
+                            $perSale['total_cancelled'] = $totalCancelled;
+                            $perSale['total_by'] = $totalBy;
+
+                            $total_trip[$tripDetails->trip_number] = $perTrip;
+                            $total_trip['all_tickets'] = $allTickets;
+                            $total_trip['total_sales_per_trip'] = $perSale;
+                            $AllTrips[$trip++] = $total_trip;
+
+                            $finalTotalBy += $totalBy;
+                            $finalTotalCash += $totalCash;
+                            $finalTotalCard += $totalCard;
+                            $finalTotalTouchNGo += $totalTouchNGo;
+                            $finalTotalCancelled += $totalCancelled;
                         }
-
-                        $totalBy = $totalCash + $totalCash + $totalTouchNGo + $totalCancelled;
-
-                        $perSale['ticketSaleTransaction'] = $ticketSaleTransaction;
-                        $perSale['total_cash'] = $totalCash;
-                        $perSale['total_card'] = $totalCard;
-                        $perSale['total_touch_n_go'] = $totalTouchNGo;
-                        $perSale['total_cancelled'] = $totalCancelled;
-                        $perSale['total_by'] = $totalBy;
-
-                        $data['perSale'][$tripDetails->start_trip] = $perSale;
-
-                        $grandTotal = $grandTotal + $totalBy;
-
+                        $AllDates[$all_date] = $AllTrips;
                     }
-                    else{
-                        $perTime['cash'] = 0;
-                        $perTime['card'] = 0;
-                        $perTime['touch_n_go'] = 0;
-                        $perTime['cancelled'] = 0;
-
-                        $data['perTrip'][$tripDetails->start_trip] = $perTime;
-                    }
-                    $salesByBus->add($data);
                 }
+                if($AllDates==[]){
+                    $total_bus = [];
+                }else{
+                    $total_bus['total_cash_per_bus'] = $finalTotalCash;
+                    $total_bus['total_card_per_bus'] = $finalTotalCard;
+                    $total_bus['total_touch_n_go_per_bus'] = $finalTotalTouchNGo;
+                    $total_bus['total_cancelled_per_bus'] = $finalTotalCancelled;
+                    $total_bus['total_by_per_bus'] = $finalTotalBy;
+                }
+                $AllDates['total_sales_per_bus'] = $total_bus;
+                $AllBusTrip[$busNo] = $AllDates;
+
+                $grandBy += $finalTotalBy;
+                $grandCash += $finalTotalCash;
+                $grandCard += $finalTotalCard;
+                $grandTouchNGo += $finalTotalTouchNGo;
+                $grandCancelled += $finalTotalCancelled;
+
+                $total_grand['grand_total_cash'] = $grandCash;
+                $total_grand['grand_total_card'] = $grandCard;
+                $total_grand['grand_total_touch_n_go'] = $grandTouchNGo;
+                $total_grand['grand_total_cancelled'] = $grandCancelled;
+                $total_grand['grand_total_by'] = $grandBy;
+
+                $grand['AllBuses'] = $AllBusTrip;
+                $grand['grand_sales'] = $total_grand;
+                $salesByBus->add($grand);
+            }
+            //Sales By Bus all bus specific company
+            else{
+                $busPerCompanies = Bus::where('company_id',$companyDetails->id)->get();
+                $AllBusTrip = [];
+                foreach ($busPerCompanies as $busPerCompany) {
+                    $busNo = $busPerCompany->bus_registration_number;
+                    $AllDates = [];
+                    $finalTotalBy = 0;
+                    $finalTotalCash = 0;
+                    $finalTotalCard = 0;
+                    $finalTotalTouchNGo = 0;
+                    $finalTotalCancelled = 0;
+
+                    foreach ($all_dates as $all_date) {
+                        $AllTrips = [];
+                        $trip = 0;
+                        $firstDate = new Carbon($all_date);
+                        $lastDate = new Carbon($all_date . '11:59:59');
+                        $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
+                            ->where('bus_id', $busPerCompany->id)
+                            ->orderby('start_trip')
+                            ->get();
+
+                        if (count($tripPerDates) > 0) {
+                            foreach ($tripPerDates as $tripDetails) {
+                                $perTrip['trip_number'] = $tripDetails->trip_number;
+                                $perTrip['status'] = 'Closed';
+                                $perTrip['creation_by'] = $tripDetails->start_trip;
+                                $perTrip['closed_by'] = $tripDetails->end_trip;
+                                $perTrip['closed_at'] = '***NO SALE';
+
+                                $ticketSaleTransaction = TicketSalesTransaction::where('trip_id', $tripDetails->id)->get();
+
+                                $total_trip = [];
+                                $totalCash = 0;
+                                $totalCard = 0;
+                                $totalTouchNGo = 0;
+                                $totalCancelled = 0;
+                                $totalBy = 0;
+                                $allTickets = [];
+                                $i = 0;
+                                if (count($ticketSaleTransaction) > 0) {
+                                    $perTrip['closed_at'] = 'Sales Screen';
+
+                                    foreach ($ticketSaleTransaction as $ticketSale) {
+                                        $perTicket['sales_date'] = $ticketSale->sales_date;
+                                        $perTicket['ticket_number'] = $ticketSale->ticket_number;
+                                        $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                        $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                        if ($ticketSale->passenger_type == 0) {
+                                            $perTicket['Type'] = 'ADULT';
+                                        } else {
+                                            $perTicket['Type'] = 'CONCESSION';
+                                        }
+
+                                        if ($ticketSale->fare_type == 0) {
+                                            $totalCash += $ticketSale->actual_amount;
+                                            $perTicket['cash'] = $ticketSale->actual_amount;
+                                            $perTicket['card'] = 0;
+                                            $perTicket['touch_n_go'] = 0;
+                                        } //Cash
+                                        elseif ($ticketSale->fare_type == 1) {
+                                            $totalCard += $ticketSale->actual_amount;
+                                            $perTicket['cash'] = 0;
+                                            $perTicket['card'] = $ticketSale->actual_amount;
+                                            $perTicket['touch_n_go'] = 0;
+                                        } //Card
+                                        else {
+                                            $totalTouchNGo += $ticketSale->actual_amount;
+                                            $perTicket['cash'] = 0;
+                                            $perTicket['card'] = 0;
+                                            $perTicket['touch_n_go'] = $ticketSale->actual_amount;
+                                        } //TouchNGo
+
+                                        $allTickets[$i++] = $perTicket;
+                                    }
+                                }
+
+                                if ($tripDetails->trip_code == 0) {
+                                    $routeNameOut = implode(" - ", array_reverse(explode(" - ", $tripDetails->Route->route_name)));
+                                    $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $routeNameOut;
+                                    $perTrip['trip_type'] = 'OB';
+
+                                } else {
+                                    $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $tripDetails->Route->route_name;
+                                    $perTrip['trip_type'] = 'IB';
+                                }
+
+                                $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
+                                    $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
+                                    $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+
+                                $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
+
+                                $perSale['total_cash'] = $totalCash;
+                                $perSale['total_card'] = $totalCard;
+                                $perSale['total_touch_n_go'] = $totalTouchNGo;
+                                $perSale['total_cancelled'] = $totalCancelled;
+                                $perSale['total_by'] = $totalBy;
+
+                                $total_trip[$tripDetails->trip_number] = $perTrip;
+                                $total_trip['all_tickets'] = $allTickets;
+                                $total_trip['total_sales_per_trip'] = $perSale;
+                                $AllTrips[$trip++] = $total_trip;
+
+                                $finalTotalBy += $totalBy;
+                                $finalTotalCash += $totalCash;
+                                $finalTotalCard += $totalCard;
+                                $finalTotalTouchNGo += $totalTouchNGo;
+                                $finalTotalCancelled += $totalCancelled;
+                            }
+                            $AllDates[$all_date] = $AllTrips;
+                        }
+                    }
+                    if($AllDates==[]){
+                        $total_bus = [];
+                    }else{
+                        $total_bus['total_cash_per_bus'] = $finalTotalCash;
+                        $total_bus['total_card_per_bus'] = $finalTotalCard;
+                        $total_bus['total_touch_n_go_per_bus'] = $finalTotalTouchNGo;
+                        $total_bus['total_cancelled_per_bus'] = $finalTotalCancelled;
+                        $total_bus['total_by_per_bus'] = $finalTotalBy;
+                    }
+                    $AllDates['total_sales_per_bus'] = $total_bus;
+                    $AllBusTrip[$busNo] = $AllDates;
+
+                    $grandBy += $finalTotalBy;
+                    $grandCash += $finalTotalCash;
+                    $grandCard += $finalTotalCard;
+                    $grandTouchNGo += $finalTotalTouchNGo;
+                    $grandCancelled += $finalTotalCancelled;
+                }
+                $total_grand['grand_total_cash'] = $grandCash;
+                $total_grand['grand_total_card'] = $grandCard;
+                $total_grand['grand_total_touch_n_go'] = $grandTouchNGo;
+                $total_grand['grand_total_cancelled'] = $grandCancelled;
+                $total_grand['grand_total_by'] = $grandBy;
+                $grand['AllBuses'] = $AllBusTrip;
+                $grand['grand_sales'] = $total_grand;
+                $salesByBus->add($grand);
             }
         }
-        $grand['grand_total'] = $grandTotal;
-        $salesByBus->add($grand);
-        $busNo = Bus::where('id', $validatedData['bus_id'])->first();
+        //Sales By Bus all route all company
+        else {
+            $companyName = 'ALL';
+            $allBuses = Bus::all();
+            $AllBusTrip = [];
+            foreach ($allBuses as $allBus) {
+                $busNo = $allBus->bus_registration_number;
+                $AllDates = [];
+                $finalTotalBy = 0;
+                $finalTotalCash = 0;
+                $finalTotalCard = 0;
+                $finalTotalTouchNGo = 0;
+                $finalTotalCancelled = 0;
 
-        return Excel::download(new SalesByBus($salesByBus, $busNo), 'SalesByBus.xlsx');
+                foreach ($all_dates as $all_date) {
+                    $AllTrips = [];
+                    $trip = 0;
+                    $firstDate = new Carbon($all_date);
+                    $lastDate = new Carbon($all_date . '11:59:59');
+                    $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
+                        ->where('bus_id', $allBus->id)
+                        ->orderby('start_trip')
+                        ->get();
+
+                    if (count($tripPerDates) > 0) {
+                        foreach ($tripPerDates as $tripDetails) {
+                            $perTrip['trip_number'] = $tripDetails->trip_number;
+                            $perTrip['status'] = 'Closed';
+                            $perTrip['creation_by'] = $tripDetails->start_trip;
+                            $perTrip['closed_by'] = $tripDetails->end_trip;
+                            $perTrip['closed_at'] = '***NO SALE';
+
+                            //$data['perTrip'] = $perTrip;
+                            $ticketSaleTransaction = TicketSalesTransaction::where('trip_id', $tripDetails->id)->get();
+
+                            $total_trip = [];
+                            $totalCash = 0;
+                            $totalCard = 0;
+                            $totalTouchNGo = 0;
+                            $totalCancelled = 0;
+                            $totalBy = 0;
+                            $allTickets = [];
+                            $i = 0;
+                            if (count($ticketSaleTransaction) > 0) {
+                                $perTrip['closed_at'] = 'Sales Screen';
+
+                                foreach ($ticketSaleTransaction as $ticketSale) {
+                                    $perTicket['sales_date'] = $ticketSale->sales_date;
+                                    $perTicket['ticket_number'] = $ticketSale->ticket_number;
+                                    $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                    $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                    if ($ticketSale->passenger_type == 0) {
+                                        $perTicket['Type'] = 'ADULT';
+                                    } else {
+                                        $perTicket['Type'] = 'CONCESSION';
+                                    }
+
+                                    if ($ticketSale->fare_type == 0) {
+                                        $totalCash += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = $ticketSale->actual_amount;
+                                        $perTicket['card'] = 0;
+                                        $perTicket['touch_n_go'] = 0;
+                                    } //Cash
+                                    elseif ($ticketSale->fare_type == 1) {
+                                        $totalCard += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = 0;
+                                        $perTicket['card'] = $ticketSale->actual_amount;
+                                        $perTicket['touch_n_go'] = 0;
+                                    } //Card
+                                    else {
+                                        $totalTouchNGo += $ticketSale->actual_amount;
+                                        $perTicket['cash'] = 0;
+                                        $perTicket['card'] = 0;
+                                        $perTicket['touch_n_go'] = $ticketSale->actual_amount;
+                                    } //TouchNGo
+
+                                    $allTickets[$i++] = $perTicket;
+                                }
+                            }
+
+                            if ($tripDetails->trip_code == 0) {
+                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $tripDetails->Route->route_name)));
+                                $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $routeNameOut;
+                                $perTrip['trip_type'] = 'OB';
+
+                            } else {
+                                $perTrip['route_desc'] = $tripDetails->Route->route_number . ' ' . $tripDetails->Route->route_name;
+                                $perTrip['trip_type'] = 'IB';
+                            }
+
+                            $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
+                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
+                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+
+                            $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
+
+                            $perSale['total_cash'] = $totalCash;
+                            $perSale['total_card'] = $totalCard;
+                            $perSale['total_touch_n_go'] = $totalTouchNGo;
+                            $perSale['total_cancelled'] = $totalCancelled;
+                            $perSale['total_by'] = $totalBy;
+
+                            $total_trip[$tripDetails->trip_number] = $perTrip;
+                            $total_trip['all_tickets'] = $allTickets;
+                            $total_trip['total_sales_per_trip'] = $perSale;
+                            $AllTrips[$trip++] = $total_trip;
+
+                            $finalTotalBy += $totalBy;
+                            $finalTotalCash += $totalCash;
+                            $finalTotalCard += $totalCard;
+                            $finalTotalTouchNGo += $totalTouchNGo;
+                            $finalTotalCancelled += $totalCancelled;
+                        }
+                        $AllDates[$all_date] = $AllTrips;
+                    }
+                }
+                if($AllDates==[]){
+                    $total_bus = [];
+                }else{
+                    $total_bus['total_cash_per_bus'] = $finalTotalCash;
+                    $total_bus['total_card_per_bus'] = $finalTotalCard;
+                    $total_bus['total_touch_n_go_per_bus'] = $finalTotalTouchNGo;
+                    $total_bus['total_cancelled_per_bus'] = $finalTotalCancelled;
+                    $total_bus['total_by_per_bus'] = $finalTotalBy;
+                }
+                $AllDates['total_sales_per_bus'] = $total_bus;
+                $AllBusTrip[$busNo] = $AllDates;
+
+                $grandBy += $finalTotalBy;
+                $grandCash += $finalTotalCash;
+                $grandCard += $finalTotalCard;
+                $grandTouchNGo += $finalTotalTouchNGo;
+                $grandCancelled += $finalTotalCancelled;
+            }
+            $total_grand['grand_total_cash'] = $grandCash;
+            $total_grand['grand_total_card'] = $grandCard;
+            $total_grand['grand_total_touch_n_go'] = $grandTouchNGo;
+            $total_grand['grand_total_cancelled'] = $grandCancelled;
+            $total_grand['grand_total_by'] = $grandBy;
+            $grand['AllBuses'] = $AllBusTrip;
+            $grand['grand_sales'] = $total_grand;
+            $salesByBus->add($grand);
+        }
+        return Excel::download(new SalesByBus($salesByBus, $companyName), 'SalesByBus.xlsx');
     }
 
     /*public function print()

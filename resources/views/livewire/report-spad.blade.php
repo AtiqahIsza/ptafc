@@ -83,19 +83,16 @@
                         </button>
                     </td>
                 </tr>
-                <tr style="text-align: center;">
+                {{--<tr style="text-align: center;">
                     <td colspan="2">
                         <button wire:click.prevent="printBusTransfer()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Bus Transfer</span>
                         </button>
-                        <button wire:click.prevent="printPenalty()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
-                            <span>Print Penalty</span>
-                        </button>
-                        <button wire:click.prevent="printSalesDetails()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
-                            <span>Print Sales Details</span>
+                        <button wire:click.prevent="printTranferPoint()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Transfer Point</span>
                         </button>
                     </td>
-                </tr>
+                </tr>--}}
                 <tr style="text-align: center;">
                     <td colspan="2">
                         <button wire:click.prevent="printClaimDetails()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
@@ -129,6 +126,9 @@
                         </button>
                         <button wire:click.prevent="printTripMissed()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Trip Missed</span>
+                        </button>
+                        <button wire:click.prevent="printSalesDetails()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Sales Details</span>
                         </button>
                     </td>
                 </tr>

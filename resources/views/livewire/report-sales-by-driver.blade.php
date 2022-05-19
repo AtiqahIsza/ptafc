@@ -3,7 +3,7 @@
         <h2>{{ __('Sales Report By Driver') }}</h2>
         <br>
         <!-- Form -->
-        <form wire:submit.prevent="{{ 'printSalesByDriver' }}">
+        <form wire:submit.prevent="{{ 'print' }}">
             @csrf
             <table class="table table-hover">
                 <tbody>
@@ -26,9 +26,23 @@
                     </td>
                 </tr>
                 <tr>
+                    <th class="border-gray-200">{{ __('Company') }}</th>
+                    <td>
+                        <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300" autofocus required>
+                            <option value="">Choose Company</option>
+                            @foreach($companies as $company)
+                                <option value="{{$company->id}}">{{$company->company_name}}</option>
+                            @endforeach
+                        </select>
+                        @if ($errors->has('company_id'))
+                            <span class="text-danger">{{ $errors->first('company_id') }}</span>
+                        @endif
+                    </td>
+                </tr>
+                <tr>
                     <th class="border-gray-200">{{ __('Driver') }}</th>
                     <td>
-                        <select style="width:100%" wire:model.defer="state.driver_id" id="driver_id" class="form-select border-gray-300" autofocus required>
+                        <select style="width:100%" wire:model="state.driver_id" id="driver_id" class="form-select border-gray-300" autofocus>
                             <option value="">Choose Driver</option>
                             @foreach($drivers as $driver)
                                 <option value="{{$driver->id}}">{{$driver->driver_name}}</option>

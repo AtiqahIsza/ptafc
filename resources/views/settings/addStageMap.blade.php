@@ -11,38 +11,46 @@
         function initMap() {
             // Show polygon of selected route
             let routeArr = <?php echo json_encode($routeMaps); ?>;
-            for (i = 0; i < routeArr.length; i++) {
-                coords[i] = new google.maps.LatLng(
-                    parseFloat(routeArr[i]['latitude']),
-                    parseFloat(routeArr[i]['longitude'])
-                );
+            if (routeArr.length == 0) {
+                alert('No route map defined. Please add route map first...');
+                map = new google.maps.Map(document.getElementById("map"), {
+                    zoom: 12,
+                    center: { lat: 3.140853, lng: 101.693207 },
+                });
+            }else {
+                for (i = 0; i < routeArr.length; i++) {
+                    coords[i] = new google.maps.LatLng(
+                        parseFloat(routeArr[i]['latitude']),
+                        parseFloat(routeArr[i]['longitude'])
+                    );
+                }
+
+                map = new google.maps.Map(document.getElementById("map"), {
+                    zoom: 12,
+                    center: coords[0], // Center the map on 1st point of polygon route.
+                });
+
+                const routeMap = new google.maps.Polygon({
+                    paths: coords,
+                    strokeColor: "#000000",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 3,
+                    fillColor: "#fff705",
+                    fillOpacity: 0.50,
+                    clickable: false,
+                });
+
+                routeMap.setMap(map);
+
+                poly = new google.maps.Polyline({
+                    strokeColor: "#000000",
+                    strokeOpacity: 1.0,
+                    strokeWeight: 3,
+                });
+                poly.setMap(map);
+                // Add a listener for the click event
+                map.addListener("click", addLatLng);
             }
-
-            map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 12,
-                center: coords[0], // Center the map on 1st point of polygon route.
-            });
-
-            const routeMap = new google.maps.Polygon({
-                paths: coords,
-                strokeColor: "#000000",
-                strokeOpacity: 0.8,
-                strokeWeight: 3,
-                fillColor: "#fff705",
-                fillOpacity: 0.50,
-                clickable: false,
-            });
-
-            routeMap.setMap(map);
-
-            poly = new google.maps.Polyline({
-                strokeColor: "#000000",
-                strokeOpacity: 1.0,
-                strokeWeight: 3,
-            });
-            poly.setMap(map);
-            // Add a listener for the click event
-            map.addListener("click", addLatLng);
         }
 
         // Handles click events on a map, and adds a new point to the Polyline.
@@ -88,7 +96,7 @@
                         </tr>
                         <tr>
                             <td colspan="4">
-                                <div id="map"></div>
+                                <div id="map" class="map"></div>
                                 <input id="stageID" class="border-gray-200" type="hidden" value="{{ $stage->id }}">
                             </td>
                         </tr>
@@ -107,7 +115,7 @@
         </div>
     </div>
 
-    <<script>
+    <script>
         // This example creates an interactive map which constructs a polyline based on
         // user clicks. Note that the polyline only appears once its path property
         // contains two LatLng coordinates.

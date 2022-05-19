@@ -30,11 +30,11 @@ class StageMapController extends Controller
      */
     public function create(Request $request)
     {
+        $stage = Stage::where('id', $request->route('id'))->first();
         $routeMaps = RouteMap::select('latitude', 'longitude')
-            ->where('route_id', $request->route('id'))
+            ->where('route_id', $stage->route_id)
             ->orderby('sequence')
             ->get();
-        $stage = Stage::where('id', $request->route('id'))->first();
         return view('settings.addStageMap', compact('stage','routeMaps'));
     }
 
@@ -127,5 +127,14 @@ class StageMapController extends Controller
     public function destroy(StageMap $stageMap)
     {
         //
+    }
+
+    public function returnResponse ($statusCode, $payload, $statusDescription) : JsonResponse
+    {
+        $response['statusCode'] = $statusCode ;
+        $response['payload'] = $payload;
+        $response['statusDescription'] = $statusDescription;
+
+        return response()->json($response);
     }
 }

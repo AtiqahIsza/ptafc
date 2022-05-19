@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
 {
-    public $contents;
+    public $reports;
     public $grandTotal;
     public $range = [];
     public $colspan;
@@ -22,7 +22,7 @@ class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
 
     public function __construct($data, $grand, $dates, $colspan)
     {
-        $this->contents = $data;
+        $this->reports = $data;
         $this->grandTotal = $grand;
         $this->range = $dates;
         $this->colspan = $colspan;
@@ -31,10 +31,10 @@ class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
 
     public function view(): View
     {
-        //dd($this->contents);
+        //dd($this->reports);
         //dd($this->grandTotal);
         return view('exports.salesbyroute', [
-            'contents' => $this->contents,
+            'reports' => $this->reports,
             'grandTotal' => $this->grandTotal,
             'range' => $this->range,
             'colspan' => $this->colspan,

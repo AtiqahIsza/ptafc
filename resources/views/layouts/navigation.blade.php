@@ -189,7 +189,7 @@
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
-                        <span class="sidebar-text">{{ __('Report For SPAD') }}</span>
+                        <span class="sidebar-text">{{ __('Report For APAD') }}</span>
                     </a>
                 </li>
             </ul>

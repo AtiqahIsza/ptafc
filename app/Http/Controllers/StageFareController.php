@@ -66,17 +66,19 @@ class StageFareController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\StageFare  $stageFare
-     * @return \Illuminate\Http\JsonResponse
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\StageFare $stageFare
+     * @return \Illuminate\Http\RedirectResponse
+     * @throws \Illuminate\Validation\ValidationException
      */
-    public function update(Request $request)
+    public function updateOld(Request $request)
     {
+        //dd($request->all());
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN  updateStageFare()");
         $validatedData = Validator::make($request->all(), [
             'fare' => ['required', 'array'],
-            'fare.*' => ['required', 'string'],
+            'fare.*' => ['string'],
             'fromStage' => ['required', 'array'],
             'fromStage.*' => ['required', 'string'],
             'toStage'=> ['required', 'array'],
@@ -137,6 +139,74 @@ class StageFareController extends Controller
             }
         }
         return redirect()->to('/settings/manageStageFare')->with(['message' => 'Stage fare created successfully!']);
+    }
+
+    public function update(Request $request)
+    {
+        //dd($request->all());
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN  updateStageFare()");
+        $validatedData = Validator::make($request->all(), [
+            'fare' => ['required', 'array'],
+            'fare.*' => ['int'],
+            'fromStage' => ['required', 'array'],
+            'fromStage.*' => ['required', 'string'],
+            'toStage' => ['required', 'array'],
+            'toStage.*' => ['required', 'string'],
+            'routeId' => ['required', 'int'],
+            'fareType' => ['required', 'string'],
+        ]);
+        //dd( $request->fare);
+        $out->writeln("YOU ARE after validatedData ");
+
+        //dd($request->all());
+        //dd($validatedData['fare']);
+        $countUpdate = 0;
+        $countCreate = 0;
+        foreach ($request->fare as $i => $fareArr) {
+            $existedFare = StageFare::where([
+                ['route_id', $request->routeId],
+                ['fromstage_stage_id', $request->fromStage[$i]],
+                ['tostage_stage_id', $request->toStage[$i]]
+            ])->first();
+
+            $out->writeln("request->fromStage[i] " . $request->fromStage[$i]);
+            $out->writeln("request->toStage[i] " . $request->toStage[$i]);
+
+            if ($existedFare) {
+                $out->writeln("YOU ARE in existedFare" . $existedFare);
+
+                if ($request->fareType == 'Adult') {
+                    $out->writeln("YOU ARE in faretype" . $fareArr);
+                    $updateFare = StageFare::where('route_id', $request->routeId)
+                        ->where('tostage_stage_id', $request->toStage[$i])
+                        ->where('fromstage_stage_id', $request->fromStage[$i])
+                        ->update(['fare' => $fareArr]);
+                    //dd($updateFare);
+                    if ($updateFare) {
+                        $countUpdate++;
+                    }
+                }
+            } else {
+                if ($request->fareType == 'Adult') {
+                    $createFare = StageFare::create([
+                        'fare' => $fareArr,
+                        'route_id' => $request->routeId,
+                        'fromstage_stage_id' => $request->fromStage[$i],
+                        'tostage_stage_id' => $request->toStage[$i],
+                    ]);
+                    //dd($createFare);
+                    if ($createFare) {
+                        $countCreate++;
+                    }
+                }
+            }
+        }
+        if ($countUpdate == 0 && $countCreate == 0){
+            return redirect()->to('/settings/manageStageFare')->with(['message' => 'Stage fare failed to update!']);
+        }
+        return redirect()->to('/settings/manageStageFare')->with(['message' => 'Stage fare updated successfully!']);
+
     }
 
     /**

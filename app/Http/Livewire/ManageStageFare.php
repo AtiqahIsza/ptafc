@@ -50,24 +50,10 @@ class ManageStageFare extends Component
     public function updatedSelectedRoute($route)
     {
         if (!is_null($route)) {
-            /*$this->maxColumns = DB::table('stage')
-                    ->select(DB::raw('max(stage_order) as max'))
-                    ->groupBy('route_id')
-                    ->having('route_id', $route)
-                    ->first();*/
             $sqlMax = Stage::where('route_id', $route)->groupby('route_id');
             $this->maxColumns = $sqlMax->max('stage_order');
-            /*$this->maxColumns = Stage::max('stage_order')
-                ->groupby('route_id')
-                ->having('route_id', $route);*/
-           /* Stage::max('stage_order')->groupby('route_id')->having('route_id', $route);
-           $this->maxColumns = DB::select('SELECT MAX(stage_order) as max
-                            FROM stage
-                            GROUP BY route_id
-                            HAVING route_id = "'.$route.'"')->get();*/
             $this->stageFrom = Stage::where('route_id', $route)->orderby('stage_order')->get()->toArray();
             $this->stageTo = Stage::where('route_id', $route)->orderby('stage_order')->get();
-            //dd($this->stageTo );
             $this->stageFares = StageFare::where('route_id', $route)->get();
             $this->stages = Stage::where('route_id', $route)->get();
         }
@@ -90,6 +76,7 @@ class ManageStageFare extends Component
     public function modalDisc(Route $route)
     {
         $this->selectedRoute = $route;
+        $this->dispatchBrowserEvent('show-disc-form');
     }
 
     public function applyDiscount()
@@ -102,14 +89,29 @@ class ManageStageFare extends Component
 
         $adultFares = StageFare::where('route_id', $this->selectedRoute->id)->orderby('tostage_stage_id')->get();
 
+        $countUpdate=0;
         foreach($adultFares as $adultFare){
             $calc = $adultFare->fare - ($adultFare->fare * ($discount/100));
             $updateConcFare = StageFare::where('route_id', $this->selectedRoute->id)
             ->where('tostage_stage_id', $adultFare->tostage_stage_id)
             ->where('fromstage_stage_id', $adultFare->fromstage_stage_id)
             ->update(['consession_fare' => $calc]);
-        }
 
-        return redirect()->to('/settings/manageStageFare')->with(['message' => 'Concession fare updated successfully!']);
+            if($updateConcFare){
+                $countUpdate++;
+            }
+        }
+        $sqlMax = Stage::where('route_id', $this->selectedRoute->id)->groupby('route_id');
+        $this->maxColumns = $sqlMax->max('stage_order');
+        $this->stageFrom = Stage::where('route_id', $this->selectedRoute->id)->orderby('stage_order')->get()->toArray();
+        $this->stageTo = Stage::where('route_id', $this->selectedRoute->id)->orderby('stage_order')->get();
+        $this->stageFares = StageFare::where('route_id', $this->selectedRoute->id)->get();
+        $this->stages = Stage::where('route_id', $this->selectedRoute->id)->get();
+
+        if($countUpdate==0){
+            $this->dispatchBrowserEvent('hide-disc-failed');
+        }else{
+            $this->dispatchBrowserEvent('hide-disc-edit');
+        }
     }
 }

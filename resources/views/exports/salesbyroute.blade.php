@@ -6,8 +6,6 @@
         </th>
     </tr>
     <tr>
-    </tr>
-    <tr>
         <td colspan="{{$colspan}}">&nbsp;</td>
     </tr>
     </thead>
@@ -18,43 +16,53 @@
         <td rowspan="2">From-To</td>
 
         @foreach($range as $ranges)
-            <td colspan="2"><strong>{{$ranges}}</strong></td>
+            <td colspan="2" style="vertical-align: middle; text-align: center;"><strong>{{$ranges}}</strong></td>
         @endforeach
-        <td><strong>Total</strong></td>
+        <td colspan="2" style="vertical-align: middle; text-align: center;"><strong>Total</strong></td>
     </tr>
     <tr>
         @foreach($range as $ranges)
             <td>Qty</td>
             <td>Sales</td>
         @endforeach
-            <td>Qty</td>
-            <td>Sales</td>
+        <td>Qty</td>
+        <td>Sales</td>
     </tr>
+
     @php $i=1 @endphp
-    @foreach($contents as $key1 => $value)
-        <tr>
-            <td style="text-align: center;">{{ $i++ }}</td>
-            <td style="text-align: center;">{{ $value['from_to'] }}</td>
-            @foreach($value['perDate'] as $key2 => $perDate)
-            {{--@foreach($range as $ranges)--}}
-                {{--@foreach($perDate as $perDates)--}}
-                <td style="text-align: center;">{{ $perDate['quantity'] }}</td>
-                <td style="text-align: center;"><strong>{{ $perDate['sales'] }}</strong></td>
-                {{--@endforeach--}}
+    @foreach($reports as $key1 => $reportValue)
+        @foreach($reportValue as $key2 => $perStage)
+            <tr>
+                <td>{{ $i++ }}</td>
+                <td>{{ $key2 }}</td>
+            @foreach($perStage as $key3 => $allDates)
+                @if($key3=='all_date')
+                    @foreach($allDates as $key4 => $perDates)
+                        <td style="text-align: center;">{{ $perDates['qty'] }}</td>
+                        <td style="text-align: center;"><strong>{{ $perDates['sales'] }}</strong></td>
+                    @endforeach
+                @else
+                    <td style="text-align: center;">{{ $allDates['qty'] }}</td>
+                    <td style="text-align: center;"><strong>{{ $allDates['sales'] }}</strong></td>
+                @endif
             @endforeach
-            <td style="text-align: center;">{{ $value['total_quantity'] }}</td>
-            <td style="text-align: center;"><strong>{{ $value['total_sales'] }}</strong></td>
-        </tr>
+            </tr>
+        @endforeach
     @endforeach
     <tr>
-        <td colspan="2">Grand Total:</td>
+        <td colspan="2" style="text-align: right;"><strong>Grand Total:</strong></td>
         @foreach($grandTotal as $key1 => $value)
-            @foreach($value['perDate'] as $key2 => $grand)
-                <td style="text-align: center;">{{ $grand['grand_quantity'] }}</td>
-                <td style="text-align: center;"><strong> {{ $grand['grand_sales'] }} </strong></td>
+            @foreach($value as $key2 => $allStage)
+                @if($key2=='grand_sales_by_route')
+                    <td style="text-align: center;">{{ $allStage['grand_qty'] }}</td>
+                    <td style="text-align: center;"><strong> {{ $allStage['grand_sales'] }} </strong></td>
+                @else
+                    @foreach($allStage as $key3 => $dates)
+                        <td style="text-align: center;">{{ $dates['qty']}}</td>
+                        <td style="text-align: center;"><strong>{{ $dates['sales'] }}</strong></td>
+                    @endforeach
+                @endif
             @endforeach
-            <td style="text-align: center;">{{ $value['grand_total_quantity'] }}</td>
-            <td style="text-align: center;"><strong>{{ $value['grand_total_sales'] }}</strong></td>
         @endforeach
     </tr>
     </tbody>
