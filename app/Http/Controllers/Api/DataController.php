@@ -43,47 +43,69 @@ class DataController extends Controller
         $reads = file($data);
         $index = 0;
         $saved = 0;
+        $existed = 0;
         foreach ($reads as $read) {
             $parse = str_getcsv($read, ',');
             $newTrip = new TripDetail();
 
-            $newTrip->trip_number = $parse[0];
-            //$startFormat = Carbon::createFromFormat('d-m-Y H:i', $parse[1])->format('Y-m-d H:i:s');
-            $newTrip->start_trip = $parse[1];
-            //$endFormat = Carbon::createFromFormat('d/m/Y H:i', $parse[1])->format('Y-m-d H:i:s');
-            $newTrip->end_trip = $parse[2];
+            $checkTrip = TripDetail::where('trip_number', $parse[0])->first();
+            if(empty($checkTrip)){
+                $newTrip->trip_number = $parse[0];
+                //$startFormat = Carbon::createFromFormat('d-m-Y H:i', $parse[1])->format('Y-m-d H:i:s');
+                $newTrip->start_trip = $parse[1];
+                //$endFormat = Carbon::createFromFormat('d/m/Y H:i', $parse[1])->format('Y-m-d H:i:s');
+                $newTrip->end_trip = $parse[2];
 
-            $checkSchedule = RouteSchedulerMSTR::where('id', $parse[3])->first();
-            if(!empty($checkSchedule)){
-                $newTrip->route_schedule_mstr_id = $parse[3];
-            }
-            $checkBus = Bus::where('id', $parse[4])->first();
-            if(!empty($checkBus)){
-                $newTrip->bus_id = $parse[4];
-            }
-            $checkRoute = Route::where('id', $parse[5])->first();
-            if(!empty($checkRoute)){
-                $newTrip->route_id = $parse[5];
-            }
-            $checkDriver = BusDriver::where('id', $parse[6])->first();
-            if(!empty($checkDriver)){
-                $newTrip->driver_id = $parse[6];
-            }
+                $checkSchedule = RouteSchedulerMSTR::where('id', $parse[3])->first();
+                if(!empty($checkSchedule)){
+                    $newTrip->route_schedule_mstr_id = $parse[3];
+                }
+                $checkBus = Bus::where('id', $parse[4])->first();
+                if(!empty($checkBus)){
+                    $newTrip->bus_id = $parse[4];
+                }
+                $checkRoute = Route::where('id', $parse[5])->first();
+                if(!empty($checkRoute)){
+                    $newTrip->route_id = $parse[5];
+                }
+                $checkDriver = BusDriver::where('id', $parse[6])->first();
+                if(!empty($checkDriver)){
+                    $newTrip->driver_id = $parse[6];
+                }
 
-            $newTrip->total_adult = $parse[7];
-            $newTrip->total_concession = $parse[8];
-            $newTrip->total_adult_amount = $parse[9];
-            $newTrip->total_concession_amount = $parse[10];
-            $newTrip->total_mileage = $parse[11];
-            $newTrip->trip_code = $parse[12];
-            $successSave = $newTrip->save();
-            if($successSave){
-                $saved++;
+                $newTrip->total_adult = $parse[7];
+                $newTrip->total_concession = $parse[8];
+                $newTrip->total_adult_amount = $parse[9];
+                $newTrip->total_concession_amount = $parse[10];
+                $newTrip->total_mileage = $parse[11];
+                $newTrip->trip_code = $parse[12];
+                $newTrip->upload_date = Carbon::now();
+                $successSave = $newTrip->save();
+                if($successSave){
+                    $saved++;
+                }
+            }else{
+                $existed++;
             }
         }
+        if($saved>0){
+            $path = $data->storeAs('trips', $data->getClientOriginalName());;
+            return response()->json([
+                'success' => true,
+                'saved' => $saved . ' data saved',
+                'existed' => $existed . ' data already existed',
+            ]);
+        }elseif($saved==0 && $existed>0){
+            return response()->json([
+                'success' => true,
+                'saved' => $saved . ' data saved',
+                'existed' => $existed . ' data already existed',
+            ]);
+        }
         return response()->json([
-            'success' => true,
-            'saved' => $saved,
+            'success' => false,
+            'saved' => 'Failed to save ticket data',
+            'existed' => false,
         ]);
     }
 
@@ -105,65 +127,69 @@ class DataController extends Controller
         $reads = file($data);
         //$index = 0;
         $saved = 0;
+        $existed = 0;
         foreach ($reads as $read) {
-            //$index++;
-            //skip  first line
-            //if ($index > 1) {
-                $parse = str_getcsv($read, ',');
-                $newTicket = new TicketSalesTransaction();
+            $parse = str_getcsv($read, ',');
+            $newTicket = new TicketSalesTransaction();
 
-                $getTripID = TripDetail::where('trip_number', $parse[0])->first();
-                $newTicket->trip_id = $getTripID->id;
+            $getTripID = TripDetail::where('trip_number', $parse[0])->first();
+            if(!empty($getTripID)){
 
-                $newTicket->trip_number = $parse[0];
-                $newTicket->ticket_number = $parse[1];
+                $checkTicket = TicketSalesTransaction::where('trip_number',$parse[0])->where('ticket_number', $parse[1])->first();
+                if(empty($checkTicket)){   
+                    $newTicket->trip_id = $getTripID->id;
+                    $newTicket->trip_number = $parse[0];
+                    $newTicket->ticket_number = $parse[1];
 
-                $checkBusStand = BusStand::where('id', $parse[2])->first();
-                if(!empty($checkBusStand)){
-                    $newTicket->bus_stand_id = $parse[2];
+                    $checkBusStand = BusStand::where('id', $parse[2])->first();
+                    if(!empty($checkBusStand)){
+                        $newTicket->bus_stand_id = $parse[2];
+                    }
+
+                    $checkFromStage = Stage::where('id', $parse[3])->first();
+                    $checkToStage = Stage::where('id', $parse[4])->first();
+                    if(!empty($checkFromStage)){
+                        $newTicket->fromstage_stage_id = $parse[3];
+                    }
+                    if(!empty($checkToStage)){
+                        $newTicket->tostage_stage_id = $parse[4];
+                    }
+                    $newTicket->passenger_type = $parse[5];
+                    $newTicket->amount = $parse[6];
+                    $newTicket->actual_amount = $parse[7];
+                    $newTicket->fare_type = $parse[8];
+                    $newTicket->latitude = $parse[9];
+                    $newTicket->longitude = $parse[10];
+                    $newTicket->sales_date = $parse[11];
+                    $newTicket->upload_date = Carbon::now();
+
+                    $successSave = $newTicket->save();
+                    if($successSave){
+                        $saved++;
+                    }
+                }else{
+                    $existed++;
                 }
-
-                $checkFromStage = Stage::where('id', $parse[3])->first();
-                $checkToStage = Stage::where('id', $parse[4])->first();
-                if(!empty($checkFromStage)){
-                    $newTicket->fromstage_stage_id = $parse[3];
-                }
-                if(!empty($checkToStage)){
-                    $newTicket->tostage_stage_id = $parse[4];
-                }
-                $newTicket->passenger_type = $parse[5];
-                $newTicket->amount = $parse[6];
-                $newTicket->actual_amount = $parse[7];
-                $newTicket->fare_type = $parse[8];
-                $newTicket->latitude = $parse[9];
-                $newTicket->longitude = $parse[10];
-
-                //dd($parse[11]);
-                //$salesFormat = Carbon::createFromFormat('d/m/Y H:i:s', $parse[11])->format('Y-m-d H:i:s');
-                $newTicket->sales_date = $parse[11];
-
-                /*$newTicket->pda_transaction_id = $parse[2];
-                $newTicket->upload_date = $parse[4];
-                $newTicket->bus_id = $parse[5];
-                $newTicket->bus_driver_id = $parse[6];
-                $newTicket->car_id = $parse[7];
-                $newTicket->route_id = $parse[9];
-                $newTicket->sector_id = $parse[10];
-                $newTicket->summary_id = $parse[12];
-                $newTicket->pda_id = $parse[13];
-                $newTicket->balance_in_card = $parse[14];
-                $newTicket->card_trx_sequence = $parse[15];
-                $newTicket->trip_number = $parse[16];*/
-
-                $successSave = $newTicket->save();
-                if($successSave){
-                    $saved++;
-                }
-            //}
+            }
+        }
+        if($saved>0){
+            $path = $data->storeAs('tickets', $data->getClientOriginalName());;
+            return response()->json([
+                'success' => true,
+                'saved' => $saved . ' data saved',
+                'existed' => $existed . ' data already existed',
+            ]);
+        }elseif($saved==0 && $existed>0){
+            return response()->json([
+                'success' => true,
+                'saved' => $saved . ' data saved',
+                'existed' => $existed . ' data already existed',
+            ]);
         }
         return response()->json([
-            'success' => true,
-            'saved' => $saved,
+            'success' => false,
+            'saved' => 'Failed to save ticket data',
+            'existed' => false,
         ]);
     }
 
@@ -188,9 +214,9 @@ class DataController extends Controller
         $index = 0;
         $saved = 0;
         foreach ($reads as $read) {
-            $index++;
-            //skip  first line
-            if ($index > 1) {
+            // $index++;
+            // skip  first line
+            // if ($index > 1) {
                 $parse = str_getcsv($read, '|');
                 $new = new VehiclePosition();
 
@@ -222,13 +248,196 @@ class DataController extends Controller
                 if($successSave){
                     $saved++;
                 }
-            }
+            //}
         }
         return response()->json([
             'success' => true,
             'saved' => $saved,
         ]);
     }
+
+    public function loadMultipleTripData(Request $request)
+    {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN  loadTripData");
+
+        //dd($request->all());
+        $validator = Validator::make($request->all(), [
+            'fileToUpload' => 'required',
+            'fileToUpload.*' => 'required'
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'data' => $validator->messages()->first(),
+            ]);
+        }
+
+        $perFile =[];
+        $collected =[];
+        if($request->hasFile('fileToUpload')){
+            //$index = 0;
+            $data = $request->file('fileToUpload');
+
+            foreach($data as $file){
+                $reads = file($file);
+                //$index++;
+                $saved = 0;
+                $existed = 0;
+
+                foreach ($reads as $read) {
+                    $parse = str_getcsv($read, ',');
+                    $newTrip = new TripDetail();
+
+                    $checkTrip = TripDetail::where('trip_number', $parse[0])->first();
+                    if(empty($checkTrip)){
+                        $newTrip->trip_number = $parse[0];
+                        //$startFormat = Carbon::createFromFormat('d-m-Y H:i', $parse[1])->format('Y-m-d H:i:s');
+                        $newTrip->start_trip = $parse[1];
+                        //$endFormat = Carbon::createFromFormat('d/m/Y H:i', $parse[1])->format('Y-m-d H:i:s');
+                        $newTrip->end_trip = $parse[2];
+
+                        $checkSchedule = RouteSchedulerMSTR::where('id', $parse[3])->first();
+                        if(!empty($checkSchedule)){
+                            $newTrip->route_schedule_mstr_id = $parse[3];
+                        }
+                        $checkBus = Bus::where('id', $parse[4])->first();
+                        if(!empty($checkBus)){
+                            $newTrip->bus_id = $parse[4];
+                        }
+                        $checkRoute = Route::where('id', $parse[5])->first();
+                        if(!empty($checkRoute)){
+                            $newTrip->route_id = $parse[5];
+                        }
+                        $checkDriver = BusDriver::where('id', $parse[6])->first();
+                        if(!empty($checkDriver)){
+                            $newTrip->driver_id = $parse[6];
+                        }
+
+                        $newTrip->total_adult = $parse[7];
+                        $newTrip->total_concession = $parse[8];
+                        $newTrip->total_adult_amount = $parse[9];
+                        $newTrip->total_concession_amount = $parse[10];
+                        $newTrip->total_mileage = $parse[11];
+                        $newTrip->trip_code = $parse[12];
+                        $newTrip->upload_date = Carbon::now();
+                        $successSave = $newTrip->save();
+                        if($successSave){
+                            $saved++;
+                        }
+                    }else{
+                        $existed++;
+                    }
+                }
+                if($saved>0){
+                    $path = $file->storeAs('trips', $file->getClientOriginalName());;
+                }
+                $collected['saved'] = $saved;
+                $collected['existed'] = $existed;
+                $perFile[$file->getClientOriginalName()] = $collected;
+            }
+            return response()->json([
+                'success' => true,
+                'saved' => $perFile,
+            ]);
+        }else{
+            return response()->json([
+                'success' => false,
+                'saved' => 'Failed to save trip data',
+            ]);
+        }
+    }
+
+    public function loadMultipleTicketSalesData(Request $request)
+    {
+        //dd($request->all());
+        $validator = Validator::make($request->all(), [
+            'fileToUpload' => 'required',
+            'fileToUpload.*' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'data' => $validator->messages()->first(),
+            ]);
+        }
+
+        $perFile =[];
+        $collected =[];
+        if($request->hasFile('fileToUpload')){
+            //$index = 0;
+            $data = $request->file('fileToUpload');
+
+            foreach($data as $file){
+                $reads = file($file);
+                $saved = 0;
+                $existed = 0;
+
+                foreach ($reads as $read) {
+                    $parse = str_getcsv($read, ',');
+                    $newTicket = new TicketSalesTransaction();
+
+                    $getTripID = TripDetail::where('trip_number', $parse[0])->first();
+                    if(!empty($getTripID)){
+
+                        $checkTicket = TicketSalesTransaction::where('trip_number',$parse[0])->where('ticket_number', $parse[1])->first();
+                        if(empty($checkTicket)){   
+                            $newTicket->trip_id = $getTripID->id;
+                            $newTicket->trip_number = $parse[0];
+                            $newTicket->ticket_number = $parse[1];
+
+                            $checkBusStand = BusStand::where('id', $parse[2])->first();
+                            if(!empty($checkBusStand)){
+                                $newTicket->bus_stand_id = $parse[2];
+                            }
+
+                            $checkFromStage = Stage::where('id', $parse[3])->first();
+                            $checkToStage = Stage::where('id', $parse[4])->first();
+                            if(!empty($checkFromStage)){
+                                $newTicket->fromstage_stage_id = $parse[3];
+                            }
+                            if(!empty($checkToStage)){
+                                $newTicket->tostage_stage_id = $parse[4];
+                            }
+                            $newTicket->passenger_type = $parse[5];
+                            $newTicket->amount = $parse[6];
+                            $newTicket->actual_amount = $parse[7];
+                            $newTicket->fare_type = $parse[8];
+                            $newTicket->latitude = $parse[9];
+                            $newTicket->longitude = $parse[10];
+                            $newTicket->sales_date = $parse[11];
+                            $newTicket->upload_date = Carbon::now();
+
+                            $successSave = $newTicket->save();
+                            if($successSave){
+                                $saved++;
+                            }
+                        }else{
+                            $existed++;
+                        }
+                    }
+                }
+                if($saved>0){
+                    $path = $file->storeAs('trips', $file->getClientOriginalName());;
+                }
+                $collected['saved'] = $saved;
+                $collected['existed'] = $existed;
+                $perFile[$file->getClientOriginalName()] = $collected;
+            }
+            return response()->json([
+                'success' => true,
+                'saved' => $perFile,
+            ]);
+        }else{
+            return response()->json([
+                'success' => false,
+                'saved' => 'Failed to save ticket data',
+            ]);
+        }
+    }
+
     /*public function loadGPSHistoryData(Request $request)
     {
         $out = new ConsoleOutput();

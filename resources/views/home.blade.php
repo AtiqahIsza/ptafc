@@ -20,28 +20,6 @@
                 <div class="card-header d-sm-flex flex-row align-items-center flex-0">
                     <div class="d-block mb-3 mb-sm-0">
                         <div class="fs-5 fw-normal mb-2">
-                            Sales Amount
-                        </div>
-                        <h2 class="fs-3 fw-extrabold">RM{{$grandCollection['grand_farebox']}}</h2>
-                        <div class="small mt-2">
-                            @if($grandCollection['grand_farebox_in'] > 0)
-                                <span class="fas fa-angle-up text-success"></span>
-                                <span class="text-success fw-bold">{{$grandCollection['grand_farebox_in']}}%</span>
-                            @elseif($grandCollection['grand_farebox_in'] == 0)
-                                <svg class="bi bi-dash text-gray-900" xmlns="http://www.w3.org/2000/svg"  width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
-                                </svg>
-                                <span class="text-gray-900 fw-bold">{{$grandCollection['grand_farebox_in']}}%</span>
-                            @else
-                                @php($positive = $grandCollection['grand_farebox_in'] * -1)
-                                <span class="fas fa-angle-down text-danger"></span>
-                                <span class="text-danger fw-bold">{{ $positive }}%</span>
-                            @endif
-                            <span class="fw-normal me-2">Since last month</span>
-                        </div>
-                    </div>
-                    <div class="d-block mb-3 mb-sm-0">
-                        <div class="fs-5 fw-normal mb-2">
                             Total Passenger
                         </div>
                         <h2 class="fs-3 fw-extrabold">{{$grandCollection['grand_ridership']}}</h2>
@@ -56,6 +34,28 @@
                                 <span class="text-gray-900 fw-bold">{{$grandCollection['grand_ridership_in']}}%</span>
                             @else
                                 @php($positive = $grandCollection['grand_ridership_in'] * -1)
+                                <span class="fas fa-angle-down text-danger"></span>
+                                <span class="text-danger fw-bold">{{ $positive }}%</span>
+                            @endif
+                            <span class="fw-normal me-2">Since last month</span>
+                        </div>
+                    </div>
+                    <div class="d-block mb-3 mb-sm-0">
+                        <div class="fs-5 fw-normal mb-2">
+                            Sales Amount (RM)
+                        </div>
+                        <h2 class="fs-3 fw-extrabold">{{$grandCollection['grand_farebox']}}</h2>
+                        <div class="small mt-2">
+                            @if($grandCollection['grand_farebox_in'] > 0)
+                                <span class="fas fa-angle-up text-success"></span>
+                                <span class="text-success fw-bold">{{$grandCollection['grand_farebox_in']}}%</span>
+                            @elseif($grandCollection['grand_farebox_in'] == 0)
+                                <svg class="bi bi-dash text-gray-900" xmlns="http://www.w3.org/2000/svg"  width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
+                                </svg>
+                                <span class="text-gray-900 fw-bold">{{$grandCollection['grand_farebox_in']}}%</span>
+                            @else
+                                @php($positive = $grandCollection['grand_farebox_in'] * -1)
                                 <span class="fas fa-angle-down text-danger"></span>
                                 <span class="text-danger fw-bold">{{ $positive }}%</span>
                             @endif
@@ -418,7 +418,75 @@
                 </div>--}}
             </div>
         </div>
+        
         <div class="col-12 col-xl-4">
+            <div class="col-12 px-0 mb-4">
+                <div class="card border-0 shadow">
+                    <div class="card-header border-bottom d-flex align-items-center justify-content-between">
+                        <h2 class="fs-5 fw-bold mb-0">Vehicle Location Summary</h2>
+                    </div>
+                    <div class="card border-0 shadow">
+                        <div class="card-body" style="background-color: #ffffff ">
+                            <div class="row d-xl-flex align-items-center">
+                                <div class="container-content">
+                                    <div class="one-content icon-shape icon-shape-purple rounded me-4 ">
+                                        <i class="fas fa-bus fa-fw" style="100%"></i>
+                                    </div>
+                                    <div class="two-content">
+                                        <h2 class="h5" style="color:rgb(137, 39, 140)">All</h2>
+                                        <h3 class="fw-extrabold mb-1">{{ $vehicleSummary['allBus'] }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow">
+                        <div class="card-body" style="background-color: #ffffff ">
+                            <div class="row d-block d-xl-flex align-items-center">
+                                <div class="container-content">
+                                    <div class="one-content icon-shape icon-shape-secondary rounded me-4 me-sm-0">
+                                        <i class="fas fa-bus fa-fw" style="width:22px;height:22px"></i>
+                                    </div>
+                                    <div class="two-content d-none d-sm-block">
+                                        <h2 class="h5" style="color:rgb(221, 36, 36)"> Stationary</h2>
+                                        <h3 class="fw-extrabold mb-1">{{ $vehicleSummary['stationaryBus'] }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow">
+                        <div class="card-body" style="background-color: #ffffff ">
+                            <div class="row d-block d-xl-flex align-items-center">
+                                <div class="container-content">
+                                    <div class="one-content icon-shape icon-shape-success rounded me-4">
+                                        <i class="fas fa-bus fa-fw" style="width:22px;height:22px"></i>
+                                    </div>
+                                    <div class="two-content d-none d-sm-block">
+                                        <h2 class="h5" style="color:rgb(26, 191, 76)">Online</h2>
+                                        <h3 class="fw-extrabold mb-1">{{ $vehicleSummary['onlineBus'] }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow">
+                        <div class="card-body" style="background-color: #ffffff ">
+                            <div class="row d-block d-xl-flex align-items-center">
+                                <div class="container-content">
+                                    <div class="one-content icon-shape icon-shape-primary rounded me-4 me-sm-0">
+                                        <i class="fas fa-bus fa-fw" style="width:22px;height:22px"></i>
+                                    </div>
+                                    <div class="two-content d-none d-sm-block">
+                                        <h2 class="h5" style="black">Offline</h2>
+                                        <h3 class="fw-extrabold mb-1">{{ $vehicleSummary['offlineBus'] }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="col-12 px-0 mb-4">
                 <div class="card border-0 shadow">
                     <div class="card-header border-bottom d-flex align-items-center justify-content-between">

@@ -26,7 +26,7 @@ class ReportDailySummary extends Component
     public function print()
     {
         $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN HERE");
+        $out->writeln("YOU ARE IN HERE dailySummary print()");
 
         $validatedData = Validator::make($this->state,[
             'dailyDate' => ['required', 'date'],
@@ -44,6 +44,9 @@ class ReportDailySummary extends Component
         $grandCountActualTrip = 0;
         $grandActualDistance = 0.0;
         $grandDeadDistance = 0.0;
+
+
+
 
         foreach ($allRoutes as $allRoute){
             $totCountTrip = 0;

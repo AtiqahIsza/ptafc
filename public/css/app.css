@@ -32608,6 +32608,24 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
     top: 5px;
 }
 
+.buttonDownload {
+  position: absolute;
+  right: 299px;
+  top: 5px;
+}
+
+.buttonDownloadBus {
+  position: absolute;
+  right: 125px;
+  top: 5px;
+}
+
+.buttonDownloadDriver {
+  position: absolute;
+  right: 167px;
+  top: 5px;
+}
+
 /* Always set the map height explicitly to define the size of the div
        * element that contains the map. */
 .map {
@@ -32625,3 +32643,42 @@ article .h1, article .h2, article .h3, article .h4, article .h5, article .h6 {
     background-color: #25383C; /* For browsers that do not support gradients */
     background-image: linear-gradient(to bottom right, black, #25383C);
 }
+
+.container-summary {
+  width: 100%;
+  height: 115px;
+  margin: auto;
+  padding: 10px;
+}
+
+.one {
+  width: 50%;
+  height: 115px;
+  float: left;
+}
+
+.two {
+  margin-left: 50%;
+  height: 115px;
+}
+
+.container-content {
+  width: 100%;
+  height: 75px;
+  margin: auto;
+  padding: 10px;
+}
+
+.one-content {
+  width: 17%;
+  height: 100%;
+  float: left;
+}
+
+.two-content {
+  margin-bottom: 25%;
+  margin-left: 25%;
+  height:100%;
+}
+
+

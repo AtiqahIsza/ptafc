@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ExportBus;
 
 class ManageBus extends Component
 {
@@ -137,5 +139,36 @@ class ManageBus extends Component
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
+    }
+
+    public function extractExcel(){
+        if ($this->selectedCompany==NULL) {
+            $allCompanies = Company::all();
+            if(count($allCompanies)>0){
+                foreach($allCompanies as $allCompany){
+                    $busPerCompanies = Bus::where('company_id',  $allCompany->id)->get();
+                    $bus = [];
+                    if(count($busPerCompanies)>0){
+                        foreach($busPerCompanies as $busPerCompany){
+                            $bus[$busPerCompany->bus_registration_number] = $busPerCompany;
+                        }
+                    }
+                    $data[$allCompany->company_name] = $bus;
+                }
+            }
+        }else{
+            $companyDetails = Company::where('id', $this->selectedCompany)->first();
+            if($companyDetails){
+                $busPerCompanies = Bus::where('company_id',  $companyDetails->id)->get();
+                $bus = [];
+                if(count($busPerCompanies)>0){
+                    foreach($busPerCompanies as $busPerCompany){
+                        $bus[$busPerCompany->bus_registration_number] =  $busPerCompany;
+                    }
+                }
+                $data[$companyDetails->company_name] = $bus;
+            }
+        }
+        return Excel::download(new ExportBus($data), 'Buses_Details.xlsx');
     }
 }

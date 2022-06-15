@@ -60,15 +60,55 @@
         </a>
     </li>
 
-    <li class="nav-item {{ request()->routeIs('vehicleHistory') ? 'active' : '' }}">
-        <a href="{{ route('vehicleHistory') }}" class="nav-link">
-            <span class="sidebar-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
-                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+
+    <li class="nav-item">
+        <span class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+              data-bs-target="#gps-submenu-app">
+            <span>
+                <span class="sidebar-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                        <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                    </svg>
+                </span>
+                <span class="sidebar-text">Vehicle Position</span>
+            </span>
+            <span class="link-arrow">
+                <svg class="icon icon-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd"
+                          d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                          clip-rule="evenodd">
+                    </path>
                 </svg>
             </span>
-            <span class="mt-1 ms-2 sidebar-text">Vehicle Position History</span>
-        </a>
+        </span>
+        <div class="multi-level collapse" role="list" id="gps-submenu-app" aria-expanded="false">
+            <ul class="flex-column nav">
+                <li class="nav-item {{ request()->routeIs('vehicleRealtime') ? 'active' : '' }}">
+                    <a href="{{ route('vehicleRealtime') }}" class="nav-link">
+                        <span class="sidebar-icon">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span class="sidebar-text">Realtime</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ request()->routeIs('vehicleHistory') ? 'active' : '' }}">
+                    <a href="{{ route('vehicleHistory') }}" class="nav-link">
+                        <span class="sidebar-icon">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span class="sidebar-text">History</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ request()->routeIs('vehicleSummary') ? 'active' : '' }}">
+                    <a href="{{ route('vehicleSummary') }}" class="nav-link">
+                        <span class="sidebar-icon">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span class="sidebar-text">Summary</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
     </li>
 
     <li class="nav-item">
@@ -168,7 +208,7 @@
                         <span class="sidebar-text">Sales Report By Driver</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                {{--<li class="nav-item">
                     <a href="{{ route('viewMonthlySummary') }}" class="nav-link {{ request()->routeIs('viewMonthlySummary') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
@@ -183,7 +223,7 @@
                         </span>
                         <span class="sidebar-text">Daily Summary Report</span>
                     </a>
-                </li>
+                </li>--}}
                 <li class="nav-item">
                     <a href="{{ route('viewReportSPAD') }}" class="nav-link  {{ request()->routeIs('viewReportSPAD') ? 'active' : '' }}">
                         <span class="sidebar-icon">

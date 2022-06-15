@@ -13,11 +13,10 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 class ManagePda extends Component
 {
-    public $regions;
     public $companies;
-    public $regionModals;
     public $companyModals;
     public $pdas;
+    public $editedPDA;
 
     public $showEditModal = false;
 
@@ -28,49 +27,32 @@ class ManagePda extends Component
 
     public function render()
     {
-        $this->regions = RegionCode::all();
+        $this->companies = Company::orderBy('company_name')->get();
         return view('livewire.manage-pda');
     }
 
     public function mount()
     {
-        $this->regions = collect();
         $this->pdas = collect();
         $this->companies = collect();
-        $this->regionModals = collect();
         $this->companyModals = collect();
-    }
-
-    public function updatedSelectedRegion($region)
-    {
-        if (!is_null($region)) {
-            $this->selectedRegion = $region;
-            $this->companies = Company::where('region_id', $region)->get();
-        }
     }
 
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->selectedCompany = $company;
-            $this->pdas = PDAProfile::where('company_id', $company)->get();
+            $this->pdas = PDAProfile::where('company_id', $company)->orderBy('date_created')->get();
         }
     }
 
     public function addNew()
     {
-        $this->reset();
-        $this->showEditModal = false;
-        $this->regionModals = RegionCode::all();
-        $this->dispatchBrowserEvent('show-form');
-    }
+        $this->state = [];
+        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
 
-    public function updatedSelectedRegionModal($region)
-    {
-        if (!is_null($region)) {
-            $this->selectedRegionModal= $region;
-            $this->companyModals = Company::all();
-        }
+        $this->showEditModal = false;
+        $this->companyModals = Company::orderBy('company_name')->get();
+        $this->dispatchBrowserEvent('show-add-form');
     }
 
     public function createPDA()
@@ -90,34 +72,32 @@ class ManagePda extends Component
         $out->writeln("company:  ". $validatedData['company_id']);
         $out->writeln("status:" . $validatedData['status']);
 
-        if($this->selectedRegionModal){
-            $validatedData['region_id'] = $this->selectedRegionModal;
-            $validatedData['date_created'] = Carbon::now();
-            $validatedData['date_registered'] = Carbon::now();
-            $validatedData['pda_key'] = Str::random(60);
+        $validatedData['date_created'] = Carbon::now();
+        $validatedData['date_registered'] = Carbon::now();
+        $validatedData['pda_key'] = Str::random(60);
 
-            $out->writeln("region:" . $validatedData['region_id']);
-            $out->writeln("created:  ". $validatedData['date_created']);
-            $out->writeln("registered:" . $validatedData['date_registered']);
-            $out->writeln("pda key: " . $validatedData['pda_key']);
+        $out->writeln("created:  ". $validatedData['date_created']);
+        $out->writeln("registered:" . $validatedData['date_registered']);
+        $out->writeln("pda key: " . $validatedData['pda_key']);
 
-            PDAProfile::create($validatedData);
+        $success = PDAProfile::create($validatedData);
 
-            return redirect()->to('/settings/managePDA')->with(['message' => 'PDA added successfully!']);
-        }
-        else{
-            return redirect()->to('/settings/managePDA')->with(['message' => 'No region selected!']);
+        if($success){
+            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+            $this->dispatchBrowserEvent('hide-add-form');
+        }else{
+            $this->dispatchBrowserEvent('hide-failed-form');
         }
     }
 
     public function edit(PDAProfile $pda)
     {
-        //dd($user);
-        $this->reset();
+        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+
         $this->showEditModal = true;
-        $this->pdas = $pda;
+        $this->editedPDA = $pda;
         $this->state = $pda->toArray();
-        $this->regionModals = RegionCode::all();
+        $this->companyModals = Company::orderBy('company_name')->get();
         $this->dispatchBrowserEvent('show-form');
     }
 
@@ -125,14 +105,18 @@ class ManagePda extends Component
     {
         $validatedData = Validator::make($this->state,[
             'pda_tag' => ['required', 'string', 'max:255'],
-            'imei' => ['required', 'int'],
-            'region_id' => ['required', 'int'],
+            'imei' => ['required', 'string'],
             'company_id' => ['required', 'int'],
             'status' => ['required', 'int'],
         ])->validate();
 
-        $this->pdas->update($validatedData);
+        $success = $this->editedPDA->update($validatedData);
 
-        return redirect()->to('/settings/managePDA')->with(['message' => 'PDA updated successfully!']);
+        if($success){
+            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+            $this->dispatchBrowserEvent('hide-edit-form');
+        }else{
+            $this->dispatchBrowserEvent('hide-failed-edit');
+        }
     }
 }

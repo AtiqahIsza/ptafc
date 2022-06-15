@@ -45,7 +45,7 @@
                         <select style="width:100%" wire:model="state.route_id" id="route_id" class="form-select border-gray-300" autofocus required>
                             <option value="">Choose Route</option>
                             @foreach($routes as $route)
-                                <option value="{{$route->id}}">{{$route->route_name}}</option>
+                                <option value="{{$route->id}}">{{$route->route_number . ' ' . $route->route_name}}</option>
                             @endforeach
                         </select>
                         @if ($errors->has('route_id'))

@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('auth',[ApiController::class, 'auth']);
 Route::post('getCompanyList',[ApiController::class, 'getCompanyList']);
+Route::post('getDriverByCompany',[ApiController::class, 'getDriverByCompany']);
 Route::post('getBusByCompany',[ApiController::class, 'getBusByCompany']);
 Route::post('getRouteByCompany',[ApiController::class, 'getRouteByCompany']);
 Route::post('getStageByCompany',[ApiController::class, 'getStageByCompany']);
@@ -34,9 +35,15 @@ Route::post('checkPDA',[ApiController::class, 'checkPDA']);
 //save to db
 Route::post('saveDriverWallet',[ApiController::class, 'saveDriverWallet']);
 Route::post('saveTicketSalesTransaction',[ApiController::class, 'saveTicketSalesTransaction']);
+Route::post('saveVehiclePosition',[ApiController::class, 'saveVehiclePosition']);
 
-//load 3 file data
+
+//load file data
 Route::post('loadTripData', [DataController::class, 'loadTripData']);
 Route::post('loadTicketSalesData', [DataController::class, 'loadTicketSalesData']);
 Route::post('loadGPSHistoryData', [DataController::class, 'loadGPSHistoryData']);
 Route::post('loadVehiclePositionData', [DataController::class, 'loadVehiclePositionData']);
+
+//load multiple data
+Route::post('loadMultipleTripData', [DataController::class, 'loadMultipleTripData']);
+Route::post('loadMultipleTicketSalesData', [DataController::class, 'loadMultipleTicketSalesData']);

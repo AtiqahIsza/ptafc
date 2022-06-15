@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
@@ -37,7 +38,9 @@ class HomeController extends Controller
         $breakdownTrips = $this->getBreakdownTrip();
         $totalTrips = $this->getTotalTrips();
         $grandCollection = $this->getGrandCollection();
-        return view('home',compact('collectionByCompanies','missedTrips','earlyLateTrips','breakdownTrips','totalTrips','grandCollection'));
+        $vehicleSummary = $this->getVehicleSummary();
+        //dd($collectionByCompanies);
+        return view('home',compact('collectionByCompanies','missedTrips','earlyLateTrips','breakdownTrips','totalTrips','grandCollection','vehicleSummary'));
     }
 
     public function getPassengerType() : JsonResponse
@@ -48,12 +51,12 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
-            $countAdult = TicketSalesTransaction::where('passenger_type', 1)
+            $countAdult = TicketSalesTransaction::where('passenger_type', 0)
                 ->whereBetween('sales_date', [$currStartMonth,$currEndMonth])
                 ->count();
-            $countConcession = TicketSalesTransaction::where('passenger_type', 2)
+            $countConcession = TicketSalesTransaction::where('passenger_type', 1)
                 ->whereBetween('sales_date', [$currStartMonth,$currEndMonth])
                 ->count();
 
@@ -79,10 +82,10 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $startDate = new Carbon($currStart);
-            $endDate = new Carbon($currEnd . '11:59:59');
+            $endDate = new Carbon($currEnd . '23:59:59');
             $all_dates = array();
             while ($startDate->lte($endDate)) {
                 $all_dates[] = $startDate->toDateString();
@@ -90,24 +93,37 @@ class HomeController extends Controller
                 $startDate->addDay();
             }
             $missedTrip = 0;
+            $tripServed = 0;
+            $tripPlanned  = 0;
             $out->writeln("currStartMonth after loop all_Date" . $currStartMonth);
             foreach ($all_dates as $all_date) {
                 $startDay = new Carbon($all_date);
-                $endDay = new Carbon($all_date . '11:59:59');
+                $endDay = new Carbon($all_date . '23:59:59');
                 $countTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->count();
-                $countSchedule = RouteSchedulerDetail::where('schedule_date', $all_date)->count();
+                $countScheduleIn = RouteSchedulerDetail::whereBetween('schedule_date', [$startDay, $endDay])->count();
+                $countScheduleOut = $countScheduleIn;
+                $countSchedule = $countScheduleIn + $countScheduleOut;
+                //$out->writeln("missedTrip" . $startDay ."countTrips:" . $countTrips);
+                //$out->writeln("missedTrip" . $startDay . "countSchedule:" . $countSchedule);
 
-                $diff = $countSchedule - $countTrips;
-                if ($diff > 0){
-                    $missedTrip += $diff;
-                }
+                $tripServed += $countTrips;
+                $tripPlanned += $countSchedule;
+                // $diff = $countSchedule - $countTrips;
+                // if ($diff > 0){
+                //     $missedTrip += $diff;
+                // }
             }
+            $missedTrip = $tripPlanned - $tripServed;
+            if ($missedTrip<0){
+                $missedTrip = 0;
+            }
+
 
             //Previous Month
             $prevStart = Carbon::create(Carbon::now())->startOfMonth()->subMonthsNoOverflow()->toDateString();
             $prevEnd = Carbon::create(Carbon::now())->subMonthsNoOverflow()->endOfMonth()->toDateString();
             $previousStartMonth = new Carbon($prevStart);
-            $previousEndMonth = new Carbon($prevEnd . '11:59:59');
+            $previousEndMonth = new Carbon($prevEnd . '23:59:59');
 
             $startDatePrev = $previousStartMonth;
             $endDatePrev = $previousEndMonth;
@@ -121,9 +137,11 @@ class HomeController extends Controller
 
             foreach ($all_dates_prev as $all_date_prev) {
                 $startDay = new Carbon($all_date_prev);
-                $endDay = new Carbon($all_date_prev . '11:59:59');
+                $endDay = new Carbon($all_date_prev . '23:59:59');
                 $countTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->count();
-                $countSchedule = RouteSchedulerDetail::where('schedule_date', $all_date_prev)->count();
+                $countScheduleIn = RouteSchedulerDetail::whereBetween('schedule_date', [$startDay, $endDay])->count();
+                $countScheduleOut = $countScheduleIn;
+                $countSchedule = $countScheduleIn + $countScheduleOut;
 
                 $diff = $countSchedule - $countTrips;
                 if ($diff > 0) {
@@ -135,6 +153,8 @@ class HomeController extends Controller
              * If $increment > 0 == missed trip increasing than last month (red)
              * If $increment < 0 == missed trip decreasing than last month (green)
              */
+            $out->writeln("missedTripPrev: " . $missedTripPrev);
+            $out->writeln("missedTrip: " . $missedTrip);
             if($missedTripPrev==0 && $missedTrip>0){
                 $incrementFormat = 100;
             }
@@ -142,7 +162,7 @@ class HomeController extends Controller
                 $incrementFormat = 0;
             }
             else{
-                $increment = (($missedTrip - $missedTripPrev) /$missedTripPrev) * 100;
+                $increment = (($missedTrip - $missedTripPrev) /$missedTripPrev) * 100/100;
                 $incrementFormat = number_format((float)$increment, 2, '.', '');
             }
 
@@ -177,42 +197,45 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $startDate = new Carbon($currStart);
-            $endDate = new Carbon($currEnd . '11:59:59');
+            $endDate = new Carbon($currEnd . '23:59:59');
             $all_dates = array();
 
             while ($startDate->lte($endDate)) {
                 $all_dates[] = $startDate->toDateString();
                 $startDate->addDay();
             }
+            
             $countEarlyLate = 0;
-
             foreach ($all_dates as $all_date) {
                 $startDay = new Carbon($all_date);
-                $endDay = new Carbon($all_date . '11:59:59');
+                $endDay = new Carbon($all_date . '23:59:59');
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
-                foreach ($allTrips as $allTrip){
-                    if ($allTrip->route_schedule_mstr_id != NULL) {
-                        $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                        $start_time = date("H:i", strtotime($allTrip->start_trip));
-
-                        $diff = strtotime($scheduleTime) - strtotime($start_time);
-
-                        if ($diff > 5 || $diff < -5) {
-                            $countEarlyLate++;
+                if(count($allTrips)>0){
+                    foreach ($allTrips as $allTrip){
+                        if ($allTrip->route_schedule_mstr_id != NULL) {
+                            //$scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
+                            //$scheduleTime = strtotime($allTrip->RouteScheduleMSTR->schedule_start_time);
+                            //$start_time = date("H:i", strtotime($allTrip->start_trip));
+    
+                            $diff = strtotime($allTrip->RouteScheduleMSTR->schedule_start_time) - strtotime($allTrip->start_trip);
+    
+                            if ($diff > 5 || $diff < -5) {
+                                $countEarlyLate++;
+                            }
                         }
                     }
-                }
+                }         
             }
 
             //Previous Month
             $prevStart = Carbon::create(Carbon::now())->startOfMonth()->subMonthsNoOverflow()->toDateString();
             $prevEnd = Carbon::create(Carbon::now())->subMonthsNoOverflow()->endOfMonth()->toDateString();
             $previousStartMonth = new Carbon($prevStart);
-            $previousEndMonth = new Carbon($prevEnd . '11:59:59');
+            $previousEndMonth = new Carbon($prevEnd . '23:59:59');
 
             $startDatePrev = $previousStartMonth;
             $endDatePrev = $previousEndMonth;
@@ -226,15 +249,14 @@ class HomeController extends Controller
 
             foreach ($all_dates_prev as $all_date_prev) {
                 $startDay = new Carbon($all_date_prev);
-                $endDay = new Carbon($all_date_prev . '11:59:59');
+                $endDay = new Carbon($all_date_prev . '23:59:59');
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
                 foreach ($allTrips as $allTrip) {
                     if ($allTrip->route_schedule_mstr_id != NULL) {
-                        $scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                        $start_time = date("H:i", strtotime($allTrip->start_trip));
-
-                        $diff = strtotime($scheduleTime) - strtotime($start_time);
+                        //$scheduleTime = Carbon::create($allTrip->RouteScheduleMSTR->schedule_start_time)->format('H:i');
+                        //$start_time = date("H:i", strtotime($allTrip->start_trip));
+                        $diff = strtotime($allTrip->RouteScheduleMSTR->schedule_start_time) - strtotime($allTrip->start_trip);
 
                         if ($diff > 5 || $diff < -5) {
                             $countEarlyLatePrev++;
@@ -247,13 +269,15 @@ class HomeController extends Controller
              * If $increment > 0 == early/late trip increasing than last month (red)
              * If $increment < 0 == early/late trip decreasing than last month (green)
              */
+            $out->writeln("countEarlyLatePrev: " . $countEarlyLatePrev);
+            $out->writeln("countEarlyLate: " . $countEarlyLate);
             if($countEarlyLatePrev==0 && $countEarlyLate>0){
                 $incrementFormat = 100;
             }elseif($countEarlyLatePrev==0 && $countEarlyLate==0){
                 $incrementFormat = 0;
             }
             else{
-                $increment = (($countEarlyLate - $countEarlyLatePrev) /$countEarlyLatePrev) * 100;
+                $increment = (($countEarlyLate - $countEarlyLatePrev) /$countEarlyLatePrev) * 100/100;
                 $incrementFormat = number_format((float)$increment, 2, '.', '');
             }
 
@@ -295,10 +319,10 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $startDate = new Carbon($currStart);
-            $endDate = new Carbon($currEnd . '11:59:59');
+            $endDate = new Carbon($currEnd . '23:59:59');
             $all_dates = array();
 
             while ($startDate->lte($endDate)) {
@@ -309,7 +333,7 @@ class HomeController extends Controller
 
             foreach ($all_dates as $all_date) {
                 $startDay = new Carbon($all_date);
-                $endDay = new Carbon($all_date . '11:59:59');
+                $endDay = new Carbon($all_date . '23:59:59');
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
                 foreach ($allTrips as $allTrip){
@@ -321,7 +345,7 @@ class HomeController extends Controller
             $prevStart = Carbon::create(Carbon::now())->startOfMonth()->subMonthsNoOverflow()->toDateString();
             $prevEnd = Carbon::create(Carbon::now())->subMonthsNoOverflow()->endOfMonth()->toDateString();
             $previousStartMonth = new Carbon($prevStart);
-            $previousEndMonth = new Carbon($prevEnd . '11:59:59');
+            $previousEndMonth = new Carbon($prevEnd . '23:59:59');
 
             $startDatePrev = $previousStartMonth;
             $endDatePrev = $previousEndMonth;
@@ -335,7 +359,7 @@ class HomeController extends Controller
 
             foreach ($all_dates_prev as $all_date_prev) {
                 $startDay = new Carbon($all_date_prev);
-                $endDay = new Carbon($all_date_prev . '11:59:59');
+                $endDay = new Carbon($all_date_prev . '23:59:59');
                 $allTrips = TripDetail::whereBetween('start_trip', [$startDay, $endDay])->get();
 
                 foreach ($allTrips as $allTrip){
@@ -383,7 +407,7 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $tripPlanned = RouteSchedulerDetail::whereBetween('schedule_date',[$currStartMonth,$currEndMonth])->count();
             $tripMade = TripDetail::whereBetween('start_trip',[$currStartMonth,$currEndMonth])->count();
@@ -391,7 +415,7 @@ class HomeController extends Controller
             $formatStartMonth = $currStartMonth->format('M d');
             $formatEndMonth = $currEndMonth->format('d');
             $data = [
-                'trip_planned' => $tripPlanned,
+                'trip_planned' => $tripPlanned*2,
                 'trip_made' => $tripMade,
                 'start_date' => $formatStartMonth,
                 'end_date' => $formatEndMonth,
@@ -416,12 +440,12 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $prevStart = Carbon::create(Carbon::now())->startOfMonth()->subMonthsNoOverflow()->toDateString();
             $prevEnd = Carbon::create(Carbon::now())->subMonthsNoOverflow()->endOfMonth()->toDateString();
             $previousStartMonth = new Carbon($prevStart);
-            $previousEndMonth = new Carbon($prevEnd . '11:59:59');
+            $previousEndMonth = new Carbon($prevEnd . '23:59:59');
 
             $allCompanies = Company::all();
             $collectionCompanyBar = collect();
@@ -476,7 +500,7 @@ class HomeController extends Controller
                 }elseif($sumPrevRidership==0 && $sumRidershipPerRoute==0){
                     $increaseRidershipFormat = 0;
                 }else{
-                    $increaseRidership = (($sumRidershipPerRoute - $sumPrevRidership) / $sumPrevRidership) * 100;
+                    $increaseRidership = (($sumRidershipPerRoute - $sumPrevRidership) / $sumPrevRidership) * 100/100;
                     $increaseRidershipFormat = number_format((float)$increaseRidership, 2, '.', '');
                 }
 
@@ -486,16 +510,19 @@ class HomeController extends Controller
                 }elseif($sumPrevFarebox==0 && $sumFareboxPerRoute==0){
                     $increaseFareboxFormat = 0;
                 }else{
-                    $increaseFarebox = (($sumFareboxPerRoute - $sumPrevFarebox) / $sumPrevFarebox) * 100;
+                    $increaseFarebox = (($sumFareboxPerRoute - $sumPrevFarebox) / $sumPrevFarebox) * 100/100;
                     $increaseFareboxFormat = number_format((float)$increaseFarebox, 2, '.', '');
                 }
 
                 $data = [
                     'company_name' => $company->company_name,
+                    'prev_farebox' => $sumPrevFarebox,
                     'farebox' => $sumFareboxPerRoute,
-                    'farebox_in' => $increaseRidershipFormat,
+                    'farebox_in' => $increaseFareboxFormat,
+                    'prev_ridership' => $sumPrevRidership,
                     'ridership' => $sumRidershipPerRoute,
-                    'ridership_in' => $increaseFareboxFormat,
+                    'ridership_in' => $increaseRidershipFormat,
+
                 ];
                 $collectionCompanyBar->add($data);
             }
@@ -519,12 +546,12 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $prevStart = Carbon::create(Carbon::now())->startOfMonth()->subMonthsNoOverflow()->toDateString();
             $prevEnd = Carbon::create(Carbon::now())->subMonthsNoOverflow()->endOfMonth()->toDateString();
             $previousStartMonth = new Carbon($prevStart);
-            $previousEndMonth = new Carbon($prevEnd . '11:59:59');
+            $previousEndMonth = new Carbon($prevEnd . '23:59:59');
 
             $allCollection = collect();
 
@@ -575,7 +602,7 @@ class HomeController extends Controller
             }elseif($grandRidershipPrev==0 && $grandRidership==0){
                 $increaseRidershipFormat = 0;
             }else{
-                $increaseRidership = (($grandRidership -$grandRidershipPrev) / $grandRidershipPrev) * 100;
+                $increaseRidership = (($grandRidership -$grandRidershipPrev) / $grandRidershipPrev) * 100/100;
                 $increaseRidershipFormat = number_format((float)$increaseRidership, 2, '.', '');
             }
 
@@ -585,7 +612,7 @@ class HomeController extends Controller
             }elseif($grandFareboxPrev==0 && $grandFarebox==0){
                 $increaseRidershipFormat = 0;
             }else{
-                $increaseFarebox = (($grandFarebox - $grandFareboxPrev) / $grandFareboxPrev) * 100;
+                $increaseFarebox = (($grandFarebox - $grandFareboxPrev) / $grandFareboxPrev) * 100/100;
                 $increaseFareboxFormat = number_format((float)$increaseFarebox, 2, '.', '');
             }
 
@@ -615,7 +642,7 @@ class HomeController extends Controller
             $currStart = Carbon::create(Carbon::now())->startOfMonth()->toDateString();
             $currEnd = Carbon::create(Carbon::now())->endOfMonth()->toDateString();
             $currStartMonth = new Carbon($currStart);
-            $currEndMonth = new Carbon($currEnd . '11:59:59');
+            $currEndMonth = new Carbon($currEnd . '23:59:59');
 
             $allCompanies = Company::all();
             //$collectionCompany = collect();
@@ -678,6 +705,53 @@ class HomeController extends Controller
             return $this->returnResponse (2, $error, 'Error Encountered. See Log');
         }
     }
+
+    public function getVehicleSummary()
+    {
+        $currentDate = Carbon::now();
+
+        $join = DB::table('vehicle_position')
+                ->select('bus_id', DB::raw('MAX(id) as last_id'))
+                ->groupBy('bus_id');
+
+        $allBus = DB::table('vehicle_position as a')
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $onlineBus = DB::table('vehicle_position as a')
+            ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) < '00:10:00'")
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $stationaryBus = DB::table('vehicle_position as a')
+            ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) >=  '00:10:00'")
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $offlineBus = DB::table('vehicle_position as a')
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) >=  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $collectionVehicle = [
+            'allBus' => $allBus,
+            'stationaryBus' => $stationaryBus,
+            'onlineBus' => $onlineBus,
+            'offlineBus' => $offlineBus,
+        ];
+
+        return $collectionVehicle;   
+     }
 
     public function returnResponse ($statusCode, $payload, $statusDescription) : JsonResponse
     {

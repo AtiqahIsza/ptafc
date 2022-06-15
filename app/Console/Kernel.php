@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Models\RouteSchedulerMSTR;
+use Illuminate\Console\Command;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Carbon;
@@ -10,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class Kernel extends ConsoleKernel
 {
+    protected $commands = [
+        Commands\RouteSchedulerDaily::class,
+        Commands\CheckTripTicket::class
+    ];
     /**
      * Define the application's command schedule.
      *
@@ -19,8 +24,12 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
-        $schedule->command('routeschedule:daily')->dailyAt('00:00');
-
+        $filePath = 'storage/logs/schedule.log';
+        //$schedule->command('routeschedule:daily')->dailyAt('00:00')->appendOutputTo($filePath);
+        //$schedule->command('tripticks:check')->dailyAt('00:10')->appendOutputTo($filePath);
+        $schedule->command('tripticks:check')->everyMinute()->appendOutputTo($filePath);
+        //$schedule->command('routeschedule:daily')->everyTwoMinutes()-
+        $schedule->command('routeschedule:daily')->everyMinute()->appendOutputTo($filePath);
         /**
          * 2 option to run:
          * 1. 0 0 * * * cd /var/www/your-project && php artisan schedule:run >> /dev/null 2>&1

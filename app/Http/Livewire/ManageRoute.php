@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ExportRoute;
 
 class ManageRoute extends Component
 {
@@ -262,5 +264,36 @@ class ManageRoute extends Component
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
+    }
+
+    public function extractExcel(){
+        if ($this->selectedCompany==NULL) {
+            $allCompanies = Company::all();
+            if(count($allCompanies)>0){
+                foreach($allCompanies as $allCompany){
+                    $routePerCompanies = Route::where('company_id',  $allCompany->id)->get();
+                    $route = [];
+                    if(count($routePerCompanies)>0){
+                        foreach($routePerCompanies as $routePerCompany){
+                            $route[$routePerCompany->route_number] = $routePerCompany;
+                        }
+                    }
+                    $data[$allCompany->company_name] = $route;
+                }
+            }
+        }else{
+            $companyDetails = Company::where('id', $this->selectedCompany)->first();
+            if($companyDetails){
+                $routePerCompanies = Route::where('company_id',  $companyDetails->id)->get();
+                $route = [];
+                if(count($routePerCompanies)>0){
+                    foreach($routePerCompanies as $routePerCompany){
+                        $route[$routePerCompany->route_number] = $routePerCompany;
+                    }
+                }
+                $data[$companyDetails->company_name] = $route;
+            }
+        }
+        return Excel::download(new ExportRoute($data), 'Route_Details.xlsx');
     }
 }

@@ -92,10 +92,11 @@ class ManageStageFare extends Component
         $countUpdate=0;
         foreach($adultFares as $adultFare){
             $calc = $adultFare->fare - ($adultFare->fare * ($discount/100));
+            $calcFormat = number_format((float)$calc, 1, '.', '');
             $updateConcFare = StageFare::where('route_id', $this->selectedRoute->id)
             ->where('tostage_stage_id', $adultFare->tostage_stage_id)
             ->where('fromstage_stage_id', $adultFare->fromstage_stage_id)
-            ->update(['consession_fare' => $calc]);
+            ->update(['consession_fare' => $calcFormat]);
 
             if($updateConcFare){
                 $countUpdate++;

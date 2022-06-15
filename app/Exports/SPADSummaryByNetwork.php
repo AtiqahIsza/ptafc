@@ -30,7 +30,7 @@ class SPADSummaryByNetwork implements FromView, WithStyles, ShouldAutoSize
     public function view(): View
     {
         //dd($this->reports);
-        return view('exports.spad.tripmissed', [
+        return view('exports.spad.summarybynetwork', [
             'reports' => $this->reports,
             'networkArea' => $this->networkArea,
             'dateFrom' => $this->fromDate,
@@ -49,8 +49,8 @@ class SPADSummaryByNetwork implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:N' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:N' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:O' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:O' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

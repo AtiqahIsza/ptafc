@@ -1,6 +1,6 @@
 <div class="main py-4">
     <div class="card card-body border-0 shadow table-wrapper table-responsive">
-        <h2>{{ __('Report For SPAD') }}</h2>
+        <h2>{{ __('Report For APAD') }}</h2>
         <br>
         <!-- Form -->
         <form wire:submit.prevent="{{ 'print' }}">
@@ -45,7 +45,7 @@
                         <select wire:model="state.route_id" id="route_id" class="form-select border-gray-300">
                             <option value="">Choose Route</option>
                             @foreach($routes as $route)
-                                <option value="{{$route->id}}">{{$route->route_name}}</option>
+                                <option value="{{$route->id}}">{{$route->route_number . ' ' . $route->route_name}}</option>
                             @endforeach
                         </select>
                         @if ($errors->has('route_id'))

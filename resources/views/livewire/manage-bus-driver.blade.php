@@ -5,6 +5,10 @@
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add Bus Driver
         </button>
+        <button wire:click.prevent="extractExcel" class="buttonDownloadDriver btn btn-gray-800 d-inline-flex align-items-center me-2">
+            <i class="fa fa-file-download mr-1 fa-fw"></i>
+            Extract to Excel
+        </button>
     </div>
     <div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline"  >
@@ -52,11 +56,15 @@
                             <td><span class="fw-normal">Blacklisted</span></td>
                         @endif
                         <td>
-                            <button wire:click.prevent="editModal({{ $driver }})" class="btn btn-warning">Edit</button>
-                            <button onclick="window.location='{{ route('viewWalletTransaction', $driver->id) }}'" class="btn btn-success">View Wallet</button>
-                            {{--<button wire:click.prevent="confirmChanges({{ $driver->id }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalConfirmation">Change Status</button>--}}
-                            <button wire:click.prevent="resetModal({{ $driver }})" class="btn btn-danger">Reset Password</button>
-                            <button wire:click.prevent="confirmRemove({{ $driver->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button>
+                            @if($driver->status==1)
+                                <button wire:click.prevent="editModal({{ $driver }})" class="btn btn-warning">Edit</button>
+                                <button onclick="window.location='{{ route('viewWalletTransaction', $driver->id) }}'" class="btn btn-success">View Wallet</button>
+                                <button wire:click.prevent="resetModal({{ $driver }})" class="btn btn-danger">Reset Password</button>
+                                <button wire:click.prevent="confirmChanges({{ $driver->id }})" class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#modalConfirmation">Deactivate</button>
+                            @else
+                                <button wire:click.prevent="confirmChanges({{ $driver->id }})" class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#modalConfirmation">Activate</button>
+                            @endif
+                            {{-- <button wire:click.prevent="confirmRemove({{ $driver->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button> --}}
                         </td>
                     </tr>
                 @endforeach
@@ -392,7 +400,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to change the status of {{ $changedDriverName }} to {{ $desiredStatus }}</h4>
+                    <h4>Are you sure you want to change the status of {{ $changedDriverName }} to {{ $desiredStatus }}?</h4>
                 </div>
 
                 <div class="modal-footer">
@@ -465,16 +473,16 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5>Confirmation For Removing Bus Driver</h5>
+                    <h5>Confirmation For Deactivating Bus Driver</h5>
                 </div>
 
                 <div class="modal-body">
-                    <h4>Are you sure you want to remove {{ $removedDriverName }}?</h4>
+                    <h4>This action will deactivated the status of {{ $removedDriverName }} only. Are you sure you want to change it?</h4>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times mr-1"></i>Cancel</button>
-                    <button type="button" wire:click.prevent="removeDriver" class="btn btn-danger" data-bs-dismiss="modal"><i class="fa fa-pen mr-1"></i>Remove</button>
+                    <button type="button" wire:click.prevent="changeStatus" class="btn btn-danger" data-bs-dismiss="modal"><i class="fa fa-pen mr-1"></i>Deactivated</button>
                 </div>
             </div>
         </div>

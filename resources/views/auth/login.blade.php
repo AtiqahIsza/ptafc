@@ -71,12 +71,12 @@
                             <button type="submit" class="btn btn-gray-800">{{ __('Sign in') }}</button>
                         </div>
                     </form>
-                    <div class="d-flex justify-content-center align-items-center mt-4">
+                    {{-- <div class="d-flex justify-content-center align-items-center mt-4">
                         <span class="fw-normal">
                             {{ __('Not registered?') }}
                             <a href="{{ route('register') }}" class="fw-bold">{{ __('Create account') }}</a>
                         </span>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>

@@ -38,7 +38,7 @@ class ViewRouteSchedule extends Component
 
     public function viewEvent(Route $route)
     {
-        $this->schedules = RouteSchedulerMSTR::where('route_id', $route->id)->get();
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $route->id)->orderBy('schedule_start_time')->get();
     }
 
     public function edit(RouteSchedulerMSTR $schedule){

@@ -9,6 +9,8 @@ use App\Models\Route;
 use App\Models\Sector;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ExportBusDriver;
 
 class ManageBusDriver extends Component
 {
@@ -150,6 +152,7 @@ class ManageBusDriver extends Component
 
     public function confirmRemove($id)
     {
+        $this->changedDriverId = $id;
         $this->removedDriverId = $id;
         $selectedRemoved = BusDriver::where('id', $this->removedDriverId)->first();
         $this->removedDriverName = $selectedRemoved->driver_name;
@@ -186,13 +189,10 @@ class ManageBusDriver extends Component
 
     public function changeStatus()
     {
-        $busdriver = BusDriver::findOrFail($this->changedDriverId);
-        if($busdriver->status == 1) {
-            $updateStatus = $busdriver->update(['status', 2]);
-            //$updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 2]);
+        if($this->desiredStatus == 'INACTIVE') {
+            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 2]);
         }else {
-            $updateStatus = $busdriver->update(['status', 1]);
-            //$updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 1]);
+            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 1]);
         }
 
         if ($updateStatus){
@@ -201,6 +201,37 @@ class ManageBusDriver extends Component
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
+    }
+
+    public function extractExcel(){
+        if ($this->selectedCompany==NULL) {
+            $allCompanies = Company::all();
+            if(count($allCompanies)>0){
+                foreach($allCompanies as $allCompany){
+                    $driverPerCompanies = BusDriver::where('company_id',  $allCompany->id)->get();
+                    $busDriver = [];
+                    if(count($driverPerCompanies)>0){
+                        foreach($driverPerCompanies as $driverPerCompany){
+                            $busDriver[$driverPerCompany->driver_number] = $driverPerCompany;
+                        }
+                    }
+                    $data[$allCompany->company_name] = $busDriver;
+                }
+            }
+        }else{
+            $companyDetails = Company::where('id', $this->selectedCompany)->first();
+            if($companyDetails){
+                $driverPerCompanies = BusDriver::where('company_id',  $companyDetails->id)->get();
+                $busDriver = [];
+                if(count($driverPerCompanies)>0){
+                    foreach($driverPerCompanies as $driverPerCompany){
+                        $busDriver[$driverPerCompany->driver_number] =  $driverPerCompany;
+                    }
+                }
+                $data[$companyDetails->company_name] = $busDriver;
+            }
+        }
+        return Excel::download(new ExportBusDriver($data), 'Bus_Drivers_Details.xlsx');
     }
 
 

@@ -9,19 +9,19 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SPAClaimDetailsGPS implements FromView, WithStyles, ShouldAutoSize
+class SPADClaimDetailsGPS implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
     public $routeNo;
     public $fromDate;
     public $toDate;
     public $sheet;
-    public $allDates = [];
+    public $networkArea;
 
     //The constructor passes by value
-    public function __construct($dates, $data, $dateFrom, $dateTo)
+    public function __construct($networkArea, $data, $dateFrom, $dateTo)
     {
-        $this->allDates = $dates;
+        $this->networkArea = $networkArea;
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
@@ -32,7 +32,7 @@ class SPAClaimDetailsGPS implements FromView, WithStyles, ShouldAutoSize
     {
         //dd($this->reports);
         return view('exports.spad.claimdetailsgps', [
-            'allDates' => $this->allDates,
+            'networkArea' => $this->networkArea,
             'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate
@@ -50,8 +50,8 @@ class SPAClaimDetailsGPS implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:AH' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:AH' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:I' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:I' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

@@ -159,6 +159,8 @@ class RouteMapController extends Controller
             return redirect()->to('/settings/manageRoute')->with(['message' => $validator->messages()->first()]);
         }
 
+        $coordinates = NULL;
+        $gps = [];
         if($validator->passes()){
             $path = $request->file('file')->store('kml');
             $content = Storage::get($path);
@@ -168,17 +170,17 @@ class RouteMapController extends Controller
                 for ($i = 0; $i < sizeof($placemarks); $i++) {
                     $out->writeln("YOU ARE IN  loop placemarks");
                     //LineString
-                    if ($i + 1 == sizeof($placemarks)) {
+                    if($placemarks[$i]->LineString) {
                         $route = $placemarks[$i]->name;
                         $out->writeln("Route Name " . $i . ":" . $route);
-                        $routeNo = substr($route, 0, 4);
+                        $routeNo = substr($route, 0, 5);
                         $out->writeln("Route No: " . $routeNo);
-                        $routeName = substr($route, 5, -15);
+                        $routeName = substr($route, 6, -15);
                         $out->writeln("Route Name: " . $routeName);
                         $coordinates = $placemarks[$i]->LineString->coordinates;
                         $out->writeln("Polygon " . $i . ":" . $coordinates);
                     } //Point
-                    else {
+                    if($placemarks[$i]->Point){
                         $gps['name'][$i] = $placemarks[$i]->name;
                         $out->writeln("Stage Name " . $i . ":" . $gps['name'][$i]);
                         $gps['longitude'][$i] = $placemarks[$i]->LookAt->longitude;
@@ -190,30 +192,33 @@ class RouteMapController extends Controller
                     }
                 }
 
+                $polygon = [];
                 //Sort Polygon
-                $polyArray = explode(',', $coordinates);
-                $indexLong = 0;
-                for ($k = 0; $k < sizeof($polyArray); $k++) {
-                    if ($k + 1 != sizeof($polyArray)) {
-                        if ($k % 2 == 0) {
-                            $longitude[$indexLong] = $polyArray[$k];
-                            $indexLong++;
+                if($coordinates!=NULL){
+                    $polyArray = explode(',', $coordinates);
+                    $indexLong = 0;
+                    for ($k = 0; $k < sizeof($polyArray); $k++) {
+                        if ($k + 1 != sizeof($polyArray)) {
+                            if ($k % 2 == 0) {
+                                $longitude[$indexLong] = $polyArray[$k];
+                                $indexLong++;
+                            }
                         }
                     }
-                }
-                //$out->writeln("Size longitude[] " . ":" . sizeof($longitude));
-                $indexLat = 0;
-                for ($m = 0; $m < sizeof($polyArray); $m++) {
-                    if ($m % 2 == 1) {
-                        $latitude[$indexLat] = $polyArray[$m];
-                        $indexLat++;
+                    //$out->writeln("Size longitude[] " . ":" . sizeof($longitude));
+                    $indexLat = 0;
+                    for ($m = 0; $m < sizeof($polyArray); $m++) {
+                        if ($m % 2 == 1) {
+                            $latitude[$indexLat] = $polyArray[$m];
+                            $indexLat++;
+                        }
                     }
-                }
-                //$out->writeln("Size latitude[] " . ":" . sizeof($latitude));
-                for ($p = 0; $p < sizeof($longitude); $p++) {
-                    $polygon['longitude'][$p] = $longitude[$p];
-                    $polygon['latitude'][$p] = $latitude[$p];
-                    $out->writeln("Polygon " . $p . ":" . $polygon['longitude'][$p] . "-" . $polygon['latitude'][$p]);
+                    //$out->writeln("Size latitude[] " . ":" . sizeof($latitude));
+                    for ($p = 0; $p < sizeof($longitude); $p++) {
+                        $polygon['longitude'][$p] = $longitude[$p];
+                        $polygon['latitude'][$p] = $latitude[$p];
+                        $out->writeln("Polygon " . $p . ":" . $polygon['longitude'][$p] . "-" . $polygon['latitude'][$p]);
+                    }
                 }
 
                 //Save to DB
@@ -223,47 +228,50 @@ class RouteMapController extends Controller
                 if ($checkRoute) {
                     $checkRouteMap = RouteMap::where('route_id', $checkRoute->id)->first();
                     if (empty($checkRouteMap)) {
-                        for ($b = 0; $b < sizeof($polygon['longitude']); $b++) {
-                            $long = NULL;
-                            if ($b == 0) {
-                                $long = $polygon['longitude'][$b];
-                                $out->writeln("b: " . $long);
-                            } else {
-                                $long = substr($polygon['longitude'][$b], 2);
-                                $out->writeln("Substr long rmap: " . $long);
-                            }
-                            $newRMap = new RouteMap();
-                            $newRMap->longitude = round((float)$long, 15);
-                            $newRMap->latitude = round((float)$polygon['latitude'][$b], 15);
-                            $newRMap->sequence = $b;
-                            $newRMap->route_id = $checkRoute->id;
-                            $successSaveRMap = $newRMap->save();
-                            if ($successSaveRMap) {
-                                $savedRMap++;
+                        if ($polygon!=NULL) {
+                            for ($b = 0; $b < sizeof($polygon['longitude']); $b++) {
+                                $long = NULL;
+                                if ($b == 0) {
+                                    $long = $polygon['longitude'][$b];
+                                    $out->writeln("b: " . $long);
+                                } else {
+                                    $long = substr($polygon['longitude'][$b], 2);
+                                    $out->writeln("Substr long rmap: " . $long);
+                                }
+                                $newRMap = new RouteMap();
+                                $newRMap->longitude = round((float)$long, 15);
+                                $newRMap->latitude = round((float)$polygon['latitude'][$b], 15);
+                                $newRMap->sequence = $b;
+                                $newRMap->route_id = $checkRoute->id;
+                                $successSaveRMap = $newRMap->save();
+                                if ($successSaveRMap) {
+                                    $savedRMap++;
+                                }
                             }
                         }
-
                         $checkBusStand = BusStand::where('route_id', $checkRoute->id)->first();
                         if (empty($checkBusStand)) {
-                            for ($d = 0; $d < sizeof($gps['name']); $d++) {
-                                $newSMap = new BusStand();
-                                $newSMap->longitude = round((float)$gps['longitude'][$d], 15);
-                                $newSMap->latitude = round((float)$gps['latitude'][$d], 15);
-                                $newSMap->altitude = $gps['altitude'][$d];
-                                $newSMap->description = $gps['name'][$d];
-                                $newSMap->route_id = $checkRoute->id;
-                                $newSMap->radius = 50;
-                                $newSMap->sequence = $d;
-                                $successSaveSMap = $newSMap->save();
-                                if ($successSaveSMap) {
-                                    $savedMap++;
+                            if ($gps!=NULL) {
+                                for ($d = 0; $d < sizeof($gps['name']); $d++) {
+                                    $newSMap = new BusStand();
+                                    $newSMap->longitude = round((float)$gps['longitude'][$d], 15);
+                                    $newSMap->latitude = round((float)$gps['latitude'][$d], 15);
+                                    $newSMap->altitude = $gps['altitude'][$d];
+                                    $newSMap->description = $gps['name'][$d];
+                                    $newSMap->route_id = $checkRoute->id;
+                                    $newSMap->radius = 50;
+                                    $newSMap->sequence = $d;
+                                    $successSaveSMap = $newSMap->save();
+                                    if ($successSaveSMap) {
+                                        $savedMap++;
+                                    }
                                 }
                             }
                         }else{
-                            return redirect()->to('/settings/manageRoute')->with(['message' => 'Bus stand already exist in the database']);
+                            return redirect()->to('/settings/manageRoute')->with(['message' => 'Bus stand already exist in the database, please remove the current one to update']);
                         }
                     }else{
-                        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route map already exist in the database']);
+                        return redirect()->to('/settings/manageRoute')->with(['message' => 'Route map already exist in the database, please remove the current one to update']);
                     }
                 } else {
                     return redirect()->to('/settings/manageRoute')->with(['message' => 'Route is not exist in the database']);

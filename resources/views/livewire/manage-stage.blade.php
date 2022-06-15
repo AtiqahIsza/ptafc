@@ -14,13 +14,12 @@
             @endforeach
         </select>
 
-        @if (!is_null($selectedCompany))
-            <select wire:model="selectedRoute" class="form-select fmxw-200 d-none d-md-inline"  >
-                <option value="">Choose Route</option>
-                @foreach($routes as $route)
-                    <option value="{{$route->id}}">{{$route->route_name}}</option>
-                @endforeach
-            </select>
+        <select wire:model="selectedRoute" class="form-select fmxw-200 d-none d-md-inline"  >
+            <option value="">Choose Route</option>
+            @foreach($routes as $route)
+                <option value="{{$route->id}}">{{$route->route_name}}</option>
+            @endforeach
+        </select>
     </div>
     <br>
 
@@ -81,7 +80,6 @@
                 {{--{{ $users->links() }}--}}
             </div>
         </div>
-        @endif
     @endif
 
     <!-- Edit/Create Modal Content -->
@@ -188,7 +186,7 @@
                         @endif--}}
 
                         <div class="form-group mb-4">
-                            <label for=route">Route</label>
+                            <label for="route">Route</label>
                             <div class="input-group">
                                 <span class="input-group-text border-gray-300" id="basic-addon3">
                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pin-map-fill" viewBox="0 0 16 16">

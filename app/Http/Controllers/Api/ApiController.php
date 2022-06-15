@@ -20,6 +20,7 @@ use App\Models\StageMap;
 use App\Models\TicketSalesTransaction;
 use App\Models\TripDetail;
 use App\Models\User;
+use App\Models\VehiclePosition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -84,6 +85,35 @@ class ApiController extends Controller
             'success' => true,
             'companyList' => $companyList,
         ]);
+    }
+
+    public function getDriverByCompany(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_id' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'data' => $validator->messages()->first(),
+            ]);
+        }
+
+       $data = BusDriver::where('company_id', $request->company_id)->get();
+
+        if($data){
+            return response()->json([
+                'success' => true,
+                'driverByCompany' => $data,
+            ]);
+        }
+        else{
+            return response()->json([
+                'success' => false,
+                'data' => 'No data',
+            ]);
+        }
     }
 
     public function getBusByCompany(Request $request)
@@ -318,7 +348,7 @@ class ApiController extends Controller
                 $routeScheduleCollection->add($data);
             }
             else {
-                $data = 'No Stage Fare';
+                $data = 'No Schedule';
                 $routeScheduleCollection->add($data);
             }
         }
@@ -329,314 +359,6 @@ class ApiController extends Controller
             'routeScheduleByCompany' => $collapsed,
         ]);
     }
-
-    /*public function saveTripDetails(Request $request){
-        $validator = Validator::make($request->all(), [
-//            'end_trip' => 'required',
-//             'first_ticket_number' => 'required',
-//             'last_ticket_number' => 'required',
-//             'number_of_pass' => 'required',
-//             'number_of_ticker' => 'required',
-            'start_trip' => 'required',
-//            'total_collection' => 'required',
-//            'trip_number' => 'required',
-            'bus_id' => 'required',
-            'pda_id' => 'required',
-            'route_id' => 'required',
-            'route_schedule_mstr_id' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'data' => $validator->messages()->first(),
-            ]);
-        }
-
-        //Check pda_id exist in db
-        $existedPDA = PDAProfile::where('id',$validator['pda_id'])->first();
-        if($existedPDA){
-            //Check route_schedule_mstr_id exist in db
-            $existedSchedule = RouteSchedulerMSTR::where('id',$validator['route_schedule_mstr_id'])->first();
-            if($existedSchedule){
-                //Check route_id exist in db
-                $existedRoute = Route::where('id', $validator['route_id'])->first();
-                if($existedRoute){
-                    //Compare $existedRoute id with route_id in $existedSchedule
-                    if($validator['route_id'] == $existedSchedule->route_id){
-                        //Check bus_id exist in db
-                        $existedBus = Bus::where('id', $validator['bus_id'])->first();
-                        if($existedBus){
-                            //Check inbound bus
-                            if($existedSchedule->inbound_bus_id == $existedBus->id){
-                                $validator['trip_code'] = "IB";
-                            }
-                            //Check outbound bus
-                            if($existedSchedule->outbound_bus_id == $existedBus->id){
-                                $validator['trip_code'] = "OB";
-                            }
-                            $new = new TripDetail();
-                            $new->create($validator);
-                            return response()->json([
-                                'success' => true,
-                                'data' => $new,
-                            ]);
-                        }else{
-                            return response()->json([
-                                'success' => false,
-                                'data' => "Bus ID is not exist in database",
-                            ]);
-                        }
-                    }else{
-                        return response()->json([
-                            'success' => false,
-                            'data' => "Wrong route specified in schedule",
-                        ]);
-                    }
-                }else{
-                    return response()->json([
-                        'success' => false,
-                        'data' => "Route ID is not exist in database",
-                    ]);
-                }
-            }else{
-                return response()->json([
-                    'success' => false,
-                    'data' => "Schedule ID is not exist in database",
-                ]);
-            }
-        }
-        return response()->json([
-                'success' => false,
-                'data' => "PDA ID is not exist in database",
-        ]);
-    }*/
-
-    /*public function saveTripDetails(Request $request){
-        $successSave = false;
-
-        $validator = Validator::make($request->all(), [
-            'trip' => 'required',
-            'tickets' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'data' => $validator->messages()->first(),
-            ]);
-        }
-
-        $trips = json_decode($request->trip);
-        $tickets = json_decode($request->tickets);
-
-        if (count($trips) > 0) {
-            for ($i = 0; $i < count($trips); $i++) {
-                //Check trip_id exist in db
-                $existedTrip = TripDetail::where('id', $trips[$i]->id)->first();
-                if (!$existedTrip) {
-                    //Check pda_id exist in db
-                    $existedPDA = PDAProfile::where('id', $trips[$i]->pda_id)->first();
-                    if ($existedPDA) {
-                        //Check route_schedule_mstr_id exist in db
-                        $existedSchedule = RouteSchedulerMSTR::where('id', $trips[$i]->route_schedule_mstr_id)->first();
-                        if ($existedSchedule) {
-                            //Check driver exist in db
-                            $existedDriver = BusDriver::where('id', $trips[$i]->driver_id)->first();
-                            if ($existedDriver) {
-                                //Check route_id exist in db
-                                $existedRoute = Route::where('id', $trips[$i]->route_id)->first();
-                                if ($existedRoute) {
-                                    //Compare $existedRoute id with route_id in $existedSchedule
-                                    if ($validator['route_id'] == $existedSchedule->route_id) {
-                                        //Check bus_id exist in db
-                                        $existedBus = Bus::where('id', $trips[$i]->bus_id)->first();
-                                        if ($existedBus) {
-                                            $newTrip = new TripDetail();
-                                            //Check inbound bus
-                                            if ($existedSchedule->inbound_bus_id == $existedBus->id) {
-                                                $newTrip->trip_code = "IB";
-                                            }
-                                            //Check outbound bus
-                                            if ($existedSchedule->outbound_bus_id == $existedBus->id) {
-                                                $newTrip->trip_code = "OB";
-                                            }
-                                            $newTrip->end_trip = $trips[$i]->end_trip;
-                                            $newTrip->start_trip = $trips[$i]->start_trip;
-                                            $newTrip->bus_id = $trips[$i]->bus_id;
-                                            $newTrip->pda_id = $trips[$i]->pda_id;
-                                            $newTrip->route_id = $trips[$i]->route_id;
-                                            $newTrip->driver_id = $trips[$i]->driver_id;
-                                            $newTrip->route_schedule_mstr_id = $trips[$i]->route_schedule_mstr_id;
-                                            $successSave = $newTrip->save();
-                                            if($successSave){
-                                                $this->saveTicketSales($request->tickets);
-                                            }
-                                        } else {
-                                            return response()->json([
-                                                'success' => false,
-                                                'data' => "Bus ID is not exist in database",
-                                            ]);
-                                        }
-                                    } else {
-                                        return response()->json([
-                                            'success' => false,
-                                            'data' => "Wrong route specified in schedule",
-                                        ]);
-                                    }
-                                } else {
-                                    return response()->json([
-                                        'success' => false,
-                                        'data' => "Route ID is not exist in database",
-                                    ]);
-                                }
-                            } else {
-                                return response()->json([
-                                    'success' => false,
-                                    'data' => "Bus Driver ID is not exist in database",
-                                ]);
-                            }
-                        } else {
-                            return response()->json([
-                                'success' => false,
-                                'data' => "Schedule ID is not exist in database",
-                            ]);
-                        }
-                    }else {
-                        return response()->json([
-                            'success' => false,
-                            'data' => "PDA ID is not exist in database",
-                        ]);
-                    }
-                }else {
-                    return response()->json([
-                        'success' => false,
-                        'data' => "Trip ID is already exist in database",
-                    ]);
-                }
-            }
-        }
-
-        return response()->json([
-            'success' => false,
-            'data' => "Failed to save into the database",
-        ]);
-    }
-
-    public function saveTicketSales(Request $request){
-        $walletDeduct = 0.0;
-        $tickets = json_decode($request->tickets);
-
-        if (count($tickets) > 0) {
-            for ($i = 0; $i < count($tickets); $i++) {
-                //Check pda_id exist in db
-                $existedPDA = PDAProfile::where('id', $tickets[$i]->pda_id)->first();
-                if($existedPDA){
-                    //check bus stand_in_id
-                    $existedBusStandIn = BusStand::where('id', $tickets[$i]->bus_stand_out_id)->first();
-                    if($existedBusStandIn){
-                        //check bus stand_out_id
-                        $existedBusStandOut = BusStand::where('id', $tickets[$i]->bus_stand_out_id)->first();
-                        if($existedBusStandOut){
-                            //check route_id
-                            $existedRoute = Route::where('id', $tickets[$i]->route_id)->first();
-                            if($existedRoute) {
-                                //check bus_driver_id
-                                $existedBus = BusDriver::where('id', $tickets[$i]->bus_driver_id)->first();
-                                if ($existedBus) {
-                                    //check fromstage_stage_id
-                                    $existedStageFrom = Stage::where('id', $tickets[$i]->fromstage_stage_id)->first();
-                                    if ($existedStageFrom) {
-                                        //check tostage_stage_id
-                                        $existedStageTo = Stage::where('id', $tickets[$i]->tostage_stage_id)->first();
-                                        if ($existedStageTo) {
-                                            //check trip_id
-                                            $existedTrip = TripDetail::where('id', $tickets[$i]->trip_id)->first();
-                                            if ($existedTrip) {
-                                                $newTicket = new TicketSalesTransaction();
-                                                $newTicket->amount = $tickets[$i]->amount ;
-                                                $newTicket->fare_type = $tickets[$i]->fare_type ;
-                                                $newTicket->pda_transaction_id = $tickets[$i]->pda_transaction_id;
-                                                $newTicket->sales_date = $tickets[$i]->sales_date;
-                                                $newTicket->upload_date = $tickets[$i]->upload_date;
-                                                $newTicket->bus_id = $tickets[$i]->bus_id;
-                                                $newTicket->bus_driver_id = $tickets[$i]->bus_driver_id ;
-                                                $newTicket->fromstage_stage_id = $tickets[$i]->fromstage_stage_id;
-                                                $newTicket->route_id = $tickets[$i]->route_id;
-                                                $newTicket->sector_id = $tickets[$i]->sector_id ;
-                                                $newTicket->tostage_stage_id = $tickets[$i]->tostage_stage_id;
-                                                $newTicket->ticket_number = $tickets[$i]->ticket_number;
-                                                $newTicket->actual_amount = $tickets[$i]->actual_amount;
-                                                $newTicket->bus_stand_in_id = $tickets[$i]->bus_stand_in_id;
-                                                $newTicket->bus_stand_out_id = $tickets[$i]->bus_stand_out_id;
-                                                $newTicket->passenger_type = $tickets[$i]->passenger_type;
-                                                $successSave = $newTicket->save();
-
-                                                if($successSave) {
-                                                    if ($tickets[$i]->fare_type == 1){
-                                                        $walletDeduct += $tickets[$i]->actual_amount;
-                                                    }
-                                                }
-
-                                            }else {
-                                                return response()->json([
-                                                    'success' => false,
-                                                    'data' => "Trip ID is not exist in database",
-                                                ]);
-                                            }
-                                        }else {
-                                            return response()->json([
-                                                'success' => false,
-                                                'data' => "To Stage ID is not exist in database",
-                                            ]);
-                                        }
-                                    }else {
-                                        return response()->json([
-                                            'success' => false,
-                                            'data' => "From Stage ID is not exist in database",
-                                        ]);
-                                    }
-                                }else {
-                                    return response()->json([
-                                        'success' => false,
-                                        'data' => "Bus ID is not exist in database",
-                                    ]);
-                                }
-                            }else {
-                                return response()->json([
-                                    'success' => false,
-                                    'data' => "Route ID is not exist in database",
-                                ]);
-                            }
-                        }else {
-                            return response()->json([
-                                'success' => false,
-                                'data' => "Bus Stand Out ID is not exist in database",
-                            ]);
-                        }
-                    }else {
-                        return response()->json([
-                            'success' => false,
-                            'data' => "Bus Stand In ID is not exist in database",
-                        ]);
-                    }
-                }else {
-                    return response()->json([
-                        'success' => false,
-                        'data' => "PDA ID is not exist in database",
-                    ]);
-                }
-            }
-            $driverWallet = new DriverWalletRecord();
-            $driverWallet->driver_id = $
-            $driverWallet = DriverWalletRecord::
-
-        }
-        return response()->json([
-            'success' => false,
-            'data' => "Failed to save into the database",
-        ]);
-    }*/
 
     public function checkPDA(Request $request){
         $validator = Validator::make($request->all(), [
@@ -683,7 +405,87 @@ class ApiController extends Controller
         }
     }
 
-    public function saveTicketSalesTransaction(Request $request){
+    public function saveVehiclePosition(Request $request){
+        $validator = Validator::make($request->all(), [
+            'pda_imei' => 'required',
+            'latitude' => 'required',
+            'longitude' => 'required',
+            'altitude' => 'required',
+            'date_time' => 'required',
+            'speed' => 'required',
+            'satellite_count' => 'required',
+            'hdop' => 'required',
+            'd2d3' => 'required',
+            'rssi' => 'required',
+            'cell_id' => 'required',
+            'mcc' => 'required',
+            'msg_id' => 'required',
+            'activity_id' => 'required',
+            'addon_json' => 'required',
+            'bus_id' => 'required',
+            'driver_id' => 'required',
+            'trip_id' => 'required',
+            'phms_id' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->messages()->first(),
+            ]);
+        }
+
+        $checkBus = Bus::where('id', $request->bus_id)->first();
+        if(empty($checkBus)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Bus ID is not existed in the database"
+            ]);
+        }
+
+        $checkDriver = BusDriver::where('id', $request->driver_id)->first();
+        if(empty($checkDriver)){
+            return response()->json([
+                'success' => false,
+                'message' => "Driver ID is not existed in the database"
+            ]);
+        }
+       
+        $new = new VehiclePosition();
+        // $new->pda_imei = $request->pda_imei;
+        // $new->latitude = $request->latitude;
+        // $new->longitude = $request->longitude;
+        // $new->altitude = $request->altitude;
+        // $new->date_time = $request->date_time;
+        // $new->speed = $request->speed;
+        // $new->satellite_count = $request->satellite_count;
+        // $new->hdop = $request->hdop;
+        // $new->d2d3 = $request->d2d3;
+        // $new->rssi = $request->rssi;
+        // $new->cell_id = $request->cell_id;
+        // $new->mcc = $request->mcc;
+        // $new->msg_id = $request->msg_id;
+        // $new->activity_id = $request->activity_id;
+        // $new->addon_json = $request->addon_jsond;
+        // $new->bus_id = $request->bus_id;
+        // $new->driver_id = $request->driver_id;
+        // $new->trip_id = $request->trip_id;
+        // $new->phms_id = $request->phms_id;
+       
+        $success = $new->create($request->all());
+        if($success){
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully added the vechicle position!"
+            ]);
+        }
+        return response()->json([
+            'success' => false,
+            'message' => "Failed to add the vechicle position!"
+        ]);
+    }
+
+    /*public function saveTicketSalesTransaction(Request $request){
         $validator = Validator::make($request->all(), [
             'amount' => 'required',
             'fare_type' => 'required',
@@ -750,7 +552,5 @@ class ApiController extends Controller
             'success' => true,
             'message' => "Successfully updated the wallet balance!"
         ]);
-    }
-
-
+    }*/
 }

@@ -107,6 +107,7 @@ function updateCollectionByCompanyBarView(collectionCompanyName,collectionData)
 }
 function updateCurrentOnlineView(passengerType)
 {
+    //alert(passengerType);
     $(function() {
         var data = {
             series: passengerType

@@ -67,7 +67,6 @@
                                 <td style="text-align: center;">{{ $key2 }}</td>
                                 <td style="text-align: center;">{{ $key3 }}</td>
                                 @foreach($allBusStand as $key5 => $perBusStand)
-                                    @php dd($allBusStand) @endphp
                                     <td style="text-align: center;">{{ $perBusStand }}</td>
                                 @endforeach
                             </tr>

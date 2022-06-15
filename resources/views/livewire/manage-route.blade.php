@@ -9,6 +9,10 @@
             <i class="fa fa-file-upload mr-1 fa-fw"></i>
             Upload KML File
         </button>
+        <button wire:click.prevent="extractExcel" class="buttonDownload btn btn-gray-800 d-inline-flex align-items-center me-2">
+            <i class="fa fa-file-download mr-1 fa-fw"></i>
+            Extract to Excel
+        </button>
     </div>
     <div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline"  >
@@ -337,7 +341,7 @@
             $('#modalEdit').modal('hide');
             toastr.error(event.detail.message, 'Failed! Route name already exist!');
         });
-
+        
         window.addEventListener('show-delete-modal', event => {
             $('#confirmationModal').modal('show');
         });

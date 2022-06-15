@@ -10,14 +10,12 @@
             @endforeach
         </select>
 
-        @if (!is_null($selectedCompany))
-            <select wire:model="selectedRoute" class="form-select fmxw-200 d-none d-md-inline"  >
-                <option value="">Choose Route</option>
-                @foreach($routes as $route)
-                    <option value="{{$route->id}}">{{$route->route_name}}</option>
-                @endforeach
-            </select>
-        @endif
+        <select wire:model="selectedRoute" class="form-select fmxw-200 d-none d-md-inline"  >
+            <option value="">Choose Route</option>
+            @foreach($routes as $route)
+                <option value="{{$route->id}}">{{$route->route_name}}</option>
+            @endforeach
+        </select>
     </div>
     <br>
 

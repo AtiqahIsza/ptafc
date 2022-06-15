@@ -2,7 +2,7 @@
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Bus Stand</h2>
     </div>
-    <div class="col-9 col-lg-8 d-md-flex">
+    <div class="d-block mb-md-0" style="position: relative">
         <select wire:model="selectedCompany" class="form-select fmxw-200 d-none d-md-inline">
             <option value="">Choose Company</option>
             @foreach($companies as $company)
@@ -10,14 +10,12 @@
             @endforeach
         </select>
 
-        @if (!is_null($selectedCompany))
         <select wire:model="selectedRoute" class="form-select fmxw-200 d-none d-md-inline">
             <option value="">Choose Route</option>
             @foreach($routes as $route)
                 <option value="{{$route->id}}">{{$route->route_name}}</option>
             @endforeach
         </select>
-        @endif
     </div>
 
     @if (!is_null($selectedRoute))

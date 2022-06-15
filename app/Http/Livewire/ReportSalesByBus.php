@@ -93,7 +93,7 @@ class ReportSalesByBus extends Component
                     $AllTrips = [];
                     $trip = 0;
                     $firstDate = new Carbon($all_date);
-                    $lastDate = new Carbon($all_date . '11:59:59');
+                    $lastDate = new Carbon($all_date . '23:59:59');
                     $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
                         ->where('bus_id', $busDetails->id)
                         ->orderby('start_trip')
@@ -101,7 +101,7 @@ class ReportSalesByBus extends Component
 
                     if (count($tripPerDates) > 0) {
                         foreach ($tripPerDates as $tripDetails) {
-                            $perTrip['trip_number'] = $tripDetails->trip_number;
+                            $perTrip['trip_number'] = 'T'. $tripDetails->id;
                             $perTrip['status'] = 'Closed';
                             $perTrip['creation_by'] = $tripDetails->start_trip;
                             $perTrip['closed_by'] = $tripDetails->end_trip;
@@ -123,8 +123,19 @@ class ReportSalesByBus extends Component
                                 foreach ($ticketSaleTransaction as $ticketSale) {
                                     $perTicket['sales_date'] = $ticketSale->sales_date;
                                     $perTicket['ticket_number'] = $ticketSale->ticket_number;
-                                    $perTicket['from'] = $ticketSale->fromstage->stage_name;
-                                    $perTicket['to'] = $ticketSale->tostage->stage_name;
+
+                                    if($ticketSale->fromstage_stage_id != NULL){
+                                        $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                    }else{
+                                        $perTicket['from'] = 'No Data';
+                                    }
+
+                                    if($ticketSale->tostage_stage_id != NULL){
+                                        $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                    }else{
+                                        $perTicket['to'] = 'No Data';
+                                    } 
+                                    
                                     if ($ticketSale->passenger_type == 0) {
                                         $perTicket['Type'] = 'ADULT';
                                     } else {
@@ -165,8 +176,8 @@ class ReportSalesByBus extends Component
                             }
 
                             $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
-                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
-                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+                                $all_date . ' ' . $tripDetails->start_trip . ' - ' .
+                                $all_date . ' ' . $tripDetails->end_trip;
 
                             $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
 
@@ -176,7 +187,7 @@ class ReportSalesByBus extends Component
                             $perSale['total_cancelled'] = $totalCancelled;
                             $perSale['total_by'] = $totalBy;
 
-                            $total_trip[$tripDetails->trip_number] = $perTrip;
+                            $total_trip['T'. $tripDetails->id] = $perTrip;
                             $total_trip['all_tickets'] = $allTickets;
                             $total_trip['total_sales_per_trip'] = $perSale;
                             $AllTrips[$trip++] = $total_trip;
@@ -235,7 +246,7 @@ class ReportSalesByBus extends Component
                         $AllTrips = [];
                         $trip = 0;
                         $firstDate = new Carbon($all_date);
-                        $lastDate = new Carbon($all_date . '11:59:59');
+                        $lastDate = new Carbon($all_date . '23:59:59');
                         $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
                             ->where('bus_id', $busPerCompany->id)
                             ->orderby('start_trip')
@@ -243,7 +254,7 @@ class ReportSalesByBus extends Component
 
                         if (count($tripPerDates) > 0) {
                             foreach ($tripPerDates as $tripDetails) {
-                                $perTrip['trip_number'] = $tripDetails->trip_number;
+                                $perTrip['trip_number'] = 'T'. $tripDetails->id;
                                 $perTrip['status'] = 'Closed';
                                 $perTrip['creation_by'] = $tripDetails->start_trip;
                                 $perTrip['closed_by'] = $tripDetails->end_trip;
@@ -265,8 +276,21 @@ class ReportSalesByBus extends Component
                                     foreach ($ticketSaleTransaction as $ticketSale) {
                                         $perTicket['sales_date'] = $ticketSale->sales_date;
                                         $perTicket['ticket_number'] = $ticketSale->ticket_number;
-                                        $perTicket['from'] = $ticketSale->fromstage->stage_name;
-                                        $perTicket['to'] = $ticketSale->tostage->stage_name;
+
+                                        if($ticketSale->fromstage_stage_id != NULL){
+                                            $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                        }else{
+                                            $perTicket['from'] = 'No Data';
+                                        }
+                                        
+                                        if($ticketSale->tostage_stage_id != NULL){
+                                            $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                        }else{
+                                            $perTicket['to'] = 'No Data';
+                                        }
+
+                                
+
                                         if ($ticketSale->passenger_type == 0) {
                                             $perTicket['Type'] = 'ADULT';
                                         } else {
@@ -307,8 +331,8 @@ class ReportSalesByBus extends Component
                                 }
 
                                 $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
-                                    $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
-                                    $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+                                    $all_date . ' ' . $tripDetails->start_trip . ' - ' .
+                                    $all_date . ' ' . $tripDetails->end_trip;
 
                                 $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
 
@@ -318,7 +342,7 @@ class ReportSalesByBus extends Component
                                 $perSale['total_cancelled'] = $totalCancelled;
                                 $perSale['total_by'] = $totalBy;
 
-                                $total_trip[$tripDetails->trip_number] = $perTrip;
+                                $total_trip['T'. $tripDetails->id] = $perTrip;
                                 $total_trip['all_tickets'] = $allTickets;
                                 $total_trip['total_sales_per_trip'] = $perSale;
                                 $AllTrips[$trip++] = $total_trip;
@@ -378,7 +402,7 @@ class ReportSalesByBus extends Component
                     $AllTrips = [];
                     $trip = 0;
                     $firstDate = new Carbon($all_date);
-                    $lastDate = new Carbon($all_date . '11:59:59');
+                    $lastDate = new Carbon($all_date . '23:59:59');
                     $tripPerDates = TripDetail::whereBetween('start_trip', [$firstDate, $lastDate])
                         ->where('bus_id', $allBus->id)
                         ->orderby('start_trip')
@@ -386,7 +410,7 @@ class ReportSalesByBus extends Component
 
                     if (count($tripPerDates) > 0) {
                         foreach ($tripPerDates as $tripDetails) {
-                            $perTrip['trip_number'] = $tripDetails->trip_number;
+                            $perTrip['trip_number'] = 'T'. $tripDetails->id;
                             $perTrip['status'] = 'Closed';
                             $perTrip['creation_by'] = $tripDetails->start_trip;
                             $perTrip['closed_by'] = $tripDetails->end_trip;
@@ -409,8 +433,25 @@ class ReportSalesByBus extends Component
                                 foreach ($ticketSaleTransaction as $ticketSale) {
                                     $perTicket['sales_date'] = $ticketSale->sales_date;
                                     $perTicket['ticket_number'] = $ticketSale->ticket_number;
-                                    $perTicket['from'] = $ticketSale->fromstage->stage_name;
-                                    $perTicket['to'] = $ticketSale->tostage->stage_name;
+
+                                    if($ticketSale->fromstage_stage_id != NULL){
+                                        $perTicket['from'] = $ticketSale->fromstage->stage_name;
+                                    }else{
+                                        $perTicket['from'] = 'No Data';
+                                    }
+                                    
+                                    if($ticketSale->tostage_stage_id != NULL){
+                                        $perTicket['to'] = $ticketSale->tostage->stage_name;
+                                    }else{
+                                        $perTicket['to'] = 'No Data';
+                                    } 
+                                    
+                                    if ($ticketSale->passenger_type == 0) {
+                                        $perTicket['Type'] = 'ADULT';
+                                    } else {
+                                        $perTicket['Type'] = 'CONCESSION';
+                                    }
+
                                     if ($ticketSale->passenger_type == 0) {
                                         $perTicket['Type'] = 'ADULT';
                                     } else {
@@ -451,8 +492,8 @@ class ReportSalesByBus extends Component
                             }
 
                             $perTrip['trip_details'] = 'T' . $tripDetails->id . ' - ' .
-                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_start_time . ' - ' .
-                                $all_date . ' ' . $tripDetails->RouteScheduleMSTR->schedule_end_time;
+                                $all_date . ' ' . $tripDetails->start_trip . ' - ' .
+                                $all_date . ' ' . $tripDetails->end_trip;
 
                             $totalBy = $totalCash + $totalCard + $totalTouchNGo + $totalCancelled;
 
@@ -462,7 +503,7 @@ class ReportSalesByBus extends Component
                             $perSale['total_cancelled'] = $totalCancelled;
                             $perSale['total_by'] = $totalBy;
 
-                            $total_trip[$tripDetails->trip_number] = $perTrip;
+                            $total_trip['T'. $tripDetails->id] = $perTrip;
                             $total_trip['all_tickets'] = $allTickets;
                             $total_trip['total_sales_per_trip'] = $perSale;
                             $AllTrips[$trip++] = $total_trip;

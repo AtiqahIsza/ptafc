@@ -88,7 +88,7 @@ class ReportSalesByRoute extends Component
                         $totalSales =0;
                         foreach ($all_dates as $all_date) {
                             $firstDate = new Carbon($all_date);
-                            $lastDate = new Carbon($all_date . '11:59:59');
+                            $lastDate = new Carbon($all_date . '23:59:59');
                             $countQty = 0;
                             $sales = 0.0;
 
@@ -140,7 +140,7 @@ class ReportSalesByRoute extends Component
         $grandSales=0;
         foreach ($all_dates as $all_date) {
             $firstDate = new Carbon($all_date);
-            $lastDate = new Carbon($all_date . '11:59:59');
+            $lastDate = new Carbon($all_date . '23:59:59');
             $totalQty = 0;
             $totalSales = 0.0;
 

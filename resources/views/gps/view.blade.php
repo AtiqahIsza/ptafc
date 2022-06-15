@@ -1,6 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
+    <div class="row">
+        @if (session()->has('message'))
+            <div class="alert alert-success">
+                {{ session('message') }}
+            </div>
+        @endif
+        @livewire('gps-history',  ['buses' => $buses, 'date' => $date])
+    </div>
+    <div
+        class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">
+    </div>
+@endsection
+
+{{-- @section('content')
     <!-- Map Script -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCGDHu1sOYoepvEmSLmatyJVGNvCCONh48&libraries=drawing&callback=initMap&v=weekly&channel=2"> </script>
     <script>
@@ -104,5 +118,5 @@
             </div>
         </div>
     </div>
-@endsection
+@endsection --}}
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+//trip_id == trip_number in trip_details
 class VehiclePosition extends Model
 {
     use HasFactory;
@@ -33,7 +34,9 @@ class VehiclePosition extends Model
         'activity_id',
         'addon_json',
         'bus_id',
-        'driver_id'
+        'driver_id',
+        'trip_id',
+        'phms_id'
     ];
 
     function Bus() {
@@ -41,5 +44,8 @@ class VehiclePosition extends Model
     }
     function Driver() {
         return $this->belongsTo(BusDriver::class, 'driver_id', 'id');
+    }
+    function TripDetails() {
+        return $this->belongsTo(TripDetail::class, 'trip_id', 'trip_number');
     }
 }

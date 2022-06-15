@@ -57,9 +57,9 @@
     @foreach($reports as $key1 => $reportValue)
         @foreach($reportValue as $key2 => $allTickets)
             <tr>
-                <td>{{$key2}}</td>
+                <td style="text-align: center;">{{$key2}}</td>
                 @foreach($allTickets as $key3 => $data)
-                    <td>{{$data}}</td>
+                    <td style="text-align: center;">{{$data}}</td>
                 @endforeach
             </tr>
         @endforeach

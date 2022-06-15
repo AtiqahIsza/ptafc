@@ -1,21 +1,21 @@
 <table style="border-color: #000000; border-style: solid;">
     <thead>
     <tr>
-        <th colspan="12" style="vertical-align: middle; text-align: center;">
+        <th colspan="9" style="vertical-align: middle; text-align: center;">
             <strong>Daily Details Report</strong>
         </th>
     </tr>
     <tr>
-        <td colspan="12">&nbsp;</td>
+        <td colspan="9">&nbsp;</td>
     </tr>
     <tr>
-        <th colspan="12">
+        <th colspan="9">
             <strong>Date: {{$dateDaily}}</strong>
         </th>
     </tr>
     <tr>
-        <th colspan="12">
-            <strong> Company: {{$dateDaily}}</strong>
+        <th colspan="9">
+            <strong> Company: {{$companyName}}</strong>
         </th>
     </tr>
     </thead>
@@ -23,17 +23,14 @@
     <tbody>
     <tr>
         <td style="text-align: center;"><strong>No</strong></td>
-        <td style="text-align: center;"><strong>Bus Number</strong></td>
+        <td style="text-align: center;"><strong>Bus Registration Number</strong></td>
         <td style="text-align: center;"><strong>Route Name</strong></td>
         <td style="text-align: center;"><strong>Route Number</strong></td>
-        <td style="text-align: center;"><strong>Number of Trip per Day(One way)</strong></td>
-        <td style="text-align: center;"><strong>Actual Distance per Day (One way)</strong></td>
-        <td style="text-align: center;"><strong>Number of Trip per Day</strong></td>
-        <td style="text-align: center;"><strong>Actual Distance per Day</strong></td>
-        <td style="text-align: center;"><strong>Total Operated Bus</strong></td>
-        <td style="text-align: center;"><strong>Total Dead Distance</strong></td>
-        <td style="text-align: center;"><strong>Total Distance</strong></td>
-        <td style="text-align: center;"><strong>Income Based on Transport Letter</strong></td>
+        <td style="text-align: center;"><strong>Actual Distance One Way (KM)</strong></td>
+        <td style="text-align: center;"><strong>Number of Bus</strong></td>
+        <td style="text-align: center;"><strong>Total Trip</strong></td>
+        <td style="text-align: center;"><strong>Total Actual Distance</strong></td>
+        <td style="text-align: center;"><strong>Total Fareship</strong></td>
     </tr>
     @foreach($contents as $key1 => $data)
         @foreach($data['data'] as $key2 => $route)

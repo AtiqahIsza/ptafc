@@ -1,30 +1,22 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage PDA</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEdit">
+        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
             <i class="fa fa-plus-circle mr-1 fa-fw"></i>
             Add PDA
         </button>
     </div>
     <div class="d-block mb-md-0" style="position: relative">
-        <select wire:model="selectedRegion" class="form-select fmxw-200 d-none d-md-inline">
-            <option value="">Choose Region</option>
-            @foreach($regions as $region)
-                <option value="{{$region->id}}">{{$region->description}}</option>
+        <select wire:model="selectedCompany"  class="form-select fmxw-200 d-none d-md-inline">
+            <option value="">Choose Company</option>
+            @foreach($companies as $company)
+                <option value="{{$company->id}}">{{$company->company_name}}</option>
             @endforeach
         </select>
-
-        @if (!is_null($selectedRegion))
-            <select wire:model="selectedCompany"  class="form-select fmxw-200 d-none d-md-inline">
-                <option value="">Choose Company</option>
-                @foreach($companies as $company)
-                    <option value="{{$company->id}}">{{$company->company_name}}</option>
-                @endforeach
-            </select>
-        @endif
     </div>
 
     @if (!is_null($selectedCompany))
+        <br>
         <div class="card card-body border-0 shadow table-wrapper table-responsive">
             <h2 class="mb-4 h5">{{ __('All PDAs') }}</h2>
             <table class="table table-hover">
@@ -110,62 +102,23 @@
                                 @endif
                             </div>
                         </div>
-                        @if($showEditModal)
-                            <div class="form-group mb-4">
-                                <label for="region">Region</label>
-                                <div class="input-group">
+                        <div class="form-group mb-4">
+                            <label for="company">Company</label>
+                            <div class="input-group">
                                 <span class="input-group-text" id="basic-addon1">
-                                     <i class="fa fa-project-diagram"></i>
+                                    <i class="fas fa-building fa-fw"></i>
                                 </span>
-                                    <select wire:model="state.region_id" id="region" class="form-select border-gray-300"  autofocus required>
-                                        <option value="">Choose Region</option>
-                                        @foreach($regionModals as $regionModal)
-                                            <option value="{{$regionModal->id}}">{{$regionModal->description}}</option>
-                                        @endforeach
-                                    </select>
-                                    @if ($errors->has('region'))
-                                        <span class="text-danger">{{ $errors->first('region') }}</span>
-                                    @endif
-                                </div>
+                                <select wire:model.defer="state.company_id" class="form-select border-gray-300"  autofocus required>
+                                    <option value="">Choose Company</option>
+                                    @foreach($companyModals as $companyModal)
+                                        <option value="{{$companyModal->id}}">{{$companyModal->company_name}}</option>
+                                    @endforeach
+                                </select>
+                                @if ($errors->has('company'))
+                                    <span class="text-danger">{{ $errors->first('company') }}</span>
+                                @endif
                             </div>
-                        @else
-                            <div class="form-group mb-4">
-                                <label for="region">Region</label>
-                                <div class="input-group">
-                                <span class="input-group-text" id="basic-addon1">
-                                     <i class="fa fa-project-diagram"></i>
-                                </span>
-                                    <select wire:model="selectedRegionModal" id="region" class="form-select border-gray-300" autofocus required>
-                                        <option value="">Choose Region</option>
-                                        @foreach($regionModals as $regionModal)
-                                            <option value="{{$regionModal->id}}">{{$regionModal->description}}</option>
-                                        @endforeach
-                                    </select>
-                                    @if ($errors->has('region'))
-                                        <span class="text-danger">{{ $errors->first('region') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-                        @if($selectedRegionModal)
-                            <div class="form-group mb-4">
-                                <label for="company">Company</label>
-                                <div class="input-group">
-                                    <span class="input-group-text" id="basic-addon1">
-                                        <i class="fas fa-building fa-fw"></i>
-                                    </span>
-                                    <select wire:model.defer="state.company_id" class="form-select border-gray-300"  autofocus required>
-                                        <option value="">Choose Company</option>
-                                        @foreach($companyModals as $companyModal)
-                                            <option value="{{$companyModal->id}}">{{$companyModal->company_name}}</option>
-                                        @endforeach
-                                    </select>
-                                    @if ($errors->has('company'))
-                                        <span class="text-danger">{{ $errors->first('company') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
+                        </div>
                         <div class="form-group mb-4">
                             <label for="status">Status</label>
                             <div class="input-group">
@@ -205,4 +158,27 @@
         {{--{{ $users->links() }}--}}
     </div>
 </div>
+@push('script')
+    <script>
+        window.addEventListener('show-add-form', event => {
+            $('#modalEdit').modal('show');
+        });
+        window.addEventListener('hide-add-form', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'New PDA added successfully!');
+        });
+        window.addEventListener('hide-failed-add', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Failed to add a new PDA!');
+        });
+        window.addEventListener('hide-edit-form', event => {
+            $('#modalEdit').modal('hide');
+            toastr.success(event.detail.message, 'PDA updated successfully!');
+        });
+        window.addEventListener('hide-failed-edit', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Failed to edit PDA details!');
+        });
+    </script>
+@endpush
 

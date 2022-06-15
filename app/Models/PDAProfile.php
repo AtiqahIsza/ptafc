@@ -17,15 +17,10 @@ class PDAProfile extends Model
         'imei',
         'date_created',
         'date_registered',
-        'region_id',
         'company_id',
         'pda_key',
         'status'
     ];
-
-    function Region() {
-        return $this->belongsTo(RegionCode::class, 'region_id', 'id');
-    }
 
     function Company() {
         return $this->belongsTo(Company::class, 'company_id', 'id');

@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Illuminate\Support\Facades\DB;
 
 class VehiclePositionController extends Controller
 {
@@ -26,27 +27,72 @@ class VehiclePositionController extends Controller
             'bus_id' => ['required', 'int'],
         ])->validate();
 
-        $dateFrom = new Carbon($validatedData['dateChoose']);
-        $dateTo = new Carbon($validatedData['dateChoose'] . '23:59:59');
-
-        $out->writeln("bus: " . $validatedData['bus_id']);
-        $out->writeln("datefrom: " . $dateFrom);
-        $out->writeln("dateto: " . $dateTo);
-
-        $buses = Bus::where('id',$validatedData['bus_id'])->first();
+        $buses = $validatedData['bus_id'];
         $date = $validatedData['dateChoose'];
-        $vehiclePosition = VehiclePosition::select('latitude', 'longitude', 'speed')
-            ->where('bus_id', $validatedData['bus_id'])
-            ->whereBetween('date_time', [$dateFrom, $dateTo])
-            ->orderby('date_time')
-            ->get();
 
-        if(count($vehiclePosition)>0){
+        return view('gps.view', compact('buses', 'date'));
+    }
+
+    public function showRealtime()
+    {
+        return view('gps.realtime');
+    }
+    
+    public function viewRealtime(Request $request)
+    {
+        $allData = VehiclePosition::where('id', $request->route('id'))->first();
+        $vehiclePosition = VehiclePosition::select('latitude', 'longitude', 'speed')
+            ->where('id', $request->route('id'))
+            ->first();
+        $viewedBus = Bus::where('id', $allData->bus_id)->first();
+        $viewedDate = $allData->date_time;
+
+        if($vehiclePosition){
             $exist = true;
         }else{
             $exist = false;
         }
 
-        return view('gps.view', compact('vehiclePosition','buses','date','exist'));
+        return view('gps.view-realtime', compact('vehiclePosition','viewedBus','viewedDate','exist'));
+    }
+
+    public function viewSummary()
+    {
+        $currentDate = Carbon::now();
+
+        $join = DB::table('vehicle_position')
+                ->select('bus_id', DB::raw('MAX(id) as last_id'))
+                ->groupBy('bus_id');
+
+        $allBus = DB::table('vehicle_position as a')
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $onlineBus = DB::table('vehicle_position as a')
+            ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) < '00:10:00'")
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $stationaryBus = DB::table('vehicle_position as a')
+            ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) >=  '00:10:00'")
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        $offlineBus = DB::table('vehicle_position as a')
+            ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) >=  1")
+            ->joinSub($join, 'b', function ($join) {
+                $join->on('a.id', '=', 'b.last_id');
+            })
+            ->count();
+
+        return view('gps.summary', compact('allBus','onlineBus','stationaryBus','offlineBus'));
     }
 }

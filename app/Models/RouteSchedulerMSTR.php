@@ -11,7 +11,21 @@ class RouteSchedulerMSTR extends Model
     protected $table = 'route_scheduler_mstr';
     public $timestamps = false;
 
-    //trip_type(weekday=2/weekend=1)
+    /** trip_type
+     * 1 - weekday
+     * 2 - weekend
+     * 3 - allday
+     * 4 - alldayExceptFriday
+     * 5 - alldayExceptSunday
+     * 6 - MONDAY to THURSDAY
+     * 7 - Friday only
+     * 8 - Saturday only
+     * 9 - All Day Except Friday & Sunday
+     * 10 - All Day (Except Friday and Saturday)
+     * 11 - SUNDAY only
+     * )
+     */
+    //trip_code(inbound=1/outbound=0)
     protected $fillable = [
         'id',
         'schedule_start_time',
@@ -23,10 +37,16 @@ class RouteSchedulerMSTR extends Model
         'outbound_distance',
         'status',
         'trip_type',
+        'trip_code',
+        'bus_id',
     ];
 
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'id');
+    }
+
+    function Bus() {
+        return $this->belongsTo(Bus::class, 'bus_id', 'id');
     }
 
     function inbus() {

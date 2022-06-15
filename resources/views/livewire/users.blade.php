@@ -1,10 +1,12 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Users</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
-            <i class="fa fa-plus-circle mr-1 fa-fw"></i>
-            Add User
-        </button>
+        @if(Auth::user()->user_role==1)
+            <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#modalEditUser">
+                <i class="fa fa-plus-circle mr-1 fa-fw"></i>
+                Add User
+            </button>
+        @endif
     </div>
     <div class="card card-body border-0 shadow table-wrapper table-responsive">
         <livewire:user-table/>
@@ -178,34 +180,34 @@
                         </div>
 
                         @if($showEditModal==false)
-                        <div class="form-group mb-4">
-                            <label for="password">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon2">
-                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </span>
-                                <input wire:model.defer="state.password" type="password" placeholder="{{ __('Password') }}" class="form-control border-gray-300" id="password" required>
+                            <div class="form-group mb-4">
+                                <label for="password">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon2">
+                                        <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </span>
+                                    <input wire:model.defer="state.password" type="password" placeholder="{{ __('Password') }}" class="form-control border-gray-300" id="password" required>
+                                </div>
+                                @if ($errors->has('password'))
+                                    <span class="text-danger">{{ $errors->first('password') }}</span>
+                                @endif
                             </div>
-                            @if ($errors->has('password'))
-                                <span class="text-danger">{{ $errors->first('password') }}</span>
-                            @endif
-                        </div>
-                        <div class="form-group mb-4">
-                            <label for="password_confirmation">Confirm Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="basic-addon3">
-                                    <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </span>
-                                <input wire:model.defer="state.password_confirmation" type="password" placeholder="{{ __('Confirm Password') }}" class="form-control border-gray-300" id="password_confirmation" required>
+                            <div class="form-group mb-4">
+                                <label for="password_confirmation">Confirm Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon3">
+                                        <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </span>
+                                    <input wire:model.defer="state.password_confirmation" type="password" placeholder="{{ __('Confirm Password') }}" class="form-control border-gray-300" id="password_confirmation" required>
+                                </div>
+                                @if ($errors->has('password_confirmation'))
+                                    <span class="text-danger">{{ $errors->first('password_confirmation') }}</span>
+                                @endif
                             </div>
-                            @if ($errors->has('password_confirmation'))
-                                <span class="text-danger">{{ $errors->first('password_confirmation') }}</span>
-                            @endif
-                        </div>
                         @endif
 
                         <div class="d-grid">
@@ -219,6 +221,7 @@
                         </div>
                     </form>
                 </div>
+                <div class="modal-header"></div>
             </div>
         </div>
     </div>

@@ -19,9 +19,10 @@ class SPADIsbsf implements FromView, WithStyles, ShouldAutoSize
     public $sheet;
     public $months;
     public $days;
+    public $networkArea;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo, $colspan, $allDates, $months, $days)
+    public function __construct($data, $dateFrom, $dateTo, $colspan, $allDates, $months, $days, $networkArea)
     {
         $this->months = $months;
         $this->days = $days;
@@ -30,6 +31,7 @@ class SPADIsbsf implements FromView, WithStyles, ShouldAutoSize
         $this->toDate = $dateTo;
         $this->allDates = $allDates;
         $this->colspan = $colspan;
+        $this->networkArea = $networkArea;
     }
 
     public function view(): View
@@ -42,7 +44,8 @@ class SPADIsbsf implements FromView, WithStyles, ShouldAutoSize
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate,
             'allDates'=> $this->allDates,
-            'colspan'=> $this->colspan
+            'colspan'=> $this->colspan,
+            'networkArea' => $this->networkArea
         ]);
     }
 
