@@ -20,12 +20,17 @@ class SalesByBus implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
     public $companies;
+    public $fromDate;
+    public $toDate;
     public $sheet;
 
     //The constructor passes by value
-    public function __construct($data,$companyName)    {
+    public function __construct($data,$companyName,$dateFrom, $dateTo)    
+    {
         $this->reports = $data;
         $this->companies = $companyName;
+        $this->fromDate = $dateFrom;
+        $this->toDate = $dateTo;
     }
 
     public function view(): View
@@ -33,7 +38,9 @@ class SalesByBus implements FromView, WithStyles, ShouldAutoSize
         //dd( $this->reports);
         return view('exports.salesbybus', [
             'reports' => $this->reports,
-            'company' => $this->companies
+            'company' => $this->companies,
+            'dateFrom' => $this->fromDate,
+            'dateTo' => $this->toDate,
         ]);
     }
 

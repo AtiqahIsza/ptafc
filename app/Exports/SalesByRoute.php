@@ -14,19 +14,26 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
+    public $routeName;
+    public $networkArea;
+    public $dateFrom;
+    public $dateTo;
     public $grandTotal;
     public $range = [];
     public $colspan;
 
     public $sheet;
 
-    public function __construct($data, $grand, $dates, $colspan)
+    public function __construct($data, $grand, $dates, $colspan, $routeName, $networkArea, $dateFrom, $dateTo)
     {
         $this->reports = $data;
         $this->grandTotal = $grand;
         $this->range = $dates;
         $this->colspan = $colspan;
-        /*$this->sheet = $sheetName;*/
+        $this->routeName = $routeName;
+        $this->networkArea = $networkArea;
+        $this->dateFrom = $dateFrom;
+        $this->dateTo = $dateTo;
     }
 
     public function view(): View
@@ -38,6 +45,10 @@ class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
             'grandTotal' => $this->grandTotal,
             'range' => $this->range,
             'colspan' => $this->colspan,
+            'routeName' => $this->routeName,
+            'networkArea' => $this->networkArea,
+            'dateFrom' => $this->dateFrom,
+            'dateTo' => $this->dateTo,
         ]);
     }
 
@@ -57,36 +68,6 @@ class SalesByRoute implements FromView, WithStyles, ShouldAutoSize
         $sheet->getStyle('A1:' . $highestColumn . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
-
-    /*public function styles(Worksheet $sheet)
-    {
-        $sheet->mergeCells('A1:B1');
-        $sheet->mergeCells('A2:B2');
-        $sheet->mergeCells('A3:B3');
-        $sheet->mergeCells('A4:B4');
-        $sheet->mergeCells('A5:B5');
-        $sheet->mergeCells('A6:B6');
-        $sheet->mergeCells('C1:D1');
-        $sheet->mergeCells('C2:D2');
-        $sheet->mergeCells('C3:D3');
-        $sheet->mergeCells('C4:D4');
-        $sheet->mergeCells('C5:D5');
-        $sheet->mergeCells('C6:D6');
-        $sheet->mergeCells('A7:D7');
-
-        $sheet->setCellValue('C1','Xin chao');
-        $sheet->setCellValue('C2','Xin chao');
-        $sheet->setCellValue('C3','Xin chao');
-        $sheet->setCellValue('C4','Xin chao');
-        $sheet->setCellValue('C5','Xin chao');
-        $sheet->setCellValue('C6','Xin chao');
-
-        foreach(range(1,7) as $number){
-            $sheet->getStyle('C'.$number)->getAlignment()->applyFromArray(
-                array('horizontal'=>'left')
-            );
-        }
-    }*/
 
 
 }

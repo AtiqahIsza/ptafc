@@ -36,10 +36,10 @@
                         <i class="fa fa-bus mr-1 fa-fw"></i>
                         View Bus Stand
                     </button>
-                    <button wire:click.prevent="confirmRemoval({{ $selectedRoute }})" class="buttonAdd btn btn-danger d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#confirmationModal">
+                    {{-- <button wire:click.prevent="confirmRemoval({{ $selectedRoute }})" class="buttonAdd btn btn-danger d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#confirmationModal">
                         <i class="fa fa-minus-circle mr-1 fa-fw"></i>
                         Remove Bus Stand
-                    </button>
+                    </button> --}}
                 @endif
             </div>
             <br>

@@ -42,7 +42,7 @@
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $company }})" class="btn btn-warning">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $company->id }})" class="btn btn-danger">Remove</button>
+                            {{-- <button wire:click.prevent="confirmRemoval({{ $company->id }})" class="btn btn-danger">Remove</button> --}}
                         </td>
 
                     </tr>

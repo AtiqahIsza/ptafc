@@ -1,6 +1,6 @@
 <div class="main py-4">
     <div class="card card-body border-0 shadow table-wrapper table-responsive">
-        <h2>{{ __('Sales Report By Driver') }}</h2>
+        <h2>{{ __('Collection Report By Company') }}</h2>
         <br>
         <!-- Form -->
         <form wire:submit.prevent="{{ 'print' }}">
@@ -28,7 +28,7 @@
                 <tr>
                     <th class="border-gray-200">{{ __('Company') }}</th>
                     <td>
-                        <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300" autofocus required>
+                        <select wire:model.defer="state.company_id" id="company_id" class="form-select border-gray-300">
                             <option value="">Choose Company</option>
                             <option value="All">All Companies</option>
                             @foreach($companies as $company)
@@ -37,21 +37,6 @@
                         </select>
                         @if ($errors->has('company_id'))
                             <span class="text-danger">{{ $errors->first('company_id') }}</span>
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <th class="border-gray-200">{{ __('Driver') }}</th>
-                    <td>
-                        <select style="width:100%" wire:model="state.driver_id" id="driver_id" class="form-select border-gray-300" autofocus>
-                            <option value="">Choose Driver</option>
-                            <option value="All">All Drivers</option>
-                            @foreach($drivers as $driver)
-                                <option value="{{$driver->id}}">{{$driver->driver_name}}</option>
-                            @endforeach
-                        </select>
-                        @if ($errors->has('driver_id'))
-                            <span class="text-danger">{{ $errors->first('driver_id') }}</span>
                         @endif
                     </td>
                 </tr>
@@ -72,10 +57,3 @@
         {{--{{ $users->links() }}--}}
     </div>
 </div>
-@push('script')
-    <script>
-        window.addEventListener('company-required', event => {
-            toastr.warning(event.detail.message, 'Please select company!');
-        });
-    </script>
-@endpush

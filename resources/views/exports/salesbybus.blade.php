@@ -15,6 +15,16 @@
             <strong> Network Area: {{ $company }}</strong>
         </th>
     </tr>
+    <tr>
+        <th colspan="11">
+            <strong> Reporting Period: {{ $dateFrom }} - {{ $dateTo }} </strong>
+        </th>
+    </tr>
+    <tr>
+        <th colspan="11">
+            <strong>Date Printed: {{ Carbon\Carbon::now() }}</strong>
+        </th>
+    </tr>
     </thead>
     <tbody>
     @foreach($reports as $key1 => $reportValue)
@@ -72,7 +82,7 @@
                                             <td style="text-align: center;"><strong>Card</strong></td>
                                             <td style="text-align: center;"><strong>Touch N Go</strong></td>
                                             <td style="text-align: center;"><strong>Cancelled</strong></td>
-                                            <td style="text-align: center;"><strong>By</strong></td>
+                                            <td style="text-align: center;"><strong>Total Farebox</strong></td>
                                         </tr>
                                         @php $i = 1; @endphp
                                         @if($perTrip!=NULL)
@@ -91,7 +101,7 @@
                                             </tr>
                                         @endif
                                     @else
-                                        @php $tripNo = $key6@endphp
+                                        @php $tripNo = $key6 @endphp
                                         <tr>
                                             <td colspan="11">&nbsp;</td>
                                         </tr>

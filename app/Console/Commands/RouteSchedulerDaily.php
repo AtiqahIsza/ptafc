@@ -52,8 +52,9 @@ class RouteSchedulerDaily extends Command
             7 - Friday only
             8 - Saturday only
             9 - All Day Except Friday & Sunday
-            10 - All Day (Except Friday and Saturday)
+            10 - All Day Except Friday and Saturday
             11 - SUNDAY only
+            12 - Friday & Saturday
         */
         
         $isWeekday = false;
@@ -66,9 +67,9 @@ class RouteSchedulerDaily extends Command
         if($isWeekday){
             $isFriday = $currentDate->format('l');
             if($isFriday=='Friday'){
-                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7])->get();
+                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12])->where('status', 1)->get();
             }else{
-                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,4,6,9])->get();
+                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,4,6,9,10])->where('status', 1)->get();
             }
 
             foreach($copies as $copy){
@@ -90,9 +91,9 @@ class RouteSchedulerDaily extends Command
         if($isWeekend){
             $isSunday = $currentDate->format('l');
             if($isSunday=='Sunday'){
-                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11])->get();
+                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11])->where('status', 1)->get();
             }else{
-                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9])->get();
+                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12])->where('status', 1)->get();
             }
             foreach($copies as $copy){
                 $new = new RouteSchedulerDetail();

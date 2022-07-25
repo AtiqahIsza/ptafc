@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Bus;
 use App\Models\BusDriver;
 use App\Models\BusStand;
+use App\Models\PDAProfile;
 use App\Models\Route;
 use App\Models\RouteMap;
 use App\Models\RouteSchedulerMSTR;
@@ -72,6 +73,12 @@ class DataController extends Controller
                 if(!empty($checkDriver)){
                     $newTrip->driver_id = $parse[6];
                 }
+                if(array_key_exists(13, $parse)){
+                    $checkPDA = PDAProfile::where('id', $parse[13])->first();
+                    if(!empty($checkPDA)){
+                        $newTrip->pda_id = $parse[13];
+                    }
+                }
 
                 $newTrip->total_adult = $parse[7];
                 $newTrip->total_concession = $parse[8];
@@ -80,6 +87,7 @@ class DataController extends Controller
                 $newTrip->total_mileage = $parse[11];
                 $newTrip->trip_code = $parse[12];
                 $newTrip->upload_date = Carbon::now();
+
                 $successSave = $newTrip->save();
                 if($successSave){
                     $saved++;
@@ -125,9 +133,14 @@ class DataController extends Controller
 
         $data = $request->file('fileToUpload');
         $reads = file($data);
-        //$index = 0;
         $saved = 0;
         $existed = 0;
+        $adultCount = 0;
+        $adultAmount = 0;
+        $concessionCount = 0;
+        $concessionAmount = 0;
+        $prevTripNumber = NULL; 
+        $dataPerTrip = [];
         foreach ($reads as $read) {
             $parse = str_getcsv($read, ',');
             $newTicket = new TicketSalesTransaction();
@@ -162,33 +175,108 @@ class DataController extends Controller
                     $newTicket->longitude = $parse[10];
                     $newTicket->sales_date = $parse[11];
                     $newTicket->upload_date = Carbon::now();
-
                     $successSave = $newTicket->save();
                     if($successSave){
                         $saved++;
                     }
+
+                    //Recalculate
+                    if($prevTripNumber==NULL){
+                        if($parse[5] == 0){
+                            $adultCount++;
+                            $adultAmount += $parse[7];
+                        }
+                        elseif($parse[5] == 1){
+                            $concessionCount++;
+                            $concessionAmount += $parse[7];
+                        }
+                    }else{
+                        if($parse[0]==$prevTripNumber){
+                            if($parse[5] == 0){
+                                $adultCount++;
+                                $adultAmount += $parse[7];
+                            }
+                            elseif($parse[5] == 1){
+                                $concessionCount++;
+                                $concessionAmount += $parse[7];
+                            }
+                        }else{
+                            $perTrip['adult_count'] = $adultCount;
+                            $perTrip['concession_count'] = $concessionCount;
+                            $perTrip['adult_amount'] = $adultAmount;
+                            $perTrip['concession_amount'] = $concessionAmount;
+                            $dataPerTrip[$prevTripNumber]  = $perTrip;
+                            $adultCount = 0;
+                            $adultAmount = 0;
+                            $concessionCount = 0;
+                            $concessionAmount = 0;
+
+                            if($parse[5] == 0){
+                                $adultCount++;
+                                $adultAmount += $parse[7];
+                            }
+                            elseif($parse[5] == 1){
+                                $concessionCount++;
+                                $concessionAmount += $parse[7];
+                            }
+                        }
+                    }
+                    $prevTripNumber = $parse[0];
                 }else{
                     $existed++;
                 }
             }
         }
+        $perTrip['adult_count'] = $adultCount;
+        $perTrip['concession_count'] = $concessionCount;
+        $perTrip['adult_amount'] = $adultAmount;
+        $perTrip['concession_amount'] = $concessionAmount;
+        $dataPerTrip[$prevTripNumber]  = $perTrip;
+
+        $recalcSave = 0;
         if($saved>0){
-            $path = $data->storeAs('tickets', $data->getClientOriginalName());;
+             //save ticket file in storage
+             $path = $data->storeAs('tickets', $data->getClientOriginalName());;
+
+            //save total adult/concession count/amount
+            if(count($dataPerTrip)>0){
+                foreach($dataPerTrip as $key => $value){
+                    $recalcTrip = TripDetail::where('trip_number', $key)->first();
+                    if($recalcTrip){
+                        if($value['adult_count']!=$recalcTrip->total_adult || $value['concession_count']!=$recalcTrip->total_concession ||
+                        $value['adult_amount']!=$recalcTrip->total_adult_amount || $value['concession_amount']!=$recalcTrip->total_concession_amount){
+                            $recalcTrip = TripDetail::find($recalcTrip->id);
+                            $recalcTrip->total_adult = $value['adult_count'];
+                            $recalcTrip->total_concession = $value['concession_count'];
+                            $recalcTrip->total_adult_amount = $value['adult_amount'];
+                            $recalcTrip->total_concession_amount = $value['concession_amount'];
+                            $successRecalc = $recalcTrip->save();
+                            if($successRecalc){
+                                $recalcSave++;
+                            }
+                        }
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'saved' => $saved . ' data saved',
+                'recalculate' => $recalcSave . ' trip saved recalculated data',
                 'existed' => $existed . ' data already existed',
             ]);
         }elseif($saved==0 && $existed>0){
             return response()->json([
                 'success' => true,
                 'saved' => $saved . ' data saved',
+                'recalculate' => $recalcSave . ' trip saved recalculated data',
                 'existed' => $existed . ' data already existed',
             ]);
         }
         return response()->json([
             'success' => false,
             'saved' => 'Failed to save ticket data',
+            'recalculate' => false,
             'existed' => false,
         ]);
     }

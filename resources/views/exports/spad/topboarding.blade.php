@@ -52,13 +52,13 @@
                             <td><strong>Adult</strong></td>
                             <td><strong>Concession</strong></td>
                         </tr>
-                        @foreach($allRoutes as $key3 => $allBusStand)
+                        @foreach($allRoutes as $key3 => $allStage)
                             @if($key3=='total_per_route')
                                 <tr>
                                     <td colspan="2" style="text-align: right;">
                                         <strong>Total For Route No: {{$key2}}</strong>
                                     </td>
-                                    @foreach($allBusStand as $key4 => $total)
+                                    @foreach($allStage as $key4 => $total)
                                         <td><strong>{{ $total }}</strong></td>
                                     @endforeach
                                 </tr>
@@ -66,8 +66,8 @@
                                 <tr>
                                     <td style="text-align: center;">{{ $key2 }}</td>
                                     <td style="text-align: center;">{{ $key3 }}</td>
-                                    @foreach($allBusStand as $key5 => $perBusStand)
-                                        <td style="text-align: center;">{{ $perBusStand }}</td>
+                                    @foreach($allStage as $key5 => $perStage)
+                                        <td style="text-align: center;">{{ $perStage }}</td>
                                     @endforeach
                                 </tr>
                             @endif

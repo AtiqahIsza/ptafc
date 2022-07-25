@@ -33,7 +33,7 @@
                                 <td style="text-align: center;"> {{ $j++ }}</td>
                                 <td style="text-align: center;"> {{ $tripDetail->start_trip }}</td>
                                 <td style="text-align: center;"> {{ $tripDetail->end_trip }}</td>
-                                @if($tripDetail->trip_type==1)
+                                @if($tripDetail->trip_code==1)
                                     <td style="text-align: center;">Inbound</td>
                                 @else
                                     <td style="text-align: center;">Outbound</td>

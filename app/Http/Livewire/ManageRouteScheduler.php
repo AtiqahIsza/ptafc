@@ -36,6 +36,9 @@ class ManageRouteScheduler extends Component
     public $editedSchedule;
     public $editedBuses;
     public $selectedEditCompany = NULL;
+    public $changedScheduleId;
+    public $changedSchedule;
+    public $currentStatus = 0;
 
     public function render()
     {
@@ -168,6 +171,33 @@ class ManageRouteScheduler extends Component
         if($success){
             $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
             $this->dispatchBrowserEvent('hide-form-edit');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed');
+        }
+    }
+
+    public function confirmChanges($id, $currStat)
+    {
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+
+        $this->changedScheduleId = $id;
+        $selectedRemoved = RouteSchedulerMSTR::where('id', $this->changedScheduleId)->first();
+        $this->changedSchedule = $selectedRemoved->schedule_start_time . ' for ' .  $selectedRemoved->Route->route_name;
+        $this->currentStatus = $currStat;
+        $this->dispatchBrowserEvent('show-status-modal');
+    }
+
+    public function changeStatus()
+    {
+        if($this->currentStatus==1) {
+            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 2]);
+        }else {
+            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 1]);
+        }
+
+        if ($updateStatus){
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+            $this->dispatchBrowserEvent('hide-status-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }

@@ -10,12 +10,12 @@
     </tr>
     <tr>
         <th colspan="24">
-            <strong>Network Operator: </strong>
+            <strong>Network Operator: MARALINER</strong>
         </th>
     </tr>
     <tr>
         <th colspan="24">
-            <strong>Network Area: </strong>
+            <strong>Network Area: {{ $networkArea }}</strong>
         </th>
     </tr>
     <tr>

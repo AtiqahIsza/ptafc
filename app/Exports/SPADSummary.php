@@ -14,16 +14,18 @@ class SPADSummary implements FromView, WithStyles, ShouldAutoSize
     public $reports;
     public $fromDate;
     public $toDate;
+    public $networkArea;
     public $sheet;
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($data, $dates, $dateFrom, $dateTo)
+    public function __construct($data, $dates, $dateFrom, $dateTo, $networkArea)
     {
         $this->allDates = $dates;
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
+        $this->networkArea = $networkArea;
     }
 
     public function view(): View
@@ -33,7 +35,8 @@ class SPADSummary implements FromView, WithStyles, ShouldAutoSize
             'allDates' => $this->allDates,
             'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
-            'dateTo' => $this->toDate
+            'dateTo' => $this->toDate,
+            'networkArea' => $this->networkArea
         ]);
     }
 

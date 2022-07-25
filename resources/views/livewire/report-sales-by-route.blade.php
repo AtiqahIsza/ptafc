@@ -70,3 +70,10 @@
         {{--{{ $users->links() }}--}}
     </div>
 </div>
+@push('script')
+    <script>
+        window.addEventListener('company-required', event => {
+            toastr.warning(event.detail.message, 'Please select company!');
+        });
+    </script>
+@endpush

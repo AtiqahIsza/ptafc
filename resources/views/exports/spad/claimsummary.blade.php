@@ -10,12 +10,12 @@
     </tr>
     <tr>
         <th colspan="10">
-            <strong>Network Operator: </strong>
+            <strong>Network Operator: MARALINER</strong>
         </th>
     </tr>
     <tr>
         <th colspan="10">
-            <strong>Network Area: </strong>
+            <strong>Network Area: {{  $networkArea }}</strong>
         </th>
     </tr>
     <tr>
@@ -31,7 +31,115 @@
     </thead>
 
     <tbody>
-    @foreach($reports as $key => $reportValue)
+    @foreach($reports as $key1 => $reportValue)
+        @foreach($reportValue as $key2 => $allRoutes)
+            @if($key2=="grand")
+                <tr>
+                    <td colspan="3" style="text-align: right;">
+                        <strong>Grand Total:</strong>
+                    </td>
+                    @foreach($allRoutes as $key3 => $grandValue)
+                        <td><strong>{{$grandValue}}</strong></td>
+                    @endforeach
+                </tr>
+            @else
+                @foreach($allRoutes as $key4 => $allDate)
+                    @foreach($allDate as $key5 => $perDate)
+                        @if($key5=="total_per_route")
+                            @if($perDate!=NULL)
+                                <tr>
+                                    <td colspan="3" style="text-align: right;">
+                                        <strong>Total for Route: {{$key4}}</strong>
+                                    </td>
+                                    @foreach($perDate as $key6 => $totalValue)
+                                        <td><strong>{{$totalValue}}</strong></td>
+                                    @endforeach
+                                </tr>
+                            @endif
+                        @else
+                            @php $existTripIn = false @endphp
+                            @foreach($perDate as $key7 => $allData)
+                                @if($key7=="total_per_date")
+                                    @if($allData!=NULL)
+                                        <tr>
+                                            <td colspan="3" style="text-align: right;">
+                                                <strong>Total for Service Date: {{$key5}}</strong>
+                                            </td>
+                                            @foreach($allData as $key8 => $totalPerDate)
+                                                <td><strong>{{$totalPerDate}}</strong></td>
+                                            @endforeach
+                                        </tr>
+                                    @endif
+                                @elseif($key7=="inbound_data")
+                                    @if($allData!=NULL)
+                                        @php $existTripIn = true @endphp
+                                        <tr>
+                                            <td colspan="10">&nbsp;</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;"><strong>Service Date</strong></td>
+                                            <td style="text-align: center;"><strong>Route No.</strong></td>
+                                            <td style="text-align: center;"><strong>OD</strong></td>
+                                            <td style="text-align: center;"><strong>Total Trip Planned</strong></td>
+                                            <td style="text-align: center;"><strong>Total Trip Made</strong></td>
+                                            <td style="text-align: center;"><strong>Total Service Planned (KM)</strong></td>
+                                            <td style="text-align: center;"><strong>Total Service Served (KM)</strong></td>
+                                            <td style="text-align: center;"><strong>Total Claim</strong></td>
+                                            <td style="text-align: center;"><strong>Total Travel (KM) GPS</strong></td>
+                                            <td style="text-align: center;"><strong>Total Claim GPS</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="text-align: center;">{{ $key5 }}</td>
+                                            <td style="text-align: center;">{{ $key4 }}</td>
+                                            @foreach($allData as $key9 => $dataValue)
+                                                @if($key9=='route_name')
+                                                    <td style="text-align: center;">{{ $dataValue }}</td>
+                                                @else
+                                                    <td>{{ $dataValue }}</td>
+                                                @endif
+                                            @endforeach
+                                        </tr>
+                                    @endif
+                                @elseif($key7=="outbound_data")
+                                    @if($allData!=NULL)
+                                        @if($existTripIn==false)
+                                            <tr>
+                                                <td colspan="10">&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="text-align: center;"><strong>Service Date</strong></td>
+                                                <td style="text-align: center;"><strong>Route No.</strong></td>
+                                                <td style="text-align: center;"><strong>OD</strong></td>
+                                                <td style="text-align: center;"><strong>Total Trip Planned</strong></td>
+                                                <td style="text-align: center;"><strong>Total Trip Made</strong></td>
+                                                <td style="text-align: center;"><strong>Total Service Planned (KM)</strong></td>
+                                                <td style="text-align: center;"><strong>Total Service Served (KM)</strong></td>
+                                                <td style="text-align: center;"><strong>Total Claim</strong></td>
+                                                <td style="text-align: center;"><strong>Total Travel (KM) GPS</strong></td>
+                                                <td style="text-align: center;"><strong>Total Claim GPS</strong></td>
+                                            </tr>
+                                        @endif
+                                        <tr>
+                                            <td style="text-align: center;">{{ $key5 }}</td>
+                                            <td style="text-align: center;">{{ $key4 }}</td>
+                                            @foreach($allData as $key9 => $dataValue)
+                                                @if($key9=='route_name')
+                                                    <td style="text-align: center;">{{ $dataValue }}</td>
+                                                @else
+                                                    <td>{{ $dataValue }}</td>
+                                                @endif
+                                            @endforeach
+                                        </tr>
+                                    @endif
+                                @endif
+                            @endforeach
+                        @endif
+                    @endforeach
+                @endforeach
+            @endif
+         @endforeach
+    @endforeach
+    {{-- @foreach($reports as $key => $reportValue)
         @if(array_key_exists("allRoute",$reportValue))
             @foreach($reportValue['allRoute'] as $key1 => $allRoutes)
                 @php $existTrip = false; @endphp
@@ -119,7 +227,7 @@
                             @endforeach
                         </tr>
                     @endif
-                @endif--}}
+                @endif
             @endforeach
         @endif
         @if(array_key_exists("grand",$reportValue))
@@ -134,6 +242,6 @@
                 </tr>
             @endif
         @endif
-    @endforeach
+    @endforeach--}}
     </tbody>
 </table>

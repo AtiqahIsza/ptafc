@@ -1,13 +1,28 @@
 <table style="border-color: #000000; border-style: solid;">
     <thead>
     <tr>
-        <th rowspan="2" colspan="28" style="vertical-align: middle; text-align: center;">
+        <th rowspan="2" colspan="34" style="vertical-align: middle; text-align: center;">
             <strong>Sales Details Report By Driver</strong>
         </th>
     </tr>
     <tr>
-        <th colspan="11">
+        <th colspan="34">
             &nbsp;
+        </th>
+    </tr>
+    <tr>
+        <th colspan="34">
+            <strong>Network Area: {{ $networkArea }}</strong>
+        </th>
+    </tr>
+    <tr>
+        <th colspan="34">
+            <strong>Reporting Period: {{ $dateFrom }} - {{ $dateTo }} </strong>
+        </th>
+    </tr>
+    <tr>
+        <th colspan="34">
+            <strong>Date Printed: {{ Carbon\Carbon::now() }}</strong>
         </th>
     </tr>
     </thead>
@@ -41,13 +56,14 @@
                             @if($allDriver != NULL)
                                 @foreach($allDriver as $key7 => $allTrips)
                                     <tr>
-                                        <td colspan="28">
+                                        <td colspan="34">
                                             &nbsp;
                                         </td>
                                     </tr>
                                     <tr>
                                         <td colspan="10"><strong>Driver: {{ $key7 }}</strong></td>
-                                        <td colspan="6" style="text-align: center;"><strong>Cash/Card</strong></td>
+                                        <td colspan="6" style="text-align: center;"><strong>Cash</strong></td>
+                                        <td colspan="6" style="text-align: center;"><strong>Card</strong></td>
                                         <td colspan="6" style="text-align: center;"><strong>Touch N Go</strong></td>
                                         <td colspan="6" style="text-align: center;"><strong>Total</strong></td>
                                     </tr>
@@ -71,8 +87,17 @@
                                         <td colspan="2" style="text-align: center;"><strong>Adult</strong></td>
                                         <td colspan="2" style="text-align: center;"><strong>Concession</strong></td>
                                         <td colspan="2" style="text-align: center;"><strong>Total</strong></td>
+                                        <td colspan="2" style="text-align: center;"><strong>Adult</strong></td>
+                                        <td colspan="2" style="text-align: center;"><strong>Concession</strong></td>
+                                        <td colspan="2" style="text-align: center;"><strong>Total</strong></td>
                                     </tr>
                                     <tr>
+                                        <td style="text-align: center;"><strong>Quantity</strong></td>
+                                        <td style="text-align: center;"><strong>Amount</strong></td>
+                                        <td style="text-align: center;"><strong>Quantity</strong></td>
+                                        <td style="text-align: center;"><strong>Amount</strong></td>
+                                        <td style="text-align: center;"><strong>Quantity</strong></td>
+                                        <td style="text-align: center;"><strong>Amount</strong></td>
                                         <td style="text-align: center;"><strong>Quantity</strong></td>
                                         <td style="text-align: center;"><strong>Amount</strong></td>
                                         <td style="text-align: center;"><strong>Quantity</strong></td>
@@ -117,7 +142,7 @@
                                         @endforeach
                                     @else
                                         <tr>
-                                            <td colspan="28"> ****NO TRIP </td>
+                                            <td colspan="34"> ****NO TRIP </td>
                                         </tr>
                                     @endif
                                 @endforeach

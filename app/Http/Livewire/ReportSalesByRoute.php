@@ -59,23 +59,22 @@ class ReportSalesByRoute extends Component
             'route_id' => ['required', 'int'],
         ])->validate();
 
-        $out->writeln($validatedData['dateFrom']);
-        $out->writeln($validatedData['dateTo']);
-
         $startDate = new Carbon($validatedData['dateFrom']);
         $endDate = new Carbon($validatedData['dateTo']);
         $all_dates = array();
 
         while ($startDate->lte($endDate)) {
             $all_dates[] = $startDate->toDateString();
-
             $startDate->addDay();
         }
-        $colspan = ((count($all_dates) + 1) * 2) + 2;
+        $colspan = ((count($all_dates) + 1) * 4) + 2;
 
         $salesByRoute = collect();
         $grandCollect = collect();
-
+        $companyDetails = Company::where('id', $this->selectedCompany)->first();
+        $companyName = $companyDetails->company_name;
+        $validatedRoute = Route::where('id', $validatedData['route_id'])->first();
+        $routeName = $validatedRoute->route_number . ' - ' . $validatedRoute->route_name;
         $firstStages = Stage::where('route_id', $validatedData['route_id'])->orderby('stage_order')->get();
         if (count($firstStages) > 0){
             foreach ($firstStages as $firstStage) {
@@ -85,12 +84,17 @@ class ReportSalesByRoute extends Component
                     foreach ($secondStages as $secondStage) {
                         $fromto = $firstStage->stage_name . ' - ' . $secondStage->stage_name;
                         $totalCount=0;
-                        $totalSales =0;
+                        $totalCash =0;
+                        $totalCard =0;
+                        $totalTngo =0;
+
                         foreach ($all_dates as $all_date) {
                             $firstDate = new Carbon($all_date);
                             $lastDate = new Carbon($all_date . '23:59:59');
                             $countQty = 0;
-                            $sales = 0.0;
+                            $cash = 0.0;
+                            $card = 0.0;
+                            $tngo = 0.0;
 
                             $tripPerRoutes = TripDetail::where('route_id',  $validatedData['route_id'])
                                 ->whereBetween('start_trip', [$firstDate, $lastDate])
@@ -108,23 +112,35 @@ class ReportSalesByRoute extends Component
                                     if (count($salesPerDate) > 0) {
                                         foreach ($salesPerDate as $salePerDate) {
                                             $countQty++;
-                                            $sales += $salePerDate->actual_amount;
+                                            if($salePerDate->fare_type==0){
+                                                $cash += $salePerDate->actual_amount;
+                                            }elseif($salePerDate->fare_type==1){
+                                                $card += $salePerDate->actual_amount;
+                                            }else{
+                                                $tngo += $salePerDate->actual_amount;
+                                            }
                                         }
                                     }
                                 }
                             }
                             $perDate['qty'] = $countQty;
-                            $perDate['sales'] = $sales;
+                            $perDate['cash'] = $cash;
+                            $perDate['card'] = $card;
+                            $perDate['tngo'] = $tngo;
                             $stage[$all_date] = $perDate;
 
                             $totalCount += $countQty;
-                            $totalSales += $sales;
+                            $totalCash += $cash;
+                            $totalCard += $card;
+                            $totalTngo += $tngo;
                         }
 
                         $perStage['all_date'] = $stage;
 
                         $totalStage['qty'] = $totalCount;
-                        $totalStage['sales'] = $totalSales;
+                        $totalStage['cash'] = $totalCash;
+                        $totalStage['card'] = $totalCard;
+                        $totalStage['tngo'] = $totalTngo;
                         $perStage['total_per_stage'] = $totalStage;
 
                         $data[$fromto] = $perStage;
@@ -137,12 +153,16 @@ class ReportSalesByRoute extends Component
         //Calculate Grand
         $grandStage = [];
         $grandCount=0;
-        $grandSales=0;
+        $grandCash=0;
+        $grandCard=0;
+        $grandTngo=0;
         foreach ($all_dates as $all_date) {
             $firstDate = new Carbon($all_date);
             $lastDate = new Carbon($all_date . '23:59:59');
             $totalQty = 0;
-            $totalSales = 0.0;
+            $totalCash = 0.0;
+            $totalCard = 0.0;
+            $totalTngo = 0.0;
 
             $tripPerRoutes = TripDetail::where('route_id',  $validatedData['route_id'])
                 ->whereBetween('start_trip', [$firstDate, $lastDate])
@@ -157,26 +177,38 @@ class ReportSalesByRoute extends Component
                     if (count($salesPerDate) > 0) {
                         foreach ($salesPerDate as $salePerDate) {
                             $totalQty++;
-                            $totalSales += $salePerDate->actual_amount;
+                            if($salePerDate->fare_type==0){
+                                $totalCash += $salePerDate->actual_amount;
+                            }elseif($salePerDate->fare_type==1){
+                                $totalCard += $salePerDate->actual_amount;
+                            }else{
+                                $totalTngo += $salePerDate->actual_amount;
+                            }
                         }
                     }
                 }
             }
             $perDate['qty'] = $totalQty;
-            $perDate['sales'] = $totalSales;
+            $perDate['cash'] = $totalCash;
+            $perDate['card'] = $totalCard;
+            $perDate['tngo'] = $totalTngo;
             $grandStage[$all_date] = $perDate;
 
             $grandCount += $totalQty;
-            $grandSales += $totalSales;
+            $grandCash += $totalCash;
+            $grandCard += $totalCard;
+            $grandTngo += $totalTngo;
         }
 
         $grand_total['all_stage'] = $grandStage;
         $grand['grand_qty'] = $grandCount;
-        $grand['grand_sales'] = $grandSales;
+        $grand['grand_cash'] = $grandCash;
+        $grand['grand_card'] = $grandCard;
+        $grand['grand_tngo'] = $grandTngo;
         $grand_total['grand_sales_by_route'] = $grand;
 
         $grandCollect->add($grand_total);
 
-        return Excel::download(new SalesByRoute($salesByRoute, $grandCollect, $all_dates, $colspan), 'SalesByRoute.xlsx');
+        return Excel::download(new SalesByRoute($salesByRoute, $grandCollect, $all_dates, $colspan, $routeName, $companyName,  $validatedData['dateFrom'], $validatedData['dateTo']), 'SalesByRoute_'.Carbon::now()->format('YmdHis').'.xlsx');
     }
 }

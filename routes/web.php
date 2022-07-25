@@ -61,12 +61,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings/managePDA', [\App\Http\Controllers\PDAProfileController::class, 'index'])->name('managePDA');
 
     //Report
-    Route::get('/report/salesByBus', [\App\Http\Controllers\ReportController::class, 'viewSalesByBus'])->name(' viewSalesByBus');
+    Route::get('/report/salesByBus', [\App\Http\Controllers\ReportController::class, 'viewSalesByBus'])->name('viewSalesByBus');
     Route::get('/report/salesByRoute', [\App\Http\Controllers\ReportController::class, 'viewSalesByRoute'])->name('viewSalesByRoute');
     Route::get('/report/salesByDriver', [\App\Http\Controllers\ReportController::class, 'viewSalesByDriver'])->name('viewSalesByDriver');
+    Route::get('/report/collectionCompany', [\App\Http\Controllers\ReportController::class, 'viewCollectionByCompany'])->name('viewCollectionByCompany');
     Route::get('/report/monthlySummary', [\App\Http\Controllers\ReportController::class, 'viewMonthlySummary'])->name('viewMonthlySummary');
     Route::get('/report/dailySummary', [\App\Http\Controllers\ReportController::class, 'viewDailySummary'])->name('viewDailySummary');
     Route::get('/report/spad', [\App\Http\Controllers\ReportController::class, 'viewReportSPAD'])->name('viewReportSPAD');
+    Route::get('/report/averageSummary', [\App\Http\Controllers\ReportController::class, 'viewAverageSummary'])->name('viewAverageSummary');
+
+    //Report Claim Details GPS
+    Route::get('/report/claimDetails/{dateFrom}/{dateTo}/{routeID}/{companyID}', [\App\Http\Controllers\ReportController::class, 'viewClaimDetails'])->name('viewClaimDetails');
+    Route::get('/report/claimDetailsGPS/{tripID}', [\App\Http\Controllers\ReportController::class, 'viewClaimDetailsGPS'])->name('viewClaimDetailsGPS');
 
     //PowerGrid
     //Route::get('/settings/{id}/edit', [\App\Http\Controllers\UserController::class, 'edit'])->name('user.edit');

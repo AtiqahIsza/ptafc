@@ -485,6 +485,36 @@ class ApiController extends Controller
         ]);
     }
 
+    public function updatePDA(Request $request){
+        $validator = Validator::make($request->all(), [
+            'imei' => 'required',
+            'app_version' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->messages()->first(),
+            ]);
+        }
+
+        $checkPDA= PDAProfile::where('imei', $request->imei)->first();
+        if($checkPDA){
+            $checkPDA->app_version = $request->app_version;
+            $checkPDA->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully updated app_version'
+            ]);
+        }else{
+            return response()->json([
+                'success' => true,
+                'message' => 'Failed to update app_version'
+            ]);
+        }
+    }
+
     /*public function saveTicketSalesTransaction(Request $request){
         $validator = Validator::make($request->all(), [
             'amount' => 'required',

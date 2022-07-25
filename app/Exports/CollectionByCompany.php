@@ -3,37 +3,37 @@
 namespace App\Exports;
 
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class DailySummary implements FromView, WithStyles, ShouldAutoSize
+class CollectionByCompany implements FromView, WithStyles, ShouldAutoSize
 {
-    public $dateFrom;
-    public $dateTo;
-    public $contents;
+    public $reports;
     public $networkArea;
+    public $fromDate;
+    public $toDate;
     public $sheet;
+    public $routeNo;
 
     //The constructor passes by value
-    public function __construct($contents, $dateFrom, $dateTo, $networkArea)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea)
     {
-        $this->dateFrom = $dateFrom;
-        $this->dateTo = $dateTo;
-        $this->contents = $contents;
+        $this->reports = $data;
+        $this->fromDate = $dateFrom;
+        $this->toDate = $dateTo;
         $this->networkArea = $networkArea;
     }
 
     public function view(): View
     {
-        //dd($this->contents);
-        return view('exports.dailysummary', [
-            'contents' => $this->contents,
-            'dateFrom' =>  $this->dateFrom,
-            'dateTo' => $this->dateTo,
+        //dd($this->reports);
+        return view('exports.collectionbycompany', [
+            'reports' => $this->reports,
             'networkArea' => $this->networkArea,
+            'dateFrom' => $this->fromDate,
+            'dateTo' => $this->toDate,
         ]);
     }
 
@@ -48,8 +48,8 @@ class DailySummary implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:O' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:O' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:N' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:N' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

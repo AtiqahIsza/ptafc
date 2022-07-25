@@ -1,6 +1,6 @@
 <div class="main py-4">
     <div class="card card-body border-0 shadow table-wrapper table-responsive">
-        <h2>{{ __('Daily Summary Report') }}</h2>
+        <h2>{{ __('Average Summary Report') }}</h2>
         <br>
         <!-- Form -->
         <form wire:submit.prevent="{{ 'print' }}">
@@ -30,7 +30,6 @@
                         <td>
                             <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300">
                                 <option value="">Choose Company</option>
-                                <option value="All">All Companies</option>
                                 @foreach($companies as $company)
                                     <option value="{{$company->id}}">{{$company->company_name}}</option>
                                 @endforeach

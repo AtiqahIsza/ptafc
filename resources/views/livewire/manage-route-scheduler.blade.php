@@ -77,8 +77,10 @@
                             <td><span class="fw-normal">ALL DAY (Except Friday & Sunday)</span></td>
                         @elseif($schedule->trip_type==10)
                             <td><span class="fw-normal">ALL DAY (Except Friday & Saturday)</span></td>
-                        @else
+                        @elseif($schedule->trip_type==11)
                             <td><span class="fw-normal">SUNDAY Only</span></td>
+                        @else
+                            <td><span class="fw-normal">FRI & SAT</span></td>
                         @endif
 
                         @if($schedule->trip_code==1)
@@ -95,7 +97,8 @@
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $schedule }})" class="btn btn-warning">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $schedule->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button>
+                            {{-- <button wire:click.prevent="confirmChanges({{ $schedule->id }}, {{ $schedule->status }})" class="btn btn-primary">Change Status</button> --}}
+                            {{-- <button wire:click.prevent="confirmRemoval({{ $schedule->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button> --}}
                         </td>
                     </tr>
                 @endforeach
@@ -272,6 +275,7 @@
                                     <option value="7">Friday Only</option>
                                     <option value="8">Saturday Only</option>
                                     <option value="11">Sunday Only</option>
+                                    <option value="12">Friday & Saturday</option>
                                 </select>
                                 @if ($errors->has('trip_type'))
                                     <span class="text-danger">{{ $errors->first('trip_type') }}</span>
@@ -286,8 +290,8 @@
                             </span>
                                 <select wire:model.defer="state.status" class="form-select border-gray-300" autofocus required>
                                     <option value="">Choose Status</option>
-                                    <option value="1">ENABLE</option>
-                                    <option value="2">DISABLE</option>
+                                    <option value="1">ENABLED</option>
+                                    <option value="2">DISABLED</option>
                                 </select>
                                 @if ($errors->has('status'))
                                     <span class="text-danger">{{ $errors->first('status') }}</span>
@@ -307,8 +311,38 @@
     </div>
     <!-- End of Edit Route Schedule Modal Content -->
 
+    <!-- Confirm Change Status Route Schedule Modal -->
+    <div wire:ignore.self class="modal fade" id="confirmChangeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Change Status of Route Schedule</h5>
+                </div>
+                <div class="modal-body">
+                    @if($currentStatus==1)
+                        <h4>Are you confirm to disable this route schedule at {{ $changedSchedule }}?</h4>
+                    @else
+                        <h4>Are you confirm to enable this route schedule at {{ $changedSchedule }}?</h4>
+                    @endif
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa fa-times mr-1"></i>
+                        <span>Cancel</span>
+                    </button>
+                    <button type="button" wire:click.prevent="changeStatus" class="btn btn-danger">
+                        <i class="fa fa-check mr-1"></i>
+                        <span>Confirm</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Confirm Change Status Route Schedule Modal Content -->
+
     <!-- Remove Route Schedule Modal -->
-    <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
+    <div wire:ignore.self class="modal fade" id="confirmRemoveModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -350,15 +384,22 @@
             $('#modalEdit').modal('hide');
             toastr.error(event.detail.message, 'Operation failed!');
         });
+        window.addEventListener('show-status-modal', event => {
+            $('#confirmChangeModal').modal('show');
+        });
+        window.addEventListener('hide-status-modal', event => {
+            $('#confirmChangeModal').modal('hide');
+            toastr.success(event.detail.message, 'Status updated successfully!');
+        })
         window.addEventListener('show-delete-modal', event => {
-            $('#confirmationModal').modal('show');
+            $('#confirmRemoveModal').modal('show');
         });
         window.addEventListener('hide-delete-modal', event => {
-            $('#confirmationModal').modal('hide');
+            $('#confirmRemoveModal').modal('hide');
             toastr.success(event.detail.message, 'Route schedule removed successfully!');
         })
         window.addEventListener('hide-delete-failed', event => {
-            $('#confirmationModal').modal('hide');
+            $('#confirmRemoveModal').modal('hide');
             toastr.error(event.detail.message, 'Route schedule failed to remove!');
         });
     </script>

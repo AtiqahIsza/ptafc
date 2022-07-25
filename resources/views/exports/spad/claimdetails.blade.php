@@ -10,12 +10,12 @@
     </tr>
     <tr>
         <th colspan="34">
-            <strong>Network Operator: </strong>
+            <strong>Network Operator: MARALINER</strong>
         </th>
     </tr>
     <tr>
         <th colspan="34">
-            <strong>Network Area: </strong>
+            <strong>Network Area: {{  $networkArea }}</strong>
         </th>
     </tr>
     <tr>
@@ -52,7 +52,7 @@
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Plate Number</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Age</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Charge/KM</strong></td>
-                                    <td rowspan="2" style="text-align: center;"><strong>Driver ID</strong></td>
+                                    <td rowspan="2" style="text-align: center;"><strong>Driver Number</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Stop Travel</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Travel (KM)</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Total Claim</strong></td>
@@ -74,7 +74,7 @@
                                 <tr>
                                     <td style="text-align: center;"><strong>Status</strong></td>
                                     <td style="text-align: center;"><strong>Status of The Trip (Duplicate Trip, Outside Schedule, No GPS Tracking, Breakdown, Replacement)</strong></td>
-                                    <td style="text-align: center;"><strong>KM as per BOP = 38km</strong></td>
+                                    <td style="text-align: center;"><strong>KM as per BOP</strong></td>
                                     <td style="text-align: center;"><strong>Claim as per BOP (RM)</strong></td>
                                     <td style="text-align: center;"><strong>Missed Trip If No GPS Tracking</strong></td>
                                     <td style="text-align: center;"><strong>Total On</strong></td>
@@ -85,7 +85,7 @@
                                     @if($key4=='total_inbound')
                                         <tr>
                                             <td colspan="11" style="text-align: right;">
-                                                <strong>Total ({{$key2}} - {{$key1}})</strong>
+                                                <strong>Total ({{$key2}} - {{$key1}} . {{ $allRoute['route_name'] }})</strong>
                                             </td>
                                             <td><strong>{{$tripInbound['total_bus_stop_in']}}</strong></td>
                                             <td><strong>{{$tripInbound['total_travel_in']}}</strong></td>
@@ -100,42 +100,44 @@
                                             <td><strong>{{$tripInbound['total_concession_in']}}</strong></td>
                                         </tr>
                                     @else
-                                        <tr>
-                                            <td style="text-align: center;">{{ $key2 }}</td>
-                                            <td style="text-align: center;">{{ $allRoute['route_name']  }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['trip_type'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['trip_no']  }}</td>
-                                            <td style="text-align: center;">{{ $key2  }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['start_point'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['rph_no'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['bus_plate_no']  }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['bus_age'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['charge_km']}}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['driver_id'] }}</td>
-                                            <td>{{ $tripInbound['bus_stop_travel'] }}</td>
-                                            <td>{{ $tripInbound['travel'] }}</td>
-                                            <td>{{ $tripInbound['claim'] }}</td>
-                                            <td>{{ $tripInbound['travel_gps'] }}</td>
-                                            <td>{{ $tripInbound['claim_gps'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['status'] }}</td>
-                                            <td style="text-align: center;"></td>
-                                            <td style="text-align: center;">{{ $tripInbound['travel_BOP'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['claim_BOP'] }}</td>
-                                            <td style="text-align: center;"></td>
-                                            <td style="text-align: center;">{{ $tripInbound['start_point_time'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['service_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['actual_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['sales_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['service_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['actual_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['sales_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripInbound['punctuality'] }}</td>
-                                            <td>{{ $tripInbound['pass_count'] }}</td>
-                                            <td>{{ $tripInbound['total_sales'] }}</td>
-                                            <td>{{ $tripInbound['total_on'] }}</td>
-                                            <td>{{ $tripInbound['adult'] }}</td>
-                                            <td>{{ $tripInbound['concession'] }}</td>
-                                        </tr>
+                                        @foreach($tripInbound as $key8 => $dataIn)
+                                            <tr>
+                                                <td style="text-align: center;">{{ $key1 }}</td>
+                                                <td style="text-align: center;">{{ $key4 }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['trip_type'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['trip_no']  }}</td>
+                                                <td style="text-align: center;">{{ $key2  }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['start_point'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['rph_no'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['bus_plate_no']  }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['bus_age'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['charge_km']}}</td>
+                                                <td style="text-align: center;">{{ $dataIn['driver_id'] }}</td>
+                                                <td>{{ $dataIn['bus_stop_travel'] }}</td>
+                                                <td>{{ $dataIn['travel'] }}</td>
+                                                <td>{{ $dataIn['claim'] }}</td>
+                                                <td>{{ $dataIn['travel_gps'] }}</td>
+                                                <td>{{ $dataIn['claim_gps'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['status'] }}</td>
+                                                <td style="text-align: center;"></td>
+                                                <td style="text-align: center;">{{ $dataIn['travel_BOP'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['claim_BOP'] }}</td>
+                                                <td style="text-align: center;"></td>
+                                                <td style="text-align: center;">{{ $dataIn['start_point_time'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['service_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['actual_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['sales_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['service_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['actual_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['sales_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataIn['punctuality'] }}</td>
+                                                <td>{{ $dataIn['pass_count'] }}</td>
+                                                <td>{{ $dataIn['total_sales'] }}</td>
+                                                <td>{{ $dataIn['total_on'] }}</td>
+                                                <td>{{ $dataIn['adult'] }}</td>
+                                                <td>{{ $dataIn['concession'] }}</td>
+                                            </tr>
+                                        @endforeach
                                     @endif
                                 @endforeach
                             @endif
@@ -157,7 +159,7 @@
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Plate Number</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Age</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Charge/KM</strong></td>
-                                    <td rowspan="2" style="text-align: center;"><strong>Driver ID</strong></td>
+                                    <td rowspan="2" style="text-align: center;"><strong>Driver Number</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Bus Stop Travel</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Travel (KM)</strong></td>
                                     <td rowspan="2" style="text-align: center;"><strong>Total Claim</strong></td>
@@ -191,7 +193,7 @@
                                     @if($key5=='total_outbound')
                                         <tr>
                                             <td colspan="11" style="text-align: right;">
-                                                <strong>Total ({{$key2}} - {{$key1}})</strong>
+                                                <strong>Total ({{$key2}} - {{$key1}} . {{ $allRoute['route_name'] }})</strong>
                                             </td>
                                             <td><strong>{{$tripOutbound['total_bus_stop_out']}}</strong></td>
                                             <td><strong>{{$tripOutbound['total_travel_out']}}</strong></td>
@@ -206,42 +208,44 @@
                                             <td><strong>{{$tripOutbound['total_concession_out']}}</strong></td>
                                         </tr>
                                     @else
-                                        <tr>
-                                            <td style="text-align: center;">{{ $key2 }}</td>
-                                            <td style="text-align: center;">{{ $allRoute['route_name']   }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['trip_type'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['trip_no']  }}</td>
-                                            <td style="text-align: center;">{{ $key2 }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['start_point'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['rph_no'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['bus_plate_no']  }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['bus_age'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['charge_km']}}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['driver_id'] }}</td>
-                                            <td>{{ $tripOutbound['bus_stop_travel'] }}</td>
-                                            <td>{{ $tripOutbound['travel'] }}</td>
-                                            <td>{{ $tripOutbound['claim'] }}</td>
-                                            <td>{{ $tripOutbound['travel_gps'] }}</td>
-                                            <td>{{ $tripOutbound['claim_gps'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['status'] }}</td>
-                                            <td style="text-align: center;"></td>
-                                            <td style="text-align: center;">{{ $tripOutbound['travel_BOP'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['claim_BOP'] }}</td>
-                                            <td style="text-align: center;"></td>
-                                            <td style="text-align: center;">{{ $tripOutbound['start_point_time'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['service_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['actual_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['sales_start'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['service_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['actual_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['sales_end'] }}</td>
-                                            <td style="text-align: center;">{{ $tripOutbound['punctuality'] }}</td>
-                                            <td>{{ $tripOutbound['pass_count'] }}</td>
-                                            <td>{{ $tripOutbound['total_sales'] }}</td>
-                                            <td>{{ $tripOutbound['total_on'] }}</td>
-                                            <td>{{ $tripOutbound['adult'] }}</td>
-                                            <td>{{ $tripOutbound['concession'] }}</td>
-                                        </tr>
+                                        @foreach($tripOutbound as $key9 => $dataOut)
+                                            <tr>
+                                                <td style="text-align: center;">{{ $key1 }}</td>
+                                                <td style="text-align: center;">{{ $key5 }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['trip_type'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['trip_no']  }}</td>
+                                                <td style="text-align: center;">{{ $key2 }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['start_point'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['rph_no'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['bus_plate_no']  }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['bus_age'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['charge_km']}}</td>
+                                                <td style="text-align: center;">{{ $dataOut['driver_id'] }}</td>
+                                                <td>{{ $dataOut['bus_stop_travel'] }}</td>
+                                                <td>{{ $dataOut['travel'] }}</td>
+                                                <td>{{ $dataOut['claim'] }}</td>
+                                                <td>{{ $dataOut['travel_gps'] }}</td>
+                                                <td>{{ $dataOut['claim_gps']  }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['status'] }}</td>
+                                                <td style="text-align: center;"></td>
+                                                <td style="text-align: center;">{{ $dataOut['travel_BOP'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['claim_BOP'] }}</td>
+                                                <td style="text-align: center;"></td>
+                                                <td style="text-align: center;">{{ $dataOut['start_point_time'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['service_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['actual_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['sales_start'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['service_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['actual_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['sales_end'] }}</td>
+                                                <td style="text-align: center;">{{ $dataOut['punctuality'] }}</td>
+                                                <td>{{ $dataOut['pass_count'] }}</td>
+                                                <td>{{ $dataOut['total_sales'] }}</td>
+                                                <td>{{ $dataOut['total_on'] }}</td>
+                                                <td>{{ $dataOut['adult'] }}</td>
+                                                <td>{{ $dataOut['concession'] }}</td>
+                                            </tr>
+                                        @endforeach 
                                     @endif
                                 @endforeach
                             @endif

@@ -98,8 +98,7 @@ final class UserTable extends PowerGridComponent
             })
             ->addColumn('user_role', function (User $model) {
                 if($model->user_role == 1){return "Administrator";}
-                elseif($model->user_role == 1){return "Report User";}
-                else{return "Super User";}
+                else{return "Report User";}
             })
             ->addColumn('email')
             ->addColumn('created_at_formatted', function(User $model) {

@@ -31,6 +31,7 @@ Route::post('getStageMapByCompany',[ApiController::class, 'getStageMapByCompany'
 Route::post('getStageFareByCompany',[ApiController::class, 'getStageFareByCompany']);
 Route::post('getRouteScheduleByCompany',[ApiController::class, 'getRouteScheduleByCompany']);
 Route::post('checkPDA',[ApiController::class, 'checkPDA']);
+Route::post('updatePDA',[ApiController::class, 'updatePDA']);
 
 //save to db
 Route::post('saveDriverWallet',[ApiController::class, 'saveDriverWallet']);

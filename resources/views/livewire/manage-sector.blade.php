@@ -35,7 +35,7 @@
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $sector }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $sector->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button>
+                            {{-- <button wire:click.prevent="confirmRemoval({{ $sector->id }})" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmationModal">Remove</button> --}}
                         </td>
                     </tr>
                 @endforeach

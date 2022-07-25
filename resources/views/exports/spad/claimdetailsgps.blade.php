@@ -67,7 +67,7 @@
                                 <td style="text-align: center;"><strong>Longitude</strong></td>
                                 <td style="text-align: center;"><strong>PHMS Status</strong></td>
                                 <td style="text-align: center;"><strong>PHMS Upload Date</strong></td>
-                                <td style="text-align: center;"><strong>Duration (Minute)</strong></td>
+                                <td style="text-align: center;"><strong>Duration (Seconds)</strong></td>
                             </tr>
                             @if($allGPS!=NULL)
                                 @foreach($allGPS as $key7 => $perGPS)

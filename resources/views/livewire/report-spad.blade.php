@@ -30,6 +30,7 @@
                     <td>
                         <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300">
                             <option value="">Choose Company</option>
+                            <option value="All">All Companies</option>
                             @foreach($companies as $company)
                                 <option value="{{$company->id}}">{{$company->company_name}}</option>
                             @endforeach
@@ -44,6 +45,7 @@
                     <td>
                         <select wire:model="state.route_id" id="route_id" class="form-select border-gray-300">
                             <option value="">Choose Route</option>
+                            <option value="All">All Routes</option>
                             @foreach($routes as $route)
                                 <option value="{{$route->id}}">{{$route->route_number . ' ' . $route->route_name}}</option>
                             @endforeach
@@ -81,6 +83,9 @@
                         <button wire:click.prevent="printTopAlighting()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Top Alightings</span>
                         </button>
+                        <button wire:click.prevent="printBusTransfer()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Bus Transfer</span>
+                        </button>
                     </td>
                 </tr>
                 {{--<tr style="text-align: center;">
@@ -98,6 +103,9 @@
                         <button wire:click.prevent="printClaimDetails()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Claim Details</span>
                         </button>
+                        {{-- <button onclick="printClaimDetailGPS($this->state['dateFrom'], $this->state['dateFrom'], $this->state['route_id'], $this->selectedCompany)" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
+                            <span>Print Claim Details GPS</span>
+                        </button> --}}
                         <button wire:click.prevent="printClaimDetailGPS()" class="btn btn-gray-800 align-items-center me-2" id="btnSave" style="margin:5px; width: 220px">
                             <span>Print Claim Details GPS</span>
                         </button>
@@ -149,5 +157,16 @@
         window.addEventListener('company-required', event => {
             toastr.warning(event.detail.message, 'Please select company!');
         });
+        window.addEventListener('new-tab-gps', event => {
+            //toastr.warning(event.detail.message, 'Here in new tab!');
+            // open the page as popup //
+            var page = 'http://mara.joompe.com/report/claimDetails/' + event.detail.dateFrom + '/' + event.detail.dateTo + '/' + event.detail.routeID + '/' + event.detail.companyID;
+            var myWindow = window.open(page, "_blank");
+            //var myWindow = window.open(page, "_blank", "scrollbars=yes,width=400,height=500,top=300");
+            
+            // focus on the popup //
+            myWindow.focus();
+        });
+        
     </script>
 @endpush

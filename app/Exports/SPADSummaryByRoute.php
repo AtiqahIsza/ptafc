@@ -16,16 +16,14 @@ class SPADSummaryByRoute implements FromView, WithStyles, ShouldAutoSize
     public $fromDate;
     public $toDate;
     public $sheet;
-    public $routeNo;
 
     //The constructor passes by value
-    public function __construct($data, $dateFrom, $dateTo, $networkArea, $routeNo)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea)
     {
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
         $this->networkArea = $networkArea;
-        $this->routeNo = $routeNo;
     }
 
     public function view(): View
@@ -36,7 +34,6 @@ class SPADSummaryByRoute implements FromView, WithStyles, ShouldAutoSize
             'networkArea' => $this->networkArea,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate,
-            'routeNo' => $this->routeNo
         ]);
     }
 
@@ -51,8 +48,8 @@ class SPADSummaryByRoute implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:M' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:M' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:N' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:N' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

@@ -185,7 +185,7 @@
         <div class="multi-level collapse" role="list" id="report-submenu-app" aria-expanded="false">
             <ul class="flex-column nav">
                 <li class="nav-item">
-                    <a href="{{ route(' viewSalesByBus') }}" class="nav-link {{ request()->routeIs('viewSalesByBus') ? 'active' : '' }}">
+                    <a href="{{ route('viewSalesByBus') }}" class="nav-link {{ request()->routeIs('viewSalesByBus') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
@@ -208,6 +208,14 @@
                         <span class="sidebar-text">Sales Report By Driver</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('viewCollectionByCompany') }}" class="nav-link {{ request()->routeIs('viewCollectionByCompany') ? 'active' : '' }}">
+                        <span class="sidebar-icon">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span class="sidebar-text">Collection Report By Company</span>
+                    </a>
+                </li>
                 {{--<li class="nav-item">
                     <a href="{{ route('viewMonthlySummary') }}" class="nav-link {{ request()->routeIs('viewMonthlySummary') ? 'active' : '' }}">
                         <span class="sidebar-icon">
@@ -215,7 +223,7 @@
                         </span>
                         <span class="sidebar-text">Monthly Summary Report</span>
                     </a>
-                </li>
+                </li>--}}
                 <li class="nav-item">
                     <a href="{{ route('viewDailySummary') }}" class="nav-link {{ request()->routeIs('viewDailySummary') ? 'active' : '' }}">
                         <span class="sidebar-icon">
@@ -223,7 +231,15 @@
                         </span>
                         <span class="sidebar-text">Daily Summary Report</span>
                     </a>
-                </li>--}}
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('viewAverageSummary') }}" class="nav-link {{ request()->routeIs('viewAverageSummary') ? 'active' : '' }}">
+                        <span class="sidebar-icon">
+                            <i class="fas fa-circle"></i>
+                        </span>
+                        <span class="sidebar-text">Average Summary Report</span>
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="{{ route('viewReportSPAD') }}" class="nav-link  {{ request()->routeIs('viewReportSPAD') ? 'active' : '' }}">
                         <span class="sidebar-icon">

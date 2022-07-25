@@ -14,22 +14,21 @@ use App\Models\TicketSalesTransaction;
 use App\Models\BusStand;
 use App\Models\Stage;
 use App\Models\PDAProfile;
-
-class CheckTripTicket extends Command
+class CheckTripTicketOpt extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'tripticks:check';
+    protected $signature = 'tripticksOpt:check';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Run to check trips and tickets file daily';
+    protected $description = 'Run to check trips and tickets file optional';
 
     /**
      * Create a new command instance.
@@ -48,8 +47,9 @@ class CheckTripTicket extends Command
      */
     public function handle()
     {
-        $yesterdayDate = Carbon::yesterday()->format('Y-m-d');
+        //$yesterdayDate = Carbon::yesterday()->format('Y-m-d');
         //$yesterdayDate = Carbon::now()->format('Y-m-d');
+        $afterDate = Carbon::create('2022-07-01')->format('Y-m-d');
 
         //Check Trip Files
         $tripFiles = Storage::allFiles('trips');
@@ -58,8 +58,9 @@ class CheckTripTicket extends Command
                 $modified = Storage::lastModified($tripFile);
                 $date_modified = date('Y-m-d', $modified);
 
-                if($yesterdayDate==$date_modified){
-                    $this->info("Checking yesterday's trip files...");
+                if($date_modified >= $afterDate){
+                //if($yesterdayDate>=$date_modified){
+                    $this->info("Checking after 2022-07-01 's trip files...");
                     $path = Storage::path($tripFile);
                     $reads = file($path);
                     foreach ($reads as $read) {
@@ -88,9 +89,11 @@ class CheckTripTicket extends Command
                             if(!empty($checkDriver)){
                                 $newTrip->driver_id = $parse[6];
                             }
-                            $checkPDA = PDAProfile::where('id', $parse[13])->first();
-                            if(!empty($checkPDA)){
-                                $newTrip->pda_id = $parse[13];
+                            if(array_key_exists(13, $parse)){
+                                $checkPDA = PDAProfile::where('id', $parse[13])->first();
+                                if(!empty($checkPDA)){
+                                    $newTrip->pda_id = $parse[13];
+                                }
                             }
 
                             $newTrip->total_adult = $parse[7];
@@ -119,8 +122,9 @@ class CheckTripTicket extends Command
                 $modified = Storage::lastModified($ticketFile);
                 $date_modified = date('Y-m-d', $modified);
 
-                if($yesterdayDate==$date_modified){
-                    $this->info("Checking yesterday's tickets files...");
+                if($date_modified >= $afterDate){
+                //if($yesterdayDate==$date_modified){
+                    $this->info("Checking after 2022-07-01 's tickets files...");
                     $path = Storage::path($ticketFile);
                     $reads = file($path);
                     $adultCount = 0;

@@ -44,8 +44,8 @@
         <td style="text-align: center;"><strong>Type</strong></td>
         <td style="text-align: center;"><strong>Price</strong></td>
         <td style="text-align: center;"><strong>Bus Reg No.</strong></td>
-        <td style="text-align: center;"><strong>Route No.</strong></td>
         <td style="text-align: center;"><strong>IB/OB</strong></td>
+        <td style="text-align: center;"><strong>Route No.</strong></td>
         <td style="text-align: center;"><strong>Route Destination</strong></td>
         <td style="text-align: center;"><strong>System Trip Details</strong></td>
         <td style="text-align: center;"><strong>Trip Time</strong></td>

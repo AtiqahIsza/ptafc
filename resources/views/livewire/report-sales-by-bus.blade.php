@@ -30,6 +30,7 @@
                     <td>
                         <select wire:model="selectedCompany" id="company_id" class="form-select border-gray-300">
                             <option value="">Choose Company</option>
+                            <option value="All">All Companies</option>
                             @foreach($companies as $company)
                                 <option value="{{$company->id}}">{{$company->company_name}}</option>
                             @endforeach
@@ -44,6 +45,7 @@
                     <td>
                         <select style="width:100%" wire:model="state.bus_id" class="form-select border-gray-300" autofocus>
                             <option value="">Choose Bus</option>
+                            <option value="All">All Buses</option>
                             @foreach($buses as $bus)
                                 <option value="{{$bus->id}}">{{$bus->bus_registration_number}}</option>
                             @endforeach
@@ -70,3 +72,10 @@
         {{--{{ $users->links() }}--}}
     </div>
 </div>
+@push('script')
+    <script>
+        window.addEventListener('company-required', event => {
+            toastr.warning(event.detail.message, 'Please select company!');
+        });
+    </script>
+@endpush

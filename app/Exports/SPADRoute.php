@@ -25,7 +25,6 @@ class SPADRoute implements FromView, WithStyles, ShouldAutoSize
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
-        /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View

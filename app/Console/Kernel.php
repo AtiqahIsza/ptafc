@@ -13,7 +13,8 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         Commands\RouteSchedulerDaily::class,
-        Commands\CheckTripTicket::class
+        Commands\CheckTripTicket::class,
+        Commands\CheckTripTicketOpt::class
     ];
     /**
      * Define the application's command schedule.
@@ -25,11 +26,12 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $filePath = 'storage/logs/schedule.log';
-        //$schedule->command('routeschedule:daily')->dailyAt('00:00')->appendOutputTo($filePath);
-        //$schedule->command('tripticks:check')->dailyAt('00:10')->appendOutputTo($filePath);
-        $schedule->command('tripticks:check')->everyMinute()->appendOutputTo($filePath);
-        //$schedule->command('routeschedule:daily')->everyTwoMinutes()-
-        $schedule->command('routeschedule:daily')->everyMinute()->appendOutputTo($filePath);
+        $schedule->command('routeschedule:daily')->dailyAt('00:00')->appendOutputTo($filePath);
+        //$schedule->command('routeschedule:opt')->dailyAt('13:12')->appendOutputTo($filePath);
+        $schedule->command('tripticks:check')->dailyAt('00:10')->appendOutputTo($filePath);
+        //$schedule->command('tripticksOpt:check')->dailyAt('10:22')->appendOutputTo($filePath);
+        //$schedule->command('tripticks:check')->everyMinute()->appendOutputTo($filePath);
+        //$schedule->command('routeschedule:daily')->everyMinute()->appendOutputTo($filePath);
         /**
          * 2 option to run:
          * 1. 0 0 * * * cd /var/www/your-project && php artisan schedule:run >> /dev/null 2>&1

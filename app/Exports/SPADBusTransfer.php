@@ -9,30 +9,32 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SalesByDriver implements FromView, WithStyles, ShouldAutoSize
+class SPADBusTransfer implements FromView, WithStyles, ShouldAutoSize
 {
     public $reports;
     public $networkArea;
-    public $dateFrom;
-    public $dateTo;
+    public $fromDate;
+    public $toDate;
     public $sheet;
 
-    //The constructor passes by value
-    public function __construct($data, $networkArea, $dateFrom, $dateTo){
-        $this->reports = $data;
-        $this->networkArea = $networkArea;
-        $this->dateFrom = $dateFrom;
-        $this->dateTo = $dateTo;
-    }
+   //The constructor passes by value
+   public function __construct($data, $dateFrom, $dateTo, $networkArea)
+   {
+       $this->reports = $data;
+       $this->fromDate = $dateFrom;
+       $this->toDate = $dateTo;
+       $this->networkArea = $networkArea;
+       /*$this->sheet = $sheetName;*/
+   }
 
-    public function view(): View
+   public function view(): View
     {
-        //dd( $this->reports);
-        return view('exports.salesbydriver', [
+        //dd($this->reports);
+        return view('exports.spad.bustransfer', [
             'reports' => $this->reports,
             'networkArea' => $this->networkArea,
-            'dateFrom' => $this->dateFrom,
-            'dateTo' => $this->dateTo,
+            'dateFrom' => $this->fromDate,
+            'dateTo' => $this->toDate
         ]);
     }
 
@@ -47,8 +49,8 @@ class SalesByDriver implements FromView, WithStyles, ShouldAutoSize
             ],
         ];
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle('A1:AH' . $highestRow)->getAlignment()->setWrapText(true);
-        $sheet->getStyle('A1:AH' . $highestRow)->applyFromArray($styleArray);
+        $sheet->getStyle('A1:L' . $highestRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:L' . $highestRow)->applyFromArray($styleArray);
         return $sheet;
     }
 }

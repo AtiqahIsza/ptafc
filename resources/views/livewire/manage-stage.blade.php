@@ -59,7 +59,7 @@
                             <td>
                                 <!-- Button for preview stage map-->
                                 <button onclick="window.location='{{ route('viewStageMap', $stage->id) }}'" class="btn btn-success">View</button>
-                                <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger">Remove</button>
+                                {{-- <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger">Remove</button> --}}
                             </td>
                         @else
                             <td>
@@ -70,7 +70,7 @@
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $stage }})" class="btn btn-warning">Edit</button>
-                            <button wire:click.prevent="confirmRemoval({{ $stage->id }})" class="btn btn-danger">Remove</button>
+                            {{-- <button wire:click.prevent="confirmRemoval({{ $stage->id }})" class="btn btn-danger">Remove</button> --}}
                         </td>
                     </tr>
                 @endforeach

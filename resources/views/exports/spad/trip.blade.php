@@ -51,6 +51,7 @@
                             @if($dataPerDate!=NULL)
                                 @php $existTrip = true; @endphp
                                 @foreach($dataPerDate as $key4 => $allTrip)
+                                    @php $i=0 @endphp
                                     @if($key4=='total_per_date')
                                         <tr>
                                             <td colspan="14" style="text-align: right;">
@@ -72,33 +73,36 @@
                                                     @endforeach
                                                 </tr>
                                             @else
-                                                <tr>
-                                                    <td colspan="19">&nbsp;</td>
-                                                </tr>
-                                                <tr>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Route No.</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>OD</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>No. of Trips</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Trip No</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Bus Plate Number</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Driver ID</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Service Date</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Start Point</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Service Start Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Actual Start Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Sales Start Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Service End Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Actual End Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Sales End Time</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Passengers Boarding Count</strong></td>
-                                                    <td rowspan="2" style="text-align: center;"><strong>Total Sales Amount (RM)</strong></td>
-                                                    <td colspan="3" style="text-align: center;"><strong>ETM Boarding Passenger Count</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>Total On</strong></td>
-                                                    <td><strong>Adult</strong></td>
-                                                    <td><strong>Concession</strong></td>
-                                                </tr>
+                                                @if($i==0)
+                                                    <tr>
+                                                        <td colspan="19">&nbsp;</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Route No.</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>OD</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>No. of Trips</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Trip No</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Bus Plate Number</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Driver ID</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Service Date</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Start Point</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Service Start Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Actual Start Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Sales Start Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Service End Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Actual End Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Sales End Time</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Passengers Boarding Count</strong></td>
+                                                        <td rowspan="2" style="text-align: center;"><strong>Total Sales Amount (RM)</strong></td>
+                                                        <td colspan="3" style="text-align: center;"><strong>ETM Boarding Passenger Count</strong></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><strong>Total On</strong></td>
+                                                        <td><strong>Adult</strong></td>
+                                                        <td><strong>Concession</strong></td>
+                                                    </tr>
+                                                @endif
+                                                @php $i++ @endphp
                                                 <tr>
                                                     <td style="text-align: center;">{{ $key2 }}</td>
                                                     <td style="text-align: center;">{{ $key4 }}</td>
