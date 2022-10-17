@@ -114,6 +114,7 @@ class ManageStage extends Component
                 $this->dispatchBrowserEvent('show-error-existed');
             }else{
                 $out->writeln("YOU ARE IN not existedOrder()");
+                $validatedData['updated_by'] = auth()->user()->id;
                 $success = $this->editedStages->update($validatedData);
 
                 if($success){
@@ -127,6 +128,7 @@ class ManageStage extends Component
             }
         }else{
             $out->writeln("YOU ARE IN not existedOrder()");
+            $validatedData['updated_by'] = auth()->user()->id;
             $success = $this->editedStages->update($validatedData);
 
             if($success){
@@ -169,6 +171,8 @@ class ManageStage extends Component
         if($existedOrder){
             $this->dispatchBrowserEvent('show-error-existed');
         }else{
+            $validatedData['created_by'] = auth()->user()->id;
+            $validatedData['updated_by'] = auth()->user()->id;
             $success = Stage::create($validatedData);
 
             if($success){
@@ -213,8 +217,8 @@ class ManageStage extends Component
     public function confirmRemovalMap($id)
     {
         $this->removedStageMapId = $id;
-        $selectedRemoved = Route::where('id', $this->removedStageMapId)->first();
-        $this->removedStage = $selectedRemoved->route_name;
+        $selectedRemoved = Stage::where('id', $this->removedStageMapId)->first();
+        $this->removedStage = $selectedRemoved->stage_name;
         $this->stages = Stage::where('route_id', $this->selectedRoute)->orderBy('stage_order')->get();
         $this->stageMaps = StageMap::select('stage_id')->distinct()->get();
         $this->dispatchBrowserEvent('show-delete-map-modal');

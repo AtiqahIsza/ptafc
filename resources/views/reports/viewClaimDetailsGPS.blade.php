@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link rel="icon" href="{{ URL::asset('maraliner_icon.ico') }}" type="image/x-icon"/>
+    <link rel="icon" href="{{ URL::asset('perak-transit-logo.ico') }}" type="image/x-icon"/>
     <title>Maraliner</title>
 
     <!-- Styles -->

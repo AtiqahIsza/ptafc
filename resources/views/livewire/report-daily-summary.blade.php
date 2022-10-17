@@ -3,7 +3,7 @@
         <h2>{{ __('Daily Summary Report') }}</h2>
         <br>
         <!-- Form -->
-        <form wire:submit.prevent="{{ 'print' }}">
+        <form wire:submit.prevent="{{ 'printFast' }}">
             @csrf
             <table class="table table-hover">
                 <tbody>
@@ -66,6 +66,15 @@
                 </tbody>
             </table>
         </form>
+    </div>
+    <div wire:loading>
+        <div style="display:flex; justify-content:center; align-items:center; background-color:black;
+        position:fixed; top:0px; left:0px; z-index:9999; width:100%; height:100%; opacity:.75;">
+            <div style="color: #f4696b" class="la-ball-clip-rotate-pulse la-3x">
+                <div></div>
+                <div></div>
+            </div>
+        </div>
     </div>
     <div
         class="card-footer px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between">

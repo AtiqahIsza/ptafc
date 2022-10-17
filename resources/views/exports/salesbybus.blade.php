@@ -50,15 +50,16 @@
                                     <td><strong>{{ $totalBus }}</strong></td>
                                 @endforeach
                             </tr>
-                        @elseif($allDates != NULL)
+                        @elseif($key4==0 && $allDates != NULL)
                             <tr>
                                 <td colspan="11">&nbsp;</td>
                             </tr>
                             <tr>
                                 <th colspan="11">
-                                    <strong> Bus No: {{ $key3 }}</strong>
+                                    <strong> Bus No: {{ $key3 }} TID: {{ $allDates }}</strong>
                                 </th>
                             </tr>
+                        @elseif($allDates != NULL)
                             @foreach($allDates as $key5 => $allTrips)
                                 @foreach($allTrips as $key6 => $perTrip)
                                     @if($key6=='total_sales_per_trip')

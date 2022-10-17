@@ -31,8 +31,10 @@
                 <tr>
                     <th class="border-gray-200">{{ __('Sequence') }}</th>
                     <th class="border-gray-200">{{ __('Stage Name') }}</th>
-                    <th class="border-gray-200">{{ __('Stage Number') }}</th>
+                    {{-- <th class="border-gray-200">{{ __('Stage Number') }}</th> --}}
                     <th class="border-gray-200">{{ __('Distance (KM)') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
                     <th class="border-gray-200">{{ __('Stage Map') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
@@ -42,8 +44,15 @@
                     <tr>
                         <td><span class="fw-normal">{{ $stage->stage_order }}</span></td>
                         <td><span class="fw-normal">{{ $stage->stage_name }}</span></td>
-                        <td><span class="fw-normal">{{ $stage->stage_number }}</span></td>
+                        {{-- <td><span class="fw-normal">{{ $stage->stage_number }}</span></td> --}}
                         <td><span class="fw-normal">{{ $stage->no_of_km }}</span></td>
+                        @if ($stage->updated_at != NULL && $stage->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $stage->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $stage->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
                         @php
                             $result = false;
                         @endphp
@@ -59,7 +68,7 @@
                             <td>
                                 <!-- Button for preview stage map-->
                                 <button onclick="window.location='{{ route('viewStageMap', $stage->id) }}'" class="btn btn-success">View</button>
-                                {{-- <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger">Remove</button> --}}
+                                <button wire:click.prevent="confirmRemovalMap({{ $stage->id }})" class="btn btn-danger">Remove</button>
                             </td>
                         @else
                             <td>

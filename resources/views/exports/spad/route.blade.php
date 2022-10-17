@@ -34,72 +34,131 @@
     </thead>
 
     <tbody>
-    <tr>
-        <td rowspan="2" style="text-align: center;"><strong>Route No.</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>OD</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Total KM Planned</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Total KM Served</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Total KM Served GPS</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Number of Scheduled Trips</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Number of Trips Made</strong></td>
-        <td rowspan="2" style="text-align: center;"><strong>Passenger Boarding Count</strong></td>
-        <td colspan="3" style="text-align: center;"><strong>ETM Boarding Passenger Count</strong></td>
-        <td colspan="2" style="text-align: center;"><strong>Previous Highest Patronage</strong></td>
-        <td colspan="2" style="text-align: center;"><strong>Previous Highest Sales</strong></td>
-    </tr>
-    <tr>
-        <td><strong>Adult</strong></td>
-        <td><strong>Concession</strong></td>
-        <td><strong>Total On</strong></td>
-        <td><strong>Total Pax</strong></td>
-        <td><strong>% Increase</strong></td>
-        <td><strong>Total Sales Amount</strong></td>
-        <td><strong>% Increase</strong></td>
-    </tr>
+        <tr>
+            <td rowspan="2" style="text-align: center;"><strong>Route No.</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>OD</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Total KM Planned</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Total KM Served</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Total KM Served GPS</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Number of Scheduled Trips</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Number of Trips Made</strong></td>
+            <td rowspan="2" style="text-align: center;"><strong>Passenger Boarding Count</strong></td>
+            <td colspan="3" style="text-align: center;"><strong>ETM Boarding Passenger Count</strong></td>
+            <td colspan="2" style="text-align: center;"><strong>Previous Highest Patronage</strong></td>
+            <td colspan="2" style="text-align: center;"><strong>Previous Highest Sales</strong></td>
+        </tr>
+        <tr>
+            <td><strong>Adult</strong></td>
+            <td><strong>Concession</strong></td>
+            <td><strong>Total On</strong></td>
+            <td><strong>Total Pax</strong></td>
+            <td><strong>% Increase</strong></td>
+            <td><strong>Total Sales Amount</strong></td>
+            <td><strong>% Increase</strong></td>
+        </tr>
 
-    @foreach($reports as $key1 => $reportValue)
-        @foreach($reportValue as $key2 => $allRoute)
-            @if($key2=="grand")
+        @foreach($reports as $key1 => $reportValue)
+            @if(property_exists($reportValue, 'route_name'))
                 <tr>
-                    <td colspan="2" style="text-align: right;"><strong>Grand Total:</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_km_planned'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_km_served']  }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_km_served_gps'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_scheduled_trip']  }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_trip_made'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_count_passenger_board']  }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_total_on'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_adult'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_num_concession']  }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_total_pax'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_total_pax_increase'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_total_sales'] }}</strong></td>
-                    <td><strong>{{ $allRoute['grand_total_sales_increase'] }}</strong></td>-
+                    <td style="text-align: center;">{{ $reportValue->route_number }}</td>
+                    <td style="text-align: center;">{{ $reportValue->route_name }}</td>
+                    <td>{{ $reportValue->km_planned }}</td>
+                    <td>{{ $reportValue->km_served }}</td>
+                    <td>{{ $reportValue->km_served }}</td>
+                    <td>{{ $reportValue->trip_planned }}</td>
+                    <td>{{ $reportValue->trip_served }}</td>
+                    <td>{{ $reportValue->ridership }}</td>
+                    <td>{{ $reportValue->total_adult }}</td>
+                    <td>{{ $reportValue->total_concession }}</td>
+                    <td>{{ $reportValue->ridership }}</td>
+                    <td>{{ $reportValue->prev_ridership }}</td>
+                    <td>{{ $reportValue->increase_ridership }}</td>
+                    <td>{{ $reportValue->prev_farebox }}</td>
+                    <td>{{ $reportValue->increase_farebox }}</td>
                 </tr>
-            @else
+            @elseif(!property_exists($reportValue, 'route_name') && property_exists($reportValue, 'route_number'))
+                <tr>
+                    <td colspan="2" style="text-align: right;"><strong>Total For Route No: {{ $reportValue->route_number }}</strong></td>
+                    <td><strong>{{ $reportValue->km_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_served }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->total_adult }}</strong></td>
+                    <td><strong>{{ $reportValue->total_concession }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->prev_ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->increase_ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->prev_farebox }}</strong></td>
+                    <td><strong>{{ $reportValue->increase_farebox }}</strong></td>
+                </tr>
                 <tr>
                     <td colspan="15">&nbsp;</td>
                 </tr>
-                @foreach($allRoute as $key3 => $perRoute)
-                    @if($key3=='total')
-                        <tr>
-                            <td colspan="2" style="text-align: right;"><strong>Total For Route No.: {{ $key2 }}</strong></td>
-                            @foreach($perRoute as $total)
-                                <td><strong>{{$total}}</strong></td>
-                            @endforeach
-                        </tr>
-                    @endif
-                    @if($key3=='inbound' || $key3=='outbound')
-                        <tr>
-                            <td>{{ $key2 }}</td>
-                            @foreach($perRoute as $data)
-                                <td>{{ $data }}</td>
-                            @endforeach
-                        </tr>
-                    @endif
-                @endforeach
+            @else
+                <tr>
+                    <td colspan="2" style="text-align: right;"><strong>Grand Total:</strong></td>
+                    <td><strong>{{ $reportValue->km_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_served }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->total_adult }}</strong></td>
+                    <td><strong>{{ $reportValue->total_concession }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->prev_ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->increase_ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->prev_farebox }}</strong></td>
+                    <td><strong>{{ $reportValue->increase_farebox }}</strong></td>
+                </tr>
             @endif
         @endforeach
-    @endforeach
+
+        {{-- @foreach($reports as $key1 => $reportValue)
+            @foreach($reportValue as $key2 => $allRoute)
+                @if($key2=="grand")
+                    <tr>
+                        <td colspan="2" style="text-align: right;"><strong>Grand Total:</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_km_planned'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_km_served']  }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_km_served_gps'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_scheduled_trip']  }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_trip_made'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_count_passenger_board']  }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_total_on'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_adult'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_num_concession']  }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_total_pax'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_total_pax_increase'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_total_sales'] }}</strong></td>
+                        <td><strong>{{ $allRoute['grand_total_sales_increase'] }}</strong></td>-
+                    </tr>
+                @else
+                    <tr>
+                        <td colspan="15">&nbsp;</td>
+                    </tr>
+                    @foreach($allRoute as $key3 => $perRoute)
+                        @if($key3=='total')
+                            <tr>
+                                <td colspan="2" style="text-align: right;"><strong>Total For Route No.: {{ $key2 }}</strong></td>
+                                @foreach($perRoute as $total)
+                                    <td><strong>{{$total}}</strong></td>
+                                @endforeach
+                            </tr>
+                        @endif
+                        @if($key3=='inbound' || $key3=='outbound')
+                            <tr>
+                                <td>{{ $key2 }}</td>
+                                @foreach($perRoute as $data)
+                                    <td>{{ $data }}</td>
+                                @endforeach
+                            </tr>
+                        @endif
+                    @endforeach
+                @endif
+            @endforeach
+        @endforeach --}}
     </tbody>
 </table>

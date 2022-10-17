@@ -1,10 +1,12 @@
 <div class="main py-4">
     <div class="d-block mb-md-0" style="position: relative">
         <h2>Manage Route Schedule</h2>
-        <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
-            <i class="fa fa-plus-circle mr-1 fa-fw"></i>
-            Add Route Schedule
-        </button>
+        @if (Auth::user()->user_role==1)
+            <button wire:click.prevent="addNew" class="buttonAdd btn btn-gray-800 d-inline-flex align-items-center me-2">
+                <i class="fa fa-plus-circle mr-1 fa-fw"></i>
+                Add Route Schedule
+            </button>
+        @endif
     </div>
     <div class="d-block mb-md-0" style="position: relative">
         <select wire:model="selectedCompany"  class="form-select fmxw-200 d-none d-md-inline">
@@ -17,7 +19,7 @@
         <select wire:model="selectedRoute"  class="form-select fmxw-200 d-none d-md-inline">
             <option value="">Choose Route</option>
             @foreach($routes as $route)
-                <option value="{{$route->id}}">{{$route->route_name}}</option>
+                <option value="{{$route->id}}">{{ $route->route_number }} - {{$route->route_name}}</option>
             @endforeach
         </select>
     </div>
@@ -36,6 +38,8 @@
                 <th class="border-gray-200">{{ __('Bus Reg No.') }}</th>
                 <th class="border-gray-200">{{ __('Trip Type') }}</th>
                 <th class="border-gray-200">{{ __('Trip Code') }}</th>
+                <th class="border-gray-200">{{ __('Updated At') }}</th>
+                <th class="border-gray-200">{{ __('Updated By') }}</th>
                 <th class="border-gray-200">{{ __('Status') }}</th>
                 <th class="border-gray-200">Action</th>
             </tr>
@@ -79,8 +83,10 @@
                             <td><span class="fw-normal">ALL DAY (Except Friday & Saturday)</span></td>
                         @elseif($schedule->trip_type==11)
                             <td><span class="fw-normal">SUNDAY Only</span></td>
-                        @else
+                        @elseif($schedule->trip_type==12)
                             <td><span class="fw-normal">FRI & SAT</span></td>
+                        @else
+                            <td><span class="fw-normal">FRI - SUN</span></td>
                         @endif
 
                         @if($schedule->trip_code==1)
@@ -88,15 +94,27 @@
                         @else
                             <td><span class="fw-normal">OUTBOUND</span></td>
                         @endif
-
-                        @if($schedule->status==1)
-                            <td><span class="fw-normal">ENABLED</span></td>
+                        @if ($schedule->updated_at != NULL && $schedule->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $schedule->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $schedule->UpdatedBy->username}}</span></td>
                         @else
-                            <td><span class="fw-normal">DISABLED</span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
+                        @if($schedule->status==1)
+                            <td><span class="badge bg-success">ENABLED</span></td>
+                        @else
+                            <td><span class="badge bg-danger">DISABLED</span></td>
                         @endif
                         <td>
                             <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $schedule }})" class="btn btn-warning">Edit</button>
+                            {{-- Report User --}}
+                            @if (Auth::user()->user_role==2)
+                                <button wire:click.prevent="edit({{ $schedule }})" class="btn btn-warning">Edit</button>
+                            @else
+                                <button wire:click.prevent="editAdmin({{ $schedule }})" class="btn btn-warning">Edit</button>
+                            @endif
+                            
                             {{-- <button wire:click.prevent="confirmChanges({{ $schedule->id }}, {{ $schedule->status }})" class="btn btn-primary">Change Status</button> --}}
                             {{-- <button wire:click.prevent="confirmRemoval({{ $schedule->id }})" class="btn btn-danger"><i class="fas fa-trash fa-fw"></i></button> --}}
                         </td>
@@ -107,8 +125,60 @@
         </table>
     </div>
 
-    <!-- Edit/Create Modal Content -->
+    <!-- Edit/Create Modal FOR REPORT USER Content -->
     <div wire:ignore.self class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-md-5">
+                    <h2 class="h4 text-center">
+                        <span>Edit Route Schedule</span>
+                    </h2>
+
+                    <!-- Form -->
+                    <form wire:submit.prevent="{{ $showEditModal ? 'updateRouteSchedule' : 'addRouteSchedule' }}">
+                        @csrf
+                        <div class="form-group mb-4">
+                            <label for="schedule_time">Start Time</label>
+                            <div class="input-group">
+                            <span class="input-group-text border-gray-300" id="basic-addon3">
+                                <i class="fas fa-clock fa-fw"></i>
+                            </span>
+                                <input wire:model.defer="state.schedule_start_time" class="form-control border-gray-300" type="time" autofocus required>
+                                @if ($errors->has('schedule_start_time'))
+                                    <span class="text-danger">{{ $errors->first('schedule_start_time') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="schedule_time">End Time</label>
+                            <div class="input-group">
+                            <span class="input-group-text border-gray-300" id="basic-addon3">
+                                <i class="fas fa-clock fa-fw"></i>
+                            </span>
+                                <input wire:model.defer="state.schedule_end_time" class="form-control border-gray-300" type="time" autofocus required>
+                                @if ($errors->has('schedule_end_time'))
+                                    <span class="text-danger">{{ $errors->first('schedule_end_time') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="btnSave">
+                                <span>Save Changes</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-header"></div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Edit Route Schedule Modal Content -->
+
+    <!-- Edit/Create Modal Content -->
+    <div wire:ignore.self class="modal fade" id="modalEditAdmin" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -124,7 +194,7 @@
                     </h2>
 
                     <!-- Form -->
-                    <form wire:submit.prevent="{{ $showEditModal ? 'updateRouteSchedule' : 'addRouteSchedule' }}">
+                    <form wire:submit.prevent="{{ $showEditModal ? 'updateRouteScheduleAdmin' : 'addRouteSchedule' }}">
                         @csrf
                         <div class="form-group mb-4">
                             <label for="schedule_time">Start Time</label>
@@ -272,6 +342,7 @@
                                     <option value="9">ALLDAY (Except Friday & Sunday)</option>
                                     <option value="10">ALLDAY (Except Friday & Saturday)</option>
                                     <option value="6">Monday - Thursday</option>
+                                    <option value="13">Friday - Sunday</option>
                                     <option value="7">Friday Only</option>
                                     <option value="8">Saturday Only</option>
                                     <option value="11">Sunday Only</option>
@@ -311,7 +382,7 @@
     </div>
     <!-- End of Edit Route Schedule Modal Content -->
 
-    <!-- Confirm Change Status Route Schedule Modal -->
+    <!-- Confirm Change Status Route Schedule Mo  dal -->
     <div wire:ignore.self class="modal fade" id="confirmChangeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -372,16 +443,27 @@
         window.addEventListener('show-form', event => {
             $('#modalEdit').modal('show');
         });
+        window.addEventListener('show-form-admin', event => {
+            $('#modalEditAdmin').modal('show');
+        });
         window.addEventListener('hide-form-edit', event => {
             $('#modalEdit').modal('hide');
             toastr.success(event.detail.message, 'Route schedule updated successfully!');
         });
+        window.addEventListener('hide-form-edit-admin', event => {
+            $('#modalEditAdmin').modal('hide');
+            toastr.success(event.detail.message, 'Route schedule updated successfully!');
+        });
         window.addEventListener('hide-form-add', event => {
-            $('#modalEdit').modal('hide');
+            $('#modalEditAdmin').modal('hide');
             toastr.success(event.detail.message, 'New route schedule added successfully!');
         });
         window.addEventListener('hide-form-failed', event => {
             $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Operation failed!');
+        });
+        window.addEventListener('hide-form-failed-admin', event => {
+            $('#modalEditAdmin').modal('hide');
             toastr.error(event.detail.message, 'Operation failed!');
         });
         window.addEventListener('show-status-modal', event => {

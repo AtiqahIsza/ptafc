@@ -90,11 +90,14 @@ final class UserTable extends PowerGridComponent
         return PowerGrid::eloquent()
             ->addColumn('id')
             ->addColumn('full_name')
-            ->addColumn('ic_number')
             ->addColumn('phone_number')
             ->addColumn('username')
             ->addColumn('company_id', function (User $model) {
-                return ucwords($model->company->company_name);
+                if($model->company_id==NULL){
+                    return "No Data";
+                }else{
+                    return ucwords($model->company->company_name);
+                }
             })
             ->addColumn('user_role', function (User $model) {
                 if($model->user_role == 1){return "Administrator";}
@@ -130,14 +133,6 @@ final class UserTable extends PowerGridComponent
             Column::add()
                 ->title('FULL NAME')
                 ->field('full_name')
-                ->sortable()
-                ->searchable()
-                ->makeInputText()
-                ->editOnClick('true'),
-
-            Column::add()
-                ->title('IC NUMBER')
-                ->field('ic_number')
                 ->sortable()
                 ->searchable()
                 ->makeInputText()

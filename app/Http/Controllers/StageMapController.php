@@ -44,28 +44,25 @@ class StageMapController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $out = new ConsoleOutput();
         $stageMaps = $request->markers;
 
         try{
             foreach($stageMaps as $key => $value){
-                /*$out->writeln($value['lat']);
-                $out->writeln(round($value['lat'],10));
-                $out->writeln($value['long']);
-                $out->writeln(round($value['long'],10));
-                $out->writeln($value['sequence']);
-                $out->writeln($value['route_id']);*/
-
                 $newMap = new StageMap();
                 $newMap->longitude = round($value['long'],10);
                 $newMap->latitude = round($value['lat'],10);
                 $newMap->sequence = $value['sequence'];
                 $newMap->stage_id = $value['stage_id'];
+                $newMap->created_by = auth()->user()->id;
+                $newMap->updated_by = auth()->user()->id;
                 $newMap->save();
+
+                $id = $value['stage_id'];
             }
-            return $this->returnResponse(1, "Stage Map Successfully Stored", "Stage Map Successfully Stored");
+            return $this->returnResponse(1, route('viewStageMap', ['id' => $id]), "Stage Map Successfully Stored");
         }
         catch(\Exception $e){
             $out->writeln($e);
@@ -91,8 +88,11 @@ class StageMapController extends Controller
             ->where('route_id', $stage->route_id)
             ->orderby('sequence')
             ->get();
+        $updatedBy = StageMap::where('stage_id', $request->route('id'))
+            ->orderby('sequence','DESC')
+            ->first();
         //dd($routeMaps);
-        return view('settings.viewStageMap', compact('stage','stageMaps','routeMaps'));
+        return view('settings.viewStageMap', compact('stage','stageMaps','routeMaps','updatedBy'));
     }
 
     /**

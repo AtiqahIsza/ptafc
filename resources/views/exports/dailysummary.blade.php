@@ -26,6 +26,130 @@
     </thead>
 
     <tbody>
+        <tr>
+            <td colspan="15">&nbsp;</td>
+        </tr>
+        <tr>
+            <td style="text-align: center;"><strong>No.</strong></td>
+            <td style="text-align: center;"><strong>Date</strong></td>
+            <td style="text-align: center;"><strong>Day/Category</strong></td>
+            <td style="text-align: center;"><strong>Total Trip Planned </strong></td>
+            <td style="text-align: center;"><strong>Total KM Planned (KM)</strong></td>
+            <td style="text-align: center;"><strong>Total Trips Served</strong></td>
+            <td style="text-align: center;"><strong>Total KM Served (KM)</strong></td>
+            <td style="text-align: center;"><strong>Total Missed Trips</strong></td>
+            <td style="text-align: center;"><strong>Trip Compliance (%)</strong></td>
+            <td style="text-align: center;"><strong>Total Trips Late/Early Departure</strong></td>
+            <td style="text-align: center;"><strong>Total Breakdown</strong></td>
+            <td style="text-align: center;"><strong>Total Accidents</strong></td>
+            <td style="text-align: center;"><strong>Ridership (Based on passenger counter)</strong></td>
+            <td style="text-align: center;"><strong>Ridership (Based on ticket sales)</strong></td>
+            <td style="text-align: center;"><strong>Farebox Collection (RM)</strong></td>
+        </tr>
+        @php $count=1;@endphp
+        @php $newCompany=false;@endphp
+        @foreach($contents as $key1 => $reportValue)
+            @if(!property_exists($reportValue, 'service_date') && !property_exists($reportValue, 'route_number') && !property_exists($reportValue, 'company_name'))
+            <tr>
+                <td colspan="3" style="text-align: right;">
+                    <strong>Grand Total :</strong>
+                </td>
+                <td><strong>{{ $reportValue->trip_planned }}</strong></td>
+                <td><strong>{{ $reportValue->km_planned }}</strong></td>
+                <td><strong>{{ $reportValue->trip_served }}</strong></td>
+                <td><strong>{{ $reportValue->km_served }}</strong></td>
+                <td><strong>{{ $reportValue->missed_trip }}</strong></td>
+                <td><strong>{{ $reportValue->trip_compliance }}</strong></td>
+                <td><strong>{{ $reportValue->earlyLate }}</strong></td>
+                <td><strong>0</strong></td>
+                <td><strong>0</strong></td>
+                <td><strong>{{ $reportValue->ridership }}</strong></td>
+                <td><strong>{{ $reportValue->ridership }}</strong></td>
+                <td><strong>{{ $reportValue->farebox}}</strong></td>
+            </tr>
+            @elseif(!property_exists($reportValue, 'service_date') && property_exists($reportValue, 'route_number'))
+                <tr>
+                    <td colspan="3" style="text-align: right;">
+                        <strong>Total For {{ $reportValue->route_number }} - {{ $reportValue->route_name }}:</strong>
+                    </td>
+                    <td><strong>{{ $reportValue->trip_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->km_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_served }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->missed_trip }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_compliance }}</strong></td>
+                    <td><strong>{{ $reportValue->earlyLate }}</strong></td>
+                    <td><strong>0</strong></td>
+                    <td><strong>0</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->farebox}}</strong></td>
+                </tr>
+            @elseif(!property_exists($reportValue, 'route_number') && property_exists($reportValue, 'company_name'))
+                @php $newCompany=true;@endphp
+                <tr>
+                    <td colspan="3" style="text-align: right;">
+                        <strong>Total For {{ $reportValue->company_name }}:</strong>
+                    </td>
+                    <td><strong>{{ $reportValue->trip_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->km_planned }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_served }}</strong></td>
+                    <td><strong>{{ $reportValue->km_served }}</strong></td>
+                    <td><strong>{{ $reportValue->missed_trip }}</strong></td>
+                    <td><strong>{{ $reportValue->trip_compliance }}</strong></td>
+                    <td><strong>{{ $reportValue->earlyLate }}</strong></td>
+                    <td><strong>0</strong></td>
+                    <td><strong>0</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->ridership }}</strong></td>
+                    <td><strong>{{ $reportValue->farebox}}</strong></td>
+                </tr>
+            @else
+                @if($newCompany==true)
+                    <tr>
+                        <td colspan="15">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center;"><strong>No.</strong></td>
+                        <td style="text-align: center;"><strong>Date</strong></td>
+                        <td style="text-align: center;"><strong>Day/Category</strong></td>
+                        <td style="text-align: center;"><strong>Total Trip Planned </strong></td>
+                        <td style="text-align: center;"><strong>Total KM Planned (KM)</strong></td>
+                        <td style="text-align: center;"><strong>Total Trips Served</strong></td>
+                        <td style="text-align: center;"><strong>Total KM Served (KM)</strong></td>
+                        <td style="text-align: center;"><strong>Total Missed Trips</strong></td>
+                        <td style="text-align: center;"><strong>Trip Compliance (%)</strong></td>
+                        <td style="text-align: center;"><strong>Total Trips Late/Early Departure</strong></td>
+                        <td style="text-align: center;"><strong>Total Breakdown</strong></td>
+                        <td style="text-align: center;"><strong>Total Accidents</strong></td>
+                        <td style="text-align: center;"><strong>Ridership (Based on passenger counter)</strong></td>
+                        <td style="text-align: center;"><strong>Ridership (Based on ticket sales)</strong></td>
+                        <td style="text-align: center;"><strong>Farebox Collection (RM)</strong></td>
+                    </tr>
+                    @php $newCompany=false;@endphp
+                @endif
+                <tr>
+                    <td style="text-align: center;">{{ $count++ }}</td>
+                    <td style="text-align: center;">{{ $reportValue->service_date }}</td>
+                    <td style="text-align: center;">{{ $reportValue->day }}</td>
+                    <td>{{ $reportValue->trip_planned }}</td>
+                    <td>{{ $reportValue->km_planned }}</td>
+                    <td>{{ $reportValue->trip_served }}</td>
+                    <td>{{ $reportValue->km_served }}</td>
+                    <td>{{ $reportValue->missed_trip }}</td>
+                    <td>{{ $reportValue->trip_compliance }}</td>
+                    <td>{{ $reportValue->earlyLate }}</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>{{ $reportValue->ridership }}</td>
+                    <td>{{ $reportValue->ridership }}</td>
+                    <td>{{ $reportValue->farebox}}</td>
+                </tr>
+            @endif
+        @endforeach
+    </tbody>
+
+    {{-- <tbody>
         @foreach($contents as $key1 => $reportValue)
             @php $count=1; @endphp
             @foreach($reportValue as $key2 => $allCompanies)
@@ -99,67 +223,6 @@
                         @endforeach
                     @endforeach
                 @endif
-            @endforeach
-        @endforeach
-    </tbody>
-
-    {{-- <tbody>
-        <tr>
-            <td style="text-align: center;"><strong>No</strong></td>
-            <td style="text-align: center;"><strong>Bus Registration Number</strong></td>
-            <td style="text-align: center;"><strong>Route Name</strong></td>
-            <td style="text-align: center;"><strong>Route Number</strong></td>
-            <td style="text-align: center;"><strong>Actual Distance One Way (KM)</strong></td>
-            <td style="text-align: center;"><strong>Number of Bus</strong></td>
-            <td style="text-align: center;"><strong>Total Trip</strong></td>
-            <td style="text-align: center;"><strong>Total Actual Distance</strong></td>
-            <td style="text-align: center;"><strong>Total Fareship</strong></td>
-        </tr>
-        @foreach($contents as $key1 => $data)
-            @foreach($data['data'] as $key2 => $route)
-                @foreach($route['sales'] as $key3 => $sales)
-                    @php $i=1 @endphp
-                    <tr>
-                        <td style="text-align: center;">{{ $i++ }}</td>
-                        <td style="text-align: center;">{{ $data['bus_no'] }}</td>
-                        <td style="text-align: center;">{{ $data['route_name'] }}</td>
-                        <td style="text-align: center;">{{ $data['route_number'] }}</td>
-                        <td style="text-align: center;">{{ $data['count_trip'] }}</td>
-                        <td style="text-align: center;">{{ $data['distance'] }}</td>
-                        <td style="text-align: center;">{{ $data['count_bus'] }}</td>
-                        <td style="text-align: center;">{{ $data['count_actual_trip'] }}</td>
-                        <td style="text-align: center;">{{ $data['actual_distance'] }}</td>
-                        <td style="text-align: center;">{{ $data['dead_distance']  }}</td>
-                        <td style="text-align: center;">{{ $data['actual_distance'] }}</td>
-                        <td style="text-align: center;">{{ $data['route_number'] }}</td>  <!--Income Based on Transport Letter-->
-                    </tr>
-                @endforeach
-                @foreach($route['total'] as $key4 => $total)
-                    <tr>
-                        <td colspan="4" style="text-align: right;"><strong>Total</strong></td>
-                        <td style="text-align: center;">{{ $total['total_count_trip'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_distance'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_count_bus'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_count_actual_trip'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_dead_distance']  }}</td>
-                        <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>
-                        <td style="text-align: center;">{{ $total['total_actual_distance'] }}</td>  <!--Income Based on Transport Letter-->
-                    </tr>
-                @endforeach
-            @endforeach
-            @foreach($data['grand'] as $key5 => $grand)
-                <tr>
-                    <td colspan="4" style="text-align: right;"><strong>Grand Total</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_count_trip'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_distance'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_count_bus'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_count_actual_trip'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_dead_distance']  }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>
-                    <td style="text-align: center;"><strong>{{ $grand['grand_actual_distance'] }}</strong></td>  <!--Income Based on Transport Letter-->
-                </tr>
             @endforeach
         @endforeach
     </tbody> --}}

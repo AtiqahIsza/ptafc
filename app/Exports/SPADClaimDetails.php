@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class SPADClaimDetails implements FromView, WithStyles, ShouldAutoSize
 {
@@ -20,21 +21,20 @@ class SPADClaimDetails implements FromView, WithStyles, ShouldAutoSize
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($dates, $data, $dateFrom, $dateTo, $networkArea)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea)
     {
-        $this->allDates = $dates;
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
         $this->networkArea = $networkArea;
-        /*$this->sheet = $sheetName;*/
     }
 
     public function view(): View
     {
         //dd($this->reports);
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN SPADClaimDetails");
         return view('exports.spad.claimdetails', [
-            'allDates' => $this->allDates,
             'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate,

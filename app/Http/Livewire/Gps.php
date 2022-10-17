@@ -32,7 +32,7 @@ class Gps extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->buses = Bus::where('company_id', $company)->orderBy('bus_registration_number')->get();
+            $this->buses = Bus::where('company_id', $company)->where('status', 1)->orderBy('bus_registration_number')->get();
         }
     }
 }

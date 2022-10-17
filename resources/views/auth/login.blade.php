@@ -3,15 +3,15 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 d-flex align-items-center justify-content-center">
-                <div class="bg-white shadow-soft border rounded border-light p-4 p-lg-5 w-100 fmxw-500">
+                <div class="bg-pt shadow-soft border rounded border-light p-4 p-lg-5 w-100 fmxw-500">
                     <div class="text-center text-md-center mb-4 mt-md-0">
-                        <img src="{{ asset('images/MARALINER-logo.png') }}" height="100" width="400">
+                        <img src="{{ asset('images/peraktransit-logo.png') }}" height="100" width="400">
                     </div>
                     <form class="mt-4" action="{{ route('login') }}" method="POST">
                         @csrf
                         <!-- Form -->
                         <div class="form-group mb-4">
-                            <label for="username">{{ __('Your Username') }}</label>
+                            <label style="color:white"; for="username">{{ __('Your Username') }}</label>
                             <div class="input-group">
                                 <span class="input-group-text" id="basic-addon1">
                                     <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20"
@@ -33,7 +33,7 @@
                         <div class="form-group">
                             <!-- Form -->
                             <div class="form-group mb-4">
-                                <label for="password">{{ __('Your Password') }}</label>
+                                <label style="color:white"; for="password">{{ __('Your Password') }}</label>
                                 <div class="input-group">
                                     <span class="input-group-text" id="basic-addon2">
                                         <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20"
@@ -68,11 +68,11 @@
                         </div>
 
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-gray-800">{{ __('Sign in') }}</button>
+                            <button type="submit" class="btn btn-white-yellow">{{ __('Sign in') }}</button>
                         </div>
                     </form>
                     {{-- <div class="d-flex justify-content-center align-items-center mt-4">
-                        <span class="fw-normal">
+                        <span style="color:white"; class="fw-normal">
                             {{ __('Not registered?') }}
                             <a href="{{ route('register') }}" class="fw-bold">{{ __('Create account') }}</a>
                         </span>

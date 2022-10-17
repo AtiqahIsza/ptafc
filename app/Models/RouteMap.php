@@ -29,16 +29,24 @@ class RouteMap extends Model
     use HasFactory;
 
     protected $table = 'route_map';
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'latitude',
         'longitude',
         'sequence',
         'route_id',
+        'created_by',
+        'updated_by'
     ];
 
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

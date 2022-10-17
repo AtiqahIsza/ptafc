@@ -62,12 +62,12 @@ class AuthController extends Controller
     {
         $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
-            'ic_number' => ['required', 'string', 'max:255', 'unique:users'],
+            //'ic_number' => ['required', 'string', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone_number' => ['required', 'string', 'max:255'],
             'user_role' => ['required', 'int'],
             'username' => ['required', 'string', 'max:255', 'unique:users'],
-            'company_id' => ['required', 'int'],
+            'company_id' => ['int'],
         ]);
 
         $data = $request->all();
@@ -99,7 +99,7 @@ class AuthController extends Controller
     {
         return User::create([
             'fullname' => $data['fullname'],
-            'ic_number' => $data['is_number'],
+            //'ic_number' => $data['is_number'],
             'phone_number' => $data['phone_number'],
             'user_role' => $data['user_role'],
             'username' => $data['username'],

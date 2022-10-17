@@ -1,7 +1,7 @@
 <ul class="nav flex-column pt-3 pt-md-0">
     <li class="nav-item">
         <a href="{{ route('home') }}" class="nav-link d-flex align-items-center">
-            <img src="{{ asset('images/MARALINER-logo.png') }}" height="60" width="400">
+            <img src="{{ asset('images/peraktransit-logo.png') }}" height="60" width="400">
         </a>
     </li>
 
@@ -149,14 +149,14 @@
                         <span class="sidebar-text">View Cards</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('manageVouchers') }}" class="nav-link {{ request()->routeIs('manageVouchers') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
                         <span class="sidebar-text">Manage Vouchers</span>
                     </a>
-                </li>
+                </li> --}}
             </ul>
         </div>
     </li>
@@ -232,14 +232,14 @@
                         <span class="sidebar-text">Daily Summary Report</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('viewAverageSummary') }}" class="nav-link {{ request()->routeIs('viewAverageSummary') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
                         <span class="sidebar-text">Average Summary Report</span>
                     </a>
-                </li>
+                </li> --}}
                 <li class="nav-item">
                     <a href="{{ route('viewReportSPAD') }}" class="nav-link  {{ request()->routeIs('viewReportSPAD') ? 'active' : '' }}">
                         <span class="sidebar-icon">

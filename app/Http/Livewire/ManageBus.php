@@ -23,6 +23,8 @@ class ManageBus extends Component
     public $busTypes;
     public $editedBuses;
     public $editedCompanies;
+    public $activatedBusId;
+    public $activatedBus;
     public $removedBusId;
     public $removedBus;
     public $state = [];
@@ -50,7 +52,7 @@ class ManageBus extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->buses = Bus::where('company_id', $company)->orderBy('bus_registration_number')->get();
+            $this->buses = Bus::where('company_id', $company)->orderBy('status')->orderBy('bus_registration_number')->get();
         }
     }
 
@@ -70,15 +72,20 @@ class ManageBus extends Component
             'bus_registration_number' => ['required', 'string', 'max:255'],
             'bus_series_number' => ['required', 'string', 'max:255'],
             'company_id' => ['required', 'int'],
-            'bus_manufacturing_date' => ['required'],
+            'status' => ['required', 'int'],
+            'terminal_id' => ['required', 'string', 'max:255'],
+            // 'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
-            'mac_address' => ['required', 'regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
+            //'mac_address' => ['regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
 
+        // $age = Carbon::parse($validatedData['bus_manufacturing_date'])->diff(Carbon::now())->y;
+        // $validatedData['bus_age'] = "$age";
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editedBuses->update($validatedData);
 
         if($success){
-            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('bus_registration_number')->get();
             $this->dispatchBrowserEvent('hide-form-edit');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -102,19 +109,47 @@ class ManageBus extends Component
             'company_id' => ['required', 'int'],
             'bus_manufacturing_date' => ['required'],
             'bus_type_id' => ['required', 'int'],
-            'mac_address' => ['regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
+            'status' => ['required', 'int'],
+            'terminal_id' => ['required', 'string', 'max:255'],
+            //'mac_address' => ['regex:((([a-zA-z0-9]{2}[-:]){5}([a-zA-z0-9]{2}))|(([a-zA-z0-9]{2}:){5}([a-zA-z0-9]{2})))'],
         ])->validate();
 
         $age = Carbon::parse($validatedData['bus_manufacturing_date'])->diff(Carbon::now())->y;
         $validatedData['bus_age'] = "$age";
-
+        $validatedData['created_by'] = auth()->user()->id;
+        $validatedData['updated_by'] = auth()->user()->id;
         //dd($validatedData);
 
-        $create = Bus::create($validatedData);
+        $checkBus = Bus::where('bus_registration_number', $validatedData['bus_registration_number'])->first();
+        if($checkBus){
+            $this->dispatchBrowserEvent('hide-form-existed-bus');
+        }else{
+            $create = Bus::create($validatedData);
 
-        if($create){
-            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
-            $this->dispatchBrowserEvent('hide-form-add');
+            if($create){
+                $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('bus_registration_number')->get();
+                $this->dispatchBrowserEvent('hide-form-add');
+            }else{
+                $this->dispatchBrowserEvent('hide-form-failed');
+            }
+        }
+        
+    }
+
+    public function confirmChanges($id)
+    {
+        $this->activatedBusId = $id;
+        $selectedActivated = Bus::where('id', $this->activatedBusId)->first();
+        $this->activatedBus = $selectedActivated->bus_registration_number;
+        $this->dispatchBrowserEvent('show-activated-modal');
+    }
+
+    public function activateBus()
+    {
+        $updateStatus = Bus::whereId($this->activatedBusId)->update(['status' => 1, 'updated_by' => auth()->user()->id]);
+        if($updateStatus) {
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('bus_registration_number')->get();
+            $this->dispatchBrowserEvent('hide-activated-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
@@ -134,7 +169,7 @@ class ManageBus extends Component
         $successRemove = $remove->delete();
 
         if($successRemove) {
-            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('bus_registration_number')->get();
+            $this->buses = Bus::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('bus_registration_number')->get();
             $this->dispatchBrowserEvent('hide-delete-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');

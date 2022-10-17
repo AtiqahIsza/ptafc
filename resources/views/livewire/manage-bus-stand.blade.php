@@ -51,6 +51,8 @@
                     <th class="border-gray-200">{{ __('Longitude') }}</th>
                     <th class="border-gray-200">{{ __('Description') }}</th>
                     <th class="border-gray-200">{{ __('Radius') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
                     <th class="border-gray-200">{{ __('Action') }}</th>
                 </tr>
                 </thead>
@@ -66,6 +68,13 @@
                             <td><span class="fw-normal">No Description</span></td>
                         @endif
                         <td><span class="fw-normal">{{ $busStand->radius }}</span></td>
+                        @if ($busStand->updated_at != NULL && $busStand->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $busStand->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $busStand->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
                         <td>
                             <button wire:click.prevent="editDesc({{ $busStand }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDesc">Edit Description</button>
                         </td>

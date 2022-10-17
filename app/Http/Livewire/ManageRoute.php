@@ -44,7 +44,6 @@ class ManageRoute extends Component
     public function render()
     {
         $this->companies = Company::orderBy('company_name')->get();
-
         return view('livewire.manage-route');
     }
 
@@ -52,6 +51,7 @@ class ManageRoute extends Component
     {
         if (!is_null($company)) {
             $this->routes = Route::where('company_id', $company)
+                ->orderBy('status')
                 ->orderBy('route_number')
                 ->get();
             $this->routeMaps = RouteMap::select('route_id')->distinct()->get();
@@ -110,7 +110,7 @@ class ManageRoute extends Component
             }
         }
 
-        $out->writeln("YOU ARE IN update");
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editedRoutes->update($validatedData);
 
         if($success){
@@ -163,6 +163,8 @@ class ManageRoute extends Component
         elseif(!empty($existRouteName->id)){
             $this->dispatchBrowserEvent('failed-add-route-name');
         }else{
+            $validatedData['created_by'] = auth()->user()->id;
+            $validatedData['updated_by'] = auth()->user()->id;
             $create = Route::create($validatedData);
 
             if($create){

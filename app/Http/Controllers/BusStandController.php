@@ -53,23 +53,19 @@ class BusStandController extends Controller
 
         try{
             foreach($busStands as $key => $value){
-                $out->writeln($value['lat']);
-                $out->writeln(round($value['lat'],10));
-                $out->writeln($value['long']);
-                $out->writeln(round($value['long'],10));
-                $out->writeln($value['sequence']);
-                $out->writeln($value['route_id']);
-                $out->writeln($value['radius']);
-
                 $newMap = new BusStand();
                 $newMap->longitude = round($value['long'],10);
                 $newMap->latitude = round($value['lat'],10);
                 $newMap->sequence = $value['sequence'];
                 $newMap->route_id = $value['route_id'];
                 $newMap->radius = $value['radius'];
+                $newMap->created_by = auth()->user()->id;
+                $newMap->updated_by = auth()->user()->id;
                 $newMap->save();
+
+                $id = $value['route_id'];
             }
-            return $this->returnResponse(1, "Bus Stand Successfully Stored", "Bus Stand Successfully Stored");
+            return $this->returnResponse(1, route('viewBusStand', ['id' => $id]), "Bus Stand Successfully Stored", "Bus Stand Successfully Stored");
         }
         catch(\Exception $e){
             $out->writeln($e);
@@ -95,7 +91,10 @@ class BusStandController extends Controller
             ->where('route_id', $request->route('id'))
             ->orderby('sequence')
             ->get();
-        return view('settings.viewBusStand', compact('routes','routeMaps','busStand'));
+        $updatedBy = BusStand::where('route_id', $request->route('id'))
+            ->orderby('sequence', 'DESC')
+            ->first();
+        return view('settings.viewBusStand', compact('routes','routeMaps','busStand', 'updatedBy'));
     }
 
     /**

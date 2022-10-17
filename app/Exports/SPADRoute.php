@@ -19,7 +19,7 @@ class SPADRoute implements FromView, WithStyles, ShouldAutoSize
     public $networkArea;
 
     //The constructor passes by value
-    public function __construct($networkArea, $data, $dateFrom, $dateTo)
+    public function __construct($data, $networkArea, $dateFrom, $dateTo)
     {
         $this->networkArea = $networkArea;
         $this->reports = $data;

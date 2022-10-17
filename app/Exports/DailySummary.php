@@ -14,6 +14,9 @@ class DailySummary implements FromView, WithStyles, ShouldAutoSize
     public $dateFrom;
     public $dateTo;
     public $contents;
+    public $allDates;
+    public $totalRoute;
+    public $totalCompany;
     public $networkArea;
     public $sheet;
 

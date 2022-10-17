@@ -41,14 +41,14 @@ class ManagePda extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->pdas = PDAProfile::where('company_id', $company)->orderBy('date_created')->get();
+            $this->pdas = PDAProfile::where('company_id', $company)->orderBy('status')->get();
         }
     }
 
     public function addNew()
     {
         $this->state = [];
-        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('status')->get();
 
         $this->showEditModal = false;
         $this->companyModals = Company::orderBy('company_name')->get();
@@ -67,23 +67,16 @@ class ManagePda extends Component
             'status' => ['required', 'int'],
         ])->validate();
 
-        $out->writeln("pda_tag:  ". $validatedData['pda_tag']);
-        $out->writeln("imei:" . $validatedData['imei']);
-        $out->writeln("company:  ". $validatedData['company_id']);
-        $out->writeln("status:" . $validatedData['status']);
-
         $validatedData['date_created'] = Carbon::now();
         $validatedData['date_registered'] = Carbon::now();
         $validatedData['pda_key'] = Str::random(60);
-
-        $out->writeln("created:  ". $validatedData['date_created']);
-        $out->writeln("registered:" . $validatedData['date_registered']);
-        $out->writeln("pda key: " . $validatedData['pda_key']);
+        $validatedData['created_by'] = auth()->user()->id;
+        $validatedData['updated_by'] = auth()->user()->id;
 
         $success = PDAProfile::create($validatedData);
 
         if($success){
-            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('status')->get();
             $this->dispatchBrowserEvent('hide-add-form');
         }else{
             $this->dispatchBrowserEvent('hide-failed-form');
@@ -92,7 +85,7 @@ class ManagePda extends Component
 
     public function edit(PDAProfile $pda)
     {
-        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+        $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('status')->get();
 
         $this->showEditModal = true;
         $this->editedPDA = $pda;
@@ -110,10 +103,11 @@ class ManagePda extends Component
             'status' => ['required', 'int'],
         ])->validate();
 
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editedPDA->update($validatedData);
 
         if($success){
-            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('date_created')->get();
+            $this->pdas = PDAProfile::where('company_id', $this->selectedCompany)->orderBy('status')->get();
             $this->dispatchBrowserEvent('hide-edit-form');
         }else{
             $this->dispatchBrowserEvent('hide-failed-edit');

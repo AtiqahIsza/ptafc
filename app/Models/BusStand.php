@@ -30,7 +30,7 @@ class BusStand extends Model
     use HasFactory;
 
     protected $table = 'bus_stand';
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'latitude',
@@ -38,10 +38,18 @@ class BusStand extends Model
         'route_id',
         'radius',
         'sequence',
-        'description'
+        'description',
+        'updated_by',
+        'created_by'
     ];
 
     function Route() {
         return $this->belongsTo(Route::class, 'route_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

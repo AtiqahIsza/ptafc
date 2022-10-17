@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use PDO;
 
 class Route extends Model
 {
@@ -11,7 +12,7 @@ class Route extends Model
 
     protected $table = 'route';
 
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'route_name',
@@ -23,6 +24,8 @@ class Route extends Model
         'company_id',
         'sector_id',
         'status',
+        'updated_by',
+        'created_by'
     ];
 
     function Sector() {
@@ -30,5 +33,14 @@ class Route extends Model
     }
     function Company() {
         return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
+    }
+    function Trip(){
+        return $this->hasMany(TripDetail::class);
     }
 }

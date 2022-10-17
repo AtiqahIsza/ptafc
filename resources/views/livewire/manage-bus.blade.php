@@ -30,6 +30,10 @@
                     <th class="border-gray-200">{{ __('Series Number') }}</th>
                     <th class="border-gray-200">{{ __('Registration Date') }}</th>
                     <th class="border-gray-200">{{ __('Age') }}</th>
+                    <th class="border-gray-200">{{ __('Terminal ID') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
+                    <th class="border-gray-200">{{ __('Status') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
                 </thead>
@@ -40,10 +44,31 @@
                         <td><span class="fw-normal">{{ $bus->bus_series_number }}</span></td>
                         <td><span class="fw-normal">{{ $bus->bus_manufacturing_date }}</span></td>
                         <td><span class="fw-normal">{{ $bus->bus_age }}</span></td>
+                        @if ($bus->terminal_id != NULL)
+                            <td><span class="fw-normal">{{ $bus->terminal_id }}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
+                        @if ($bus->updated_at != NULL && $bus->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $bus->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $bus->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
+                        @if ($bus->status==1)
+                            <td><span class="badge bg-success">ACTIVE</span></td>
+                        @else
+                            <td><span class="badge bg-danger">INACTIVE</span></td>
+                        @endif
                         <td>
-                            <!-- Button Modal -->
-                            <button wire:click.prevent="edit({{ $bus }})" class="btn btn-warning">Edit</button>
-                            {{-- <button wire:click.prevent="confirmRemoval({{ $bus->id }})" class="btn btn-danger">Remove</button> --}}
+                            @if ($bus->status==1)
+                                <!-- Button Modal -->
+                                <button wire:click.prevent="edit({{ $bus }})" class="btn btn-warning">Edit</button>
+                            @else
+                                <button wire:click.prevent="confirmChanges({{ $bus->id }})" class="btn btn-primary">Activate</button>
+                                {{-- <button wire:click.prevent="confirmRemoval({{ $bus->id }})" class="btn btn-danger">Remove</button> --}}
+                            @endif
                         </td>
                     </tr>
                 @endforeach
@@ -151,6 +176,34 @@
                             </div>
                         </div>
                         <div class="form-group mb-4">
+                            <label for="tid">Cashless Terminal ID</label>
+                            <div class="input-group">
+                                 <span class="input-group-text" id="basic-addon1">
+                                    <i class="fas fa-bus fa-fw"></i>
+                                </span>
+                                <input wire:model.defer="state.terminal_id" class="form-control border-gray-300" id="tid" placeholder="{{ __('Cashless Terminal ID') }}" autofocus required>
+                                @if ($errors->has('tid'))
+                                    <span class="text-danger">{{ $errors->first('tid') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="form-group mb-4">
+                            <label for="status">Status</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="basic-addon1">
+                                    <i class="fas fa-check-circle fa-fw"></i>
+                                </span>
+                                <select wire:model.defer="state.status" id="status" class="form-control border-gray-300" autofocus>
+                                    <option value="">Choose Status</option>
+                                    <option value="1">Active</option>
+                                    <option value="2">Inactive</option>
+                                </select>
+                                @if ($errors->has('type'))
+                                    <span class="text-danger">{{ $errors->first('status') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        {{-- <div class="form-group mb-4">
                             <label for="mac">MAC Address</label>
                             <div class="input-group">
                                 <span class="input-group-text" id="basic-addon1">
@@ -163,7 +216,7 @@
                                     <span class="text-danger">{{ $errors->first('mac') }}</span>
                                 @endif
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
@@ -181,6 +234,27 @@
         </div>
     </div>
     <!-- End of Edit User Modal Content -->
+
+    <!-- Change Status Route Modal -->
+    <div wire:ignore.self class="modal fade" id="modalActivated" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Confirmation For Changing Status</h5>
+                </div>
+
+                <div class="modal-body">
+                    <h4>Are you sure you want to activate {{ $activatedBus }}?</h4>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times mr-1"></i>Cancel</button>
+                    <button type="button" wire:click.prevent="activateBus" class="btn btn-danger"><i class="fa fa-pen mr-1"></i>Activate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Change Status Modal Content -->
 
     <!-- Remove User Modal -->
     <div wire:ignore.self class="modal fade" id="confirmationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -220,6 +294,18 @@
             $('#modalEdit').modal('hide');
             toastr.error(event.detail.message, 'Operation Failed!');
         });
+        window.addEventListener('hide-form-existed-bus', event => {
+            $('#modalEdit').modal('hide');
+            toastr.error(event.detail.message, 'Bus Registration Number already exist!');
+        });
+
+        window.addEventListener('show-activated-modal', event => {
+            $('#modalActivated').modal('show');
+        });
+        window.addEventListener('hide-activated-modal', event => {
+            $('#modalActivated').modal('hide');
+            toastr.success(event.detail.message, 'Bus activated successfully!');
+        })
 
         window.addEventListener('show-delete-modal', event => {
             $('#confirmationModal').modal('show');

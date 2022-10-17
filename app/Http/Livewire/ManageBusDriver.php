@@ -51,21 +51,21 @@ class ManageBusDriver extends Component
 
     public function render()
     {
-        $this->companies = Company::all();
+        $this->companies = Company::orderBy('company_name')->get();
         return view('livewire.manage-bus-driver');
     }
 
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->drivers = BusDriver::where('company_id', $company)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $company)->orderBy('status')->orderBy('driver_name')->get();
         }
     }
 
     public function addNew()
     {
         $this->state = [];
-        $this->editedCompanies = Company::all();
+        $this->editedCompanies = Company::orderBy('company_name')->get();
         $this->dispatchBrowserEvent('show-form-add');
     }
 
@@ -84,11 +84,13 @@ class ManageBusDriver extends Component
         ])->validate();
 
         $validatedData['driver_password'] = bcrypt($validatedData['driver_password']);
+        $validatedData['created_by'] = auth()->user()->id;
+        $validatedData['updated_by'] = auth()->user()->id;
 
         $create = BusDriver::create($validatedData);
 
         if($create){
-            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('driver_name')->get();
             $this->dispatchBrowserEvent('hide-form-add');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -109,10 +111,11 @@ class ManageBusDriver extends Component
         ])->validate();
 
         $validatedData['driver_password'] = bcrypt($validatedData['driver_password']);
+        $validatedData['updated_by'] = auth()->user()->id;
 
         $success = $this->editedDrivers->update($validatedData);
         if($success){
-            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('driver_name')->get();
             $this->dispatchBrowserEvent('hide-reset-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -140,10 +143,11 @@ class ManageBusDriver extends Component
             'driver_number' => ['required', 'string', 'max:255'],
         ])->validate();
 
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editedDrivers->update($validatedData);
 
         if($success){
-            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('driver_name')->get();
             $this->dispatchBrowserEvent('hide-form-edit');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -165,7 +169,7 @@ class ManageBusDriver extends Component
         $successRemove = $busdriver->delete();
 
         if($successRemove) {
-            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('driver_name')->get();
             $this->dispatchBrowserEvent('hide-remove-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -190,20 +194,23 @@ class ManageBusDriver extends Component
     public function changeStatus()
     {
         if($this->desiredStatus == 'INACTIVE') {
-            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 2]);
+            $updateStatus = BusDriver::whereId($this->changedDriverId)
+            ->update(['status' => 2,'updated_by' => auth()->user()->id]);
         }else {
-            $updateStatus = BusDriver::whereId($this->changedDriverId)->update(['status' => 1]);
+            $updateStatus = BusDriver::whereId($this->changedDriverId)
+            ->update(['status' => 1, 'updated_by' => auth()->user()->id]);
         }
 
         if ($updateStatus){
-            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('driver_name')->get();
+            $this->drivers = BusDriver::where('company_id', $this->selectedCompany)->orderBy('status')->orderBy('driver_name')->get();
             $this->dispatchBrowserEvent('hide-status-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
     }
 
-    public function extractExcel(){
+    public function extractExcel()
+    {
         if ($this->selectedCompany==NULL) {
             $allCompanies = Company::all();
             if(count($allCompanies)>0){

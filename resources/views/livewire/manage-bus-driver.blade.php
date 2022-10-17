@@ -31,6 +31,8 @@
                     <th class="border-gray-200">{{ __('Driver Role') }}</th>
                     <th class="border-gray-200">{{ __('Company') }}</th>
                     <th class="border-gray-200">{{ __('Status') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
                     <th class="border-gray-200">{{ __('Action') }}</th>
                 </tr>
                 </thead>
@@ -49,11 +51,18 @@
                         <td><span class="fw-normal">{{ $driver->company->company_name }}</span></td>
                         {{--  <td><span class="fw-normal">{{ $driver->driverCard->manufacturing_id}}</span></td>--}}
                         @if($driver->status==1)
-                            <td><span class="fw-normal">Active</span></td>
+                            <td><span class="badge bg-success">ACTIVE</span></td>
                         @elseif($driver->status==2)
-                            <td><span class="fw-normal">Inactive</span></td>
+                            <td><span class="badge bg-danger">INACTIVE</span></td>
                         @else
-                            <td><span class="fw-normal">Blacklisted</span></td>
+                            <td><span class="badge bg-primary">BLACKLISTED</span></td>
+                        @endif
+                        @if ($driver->updated_at != NULL && $driver->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $driver->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $driver->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
                         @endif
                         <td>
                             @if($driver->status==1)

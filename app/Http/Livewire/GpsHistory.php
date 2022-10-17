@@ -26,6 +26,7 @@ class GpsHistory extends Component
         $this->vehiclePosition = collect();
         $this->date = $date;
         $this->buses = $buses;
+        $this->chosenBus = collect();
         $this->exist = collect();
         $this->trips = collect();
     }
@@ -41,6 +42,8 @@ class GpsHistory extends Component
             ->whereBetween('date_time', [$dateFrom, $dateTo])
             ->groupBy('trip_id')
             ->get();
+
+        $this->chosenBus = Bus::where('id', $this->buses)->first();
 
         //dd($this->trips);
 

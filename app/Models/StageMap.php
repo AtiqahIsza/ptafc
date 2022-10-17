@@ -32,7 +32,7 @@ class StageMap extends Model
     use HasFactory;
 
     protected $table = 'stage_map';
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'latitude',
@@ -40,9 +40,17 @@ class StageMap extends Model
         'altitude',
         'sequence',
         'stage_id',
+        'created_by',
+        'updated_by'
     ];
 
     function Stage() {
         return $this->belongsTo(Stage::class, 'stage_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

@@ -16,6 +16,7 @@
     <br>
     @if(count($trips)>0)
         <div class="card card-body border-0 shadow table-wrapper table-responsive">
+            <h2 class="mb-4 h5">BUS REGISTRATION NUMBER: {{$chosenBus->bus_registration_number}}</h2>
             <table class="table table-hovered">
                 <tbody>
                     @if($tripDetails)
@@ -23,6 +24,7 @@
                             <th style="text-align: center;">No.</th>
                             <th style="text-align: center;">Start Trip</th>
                             <th style="text-align: center;">End Trip</th>
+                            <th style="text-align: center;">Route Number</th>
                             <th style="text-align: center;">Trip Type</th>
                             <th style="text-align: center;">Collection of Farebox (RM)</th>
                             <th style="text-align: center;">Collection of Ridership</th>
@@ -33,6 +35,11 @@
                                 <td style="text-align: center;"> {{ $j++ }}</td>
                                 <td style="text-align: center;"> {{ $tripDetail->start_trip }}</td>
                                 <td style="text-align: center;"> {{ $tripDetail->end_trip }}</td>
+                                @if($tripDetail->route_id!=NULL)
+                                    <td style="text-align: center;"> {{ $tripDetail->Route->route_number }}</td>
+                                @else
+                                    <td style="text-align: center;">No Data</td>
+                                @endif
                                 @if($tripDetail->trip_code==1)
                                     <td style="text-align: center;">Inbound</td>
                                 @else
@@ -44,12 +51,12 @@
                         @endforeach
                     @endif
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div wire:ignore id="map"></div>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="d-block mb-md-0" style="position: relative">
                                 <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                             </div>
@@ -68,7 +75,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="d-block mb-md-0" style="position: relative">
                                 <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                             </div>

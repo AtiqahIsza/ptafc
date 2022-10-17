@@ -36,7 +36,7 @@ class ReportSalesByDriver extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->drivers = BusDriver::where('company_id', $company)->get();
+            $this->drivers = BusDriver::where('company_id', $company)->where('status', 1)->get();
         }
     }
 
@@ -52,7 +52,7 @@ class ReportSalesByDriver extends Component
         ])->validate();
 
         $firstDate = new Carbon($validatedData['dateFrom']);
-        $lastDate = new Carbon($validatedData['dateFrom'] . '23:59:59');
+        $lastDate = new Carbon($validatedData['dateTo'] . '23:59:59');
 
         $salesByDriver = collect();
         //Cash
@@ -92,7 +92,7 @@ class ReportSalesByDriver extends Component
                         $allCompanies =  Company::orderBy('state')->get();
 
                         foreach($allCompanies as $allCompany) {
-                            $allDrivers = BusDriver::where('company_id', $allCompany->id)->orderBy('driver_name')->get();
+                            $allDrivers = BusDriver::where('company_id', $allCompany->id)->where('status',1)->orderBy('driver_name')->get();
                             $companyTotalCountAdult = 0;
                             $companyTotalSalesAdult = 0;
                             $companyTotalCountConcession = 0;
@@ -444,7 +444,7 @@ class ReportSalesByDriver extends Component
                 if(!empty($validatedData['driver_id'])) {
                     //Sales By Driver all driver specific company
                     if($validatedData['driver_id']=='All'){
-                        $driverPerCompanies = BusDriver::where('company_id', $companyDetails->id)->orderBy('driver_name')->get();
+                        $driverPerCompanies = BusDriver::where('company_id', $companyDetails->id)->where('status',1)->orderBy('driver_name')->get();
                         $companyTotalCountAdult = 0;
                         $companyTotalSalesAdult = 0;
                         $companyTotalCountConcession = 0;

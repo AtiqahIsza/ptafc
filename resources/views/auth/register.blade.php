@@ -48,7 +48,7 @@
                         <!--2nd row-->
                         <div style="width: 100%; display: table; margin-bottom:15px;">
                             <div style="display: table-row">
-                                <div class="form-group mt-4 mb-4" style="width: 50%; padding-right:5px; display: table-cell;">
+                                {{-- <div class="form-group mt-4 mb-4" style="width: 50%; padding-right:5px; display: table-cell;">
                                     <label for="icnum">{{ __('Your IC Number') }}</label>
                                     <div class="input-group" >
                                         <span class="input-group-text" id="basic-addon1">
@@ -58,6 +58,21 @@
                                     </div>
                                     @if ($errors->has('icnum'))
                                         <span class="text-danger">{{ $errors->first('icnum') }}</span>
+                                    @endif
+                                </div> --}}
+                                <div class="form-group mt-4 mb-4" style="width: 50%; padding-right:5px; display: table-cell;">
+                                    <label for="email">{{ __('Your Email') }}</label>
+                                    <div class="input-group">
+                                         <span class="input-group-text" id="basic-addon1">
+                                            <svg class="icon icon-xs text-gray-600" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                                            </svg>
+                                        </span>
+                                        <input name="email" id="email" type="email" class="form-control" placeholder="{{ __('Email') }}" value="{{ old('email') }}" autofocus required>
+                                    </div>
+                                    @if ($errors->has('email'))
+                                        <span class="text-danger">{{ $errors->first('email') }}</span>
                                     @endif
                                 </div>
                                 <div class="form-group mt-4 mb-4" style="width: 50%; padding-right:5px; display: table-cell;">
@@ -116,7 +131,7 @@
                                         <span class="input-group-text" id="basic-addon1">
                                             <i class="fas fa-building fa-fw"></i>
                                         </span>
-                                        <select name="company" id="company" class="form-select" autofocus required>
+                                        <select name="company" id="company" class="form-select">
                                             <option value="" disabled selected>Select your company</option>
                                             @foreach($companies as $company)
                                                 <option value="{{$company->id}}">{{$company->company_name}}</option>
@@ -144,7 +159,7 @@
                             </div>
                         </div>
 
-                        <div style="width: 100%; display: table; margin-bottom:15px;">
+                        {{-- <div style="width: 100%; display: table; margin-bottom:15px;">
                             <div style="display: table-row">
                                 <div class="form-group mt-4 mb-4" style="width: 50%; padding-right:5px; display: table-cell;">
                                     <label for="email">{{ __('Your Email') }}</label>
@@ -162,7 +177,7 @@
                                     @endif
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
 
                         <br>
