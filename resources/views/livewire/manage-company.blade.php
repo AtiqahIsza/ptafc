@@ -6,19 +6,19 @@
             Add Company
         </button>
     </div>
-    <div class="col-9 col-lg-8 d-md-flex">
+    {{-- <div class="col-9 col-lg-8 d-md-flex">
         <select wire:model="selectedRegion"  class="form-select fmxw-200 d-none d-md-inline">
             <option value="">Choose Region</option>
             @foreach($regions as $region)
                 <option value="{{$region->id}}">{{$region->description}}</option>
             @endforeach
         </select>
-    </div>
+    </div> --}}
     <br>
 
-    @if (!is_null($selectedRegion))
+    {{-- @if (!is_null($selectedRegion)) --}}
         <div class="card card-body border-0 shadow table-wrapper table-responsive">
-            <h2 class="mb-4 h5">{{ __('All Companies by Region') }}</h2>
+            <h2 class="mb-4 h5">{{ __('All Companies') }}</h2>
 
             <table class="table table-hover">
                 <thead>
@@ -28,6 +28,8 @@
                     <th class="border-gray-200">{{ __('Postcode') }}</th>
                     <th class="border-gray-200">{{ __('City') }}</th>
                     <th class="border-gray-200">{{ __('State') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
                 </thead>
@@ -39,6 +41,13 @@
                         <td><span class="fw-normal">{{ $company->postcode}}</span></td>
                         <td><span class="fw-normal">{{ $company->city}}</span></td>
                         <td><span class="fw-normal">{{ $company->state}}</span></td>
+                        @if ($company->updated_at != NULL && $company->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $company->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $company->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            @endif
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $company }})" class="btn btn-warning">Edit</button>
@@ -54,7 +63,7 @@
                 {{--{{ $users->links() }}--}}
             </div>
         </div>
-    @endif
+    {{-- @endif --}}
 
     <!-- Edit/Create Modal Content -->
     <div wire:ignore.self class="modal fade" id="modalEdit" tabindex="-1" role="dialog" aria-hidden="true">
@@ -197,7 +206,7 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="form-group mb-4">
+                        {{-- <div class="form-group mb-4">
                             <label for="min">Minimum Balance for Agents (RM):</label>
                             <div class="input-group">
                                 <span class="input-group-text" id="basic-addon1">
@@ -208,7 +217,7 @@
                                     <span class="text-danger">{{ $errors->first('min') }}</span>
                                 @endif
                             </div>
-                        </div>
+                        </div> --}}
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary" id="btnSave">

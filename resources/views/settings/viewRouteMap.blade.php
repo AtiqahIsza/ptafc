@@ -47,30 +47,33 @@
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
                 <table class="table table-borderless">
                     <thead>
-                        <th class="border-gray-200">{{ __('Company Name:') }}</th>
-                        <th class="border-gray-200"><span class="badge bg-primary">{{ $route->company->company_name }}</span></th>
-                        <th>&nbsp;</th>
-                        <th class="border-gray-200">{{ __('Route Name:') }}</th>
-                        <th class="border-gray-200"><span class="badge bg-primary">{{ $route->route_name }}</span></th>
-                        <th>&nbsp;</th>
+                        <th class="border-gray-200">{{ __('Company Name: ' . $route->Company->company_name ) }}</th>
+                        <th class="border-gray-200">&nbsp;</th>
+                        <th class="border-gray-200">{{ __('Route Name: ' . $route->route_name) }}</th>
+                        @if ($updatedBy->updated_at != NULL && $updatedBy->updated_by != NULL)
+                            <th class="border-gray-200">{{ __('Updated At: ' . $updatedBy->updated_at ) }}</th>
+                            <th class="border-gray-200">{{ __('Updated By: ' . $updatedBy->updatedBy->username) }}</th>
+                        @else
+                            <th class="border-gray-200">{{ __('Updated At: -' ) }}</th>
+                            <th class="border-gray-200">{{ __('Updated By: -') }}</th>
+                        @endif
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="2">&nbsp;</td>
+                            <td>&nbsp;</td>
                             <td style="background-color: #FF0000;width: 20px"> </td>
-                            <td><strong>Route Map</strong></td>
-                            <td colspan="2">&nbsp;</td>
+                            <td colspan="3"><strong>Route Map</strong></td>
                         </tr>
                         <tr>
-                            <td colspan="6">&nbsp;</td>
+                            <td colspan="5">&nbsp;</td>
                         </tr>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="5">
                                 <div id="map"></div>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="6">
+                            <td colspan="5">
                                 <div class="d-block mb-md-0" style="position: relative">
                                     <input type="button" onclick="window.location='{{route("manageRoute")}}'"{{--onclick="window.history.back()"--}} class="btn btn-warning" value="Back">
                                 </div>

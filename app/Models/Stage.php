@@ -12,7 +12,7 @@ class Stage extends Model
 
     protected $table = 'stage';
 
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'stage_name',
@@ -20,6 +20,8 @@ class Stage extends Model
         'stage_order',
         'no_of_km',
         'route_id',
+        'created_by',
+        'updated_by'
     ];
 
     function Route() {
@@ -32,5 +34,11 @@ class Stage extends Model
 
     function ToStage() {
         return $this->hasMany(StageFare::class, 'id','tostage_stage_id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

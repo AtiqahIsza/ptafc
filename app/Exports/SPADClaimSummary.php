@@ -20,9 +20,9 @@ class SPADClaimSummary implements FromView, WithStyles, ShouldAutoSize
     public $allDates = [];
 
     //The constructor passes by value
-    public function __construct($dates, $data, $dateFrom, $dateTo, $networkArea)
+    public function __construct($data, $dateFrom, $dateTo, $networkArea)
     {
-        $this->allDates = $dates;
+        //$this->allDates = $dates;
         $this->reports = $data;
         $this->fromDate = $dateFrom;
         $this->toDate = $dateTo;
@@ -34,7 +34,7 @@ class SPADClaimSummary implements FromView, WithStyles, ShouldAutoSize
     {
         //dd($this->reports);
         return view('exports.spad.claimsummary', [
-            'allDates' => $this->allDates,
+            //'allDates' => $this->allDates,
             'reports' => $this->reports,
             'dateFrom' => $this->fromDate,
             'dateTo' => $this->toDate,

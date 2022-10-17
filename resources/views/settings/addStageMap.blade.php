@@ -85,10 +85,8 @@
                     @csrf
                     <table class="table table-hover">
                         <thead>
-                        <th class="border-gray-200">{{ __('Company Name:') }}</th>
-                        <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->company->company_name }}</span></th>
-                        <th class="border-gray-200">{{ __('Route Name:') }}</th>
-                        <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->route_name }}</span></th>
+                            <th colspan="2" class="border-gray-200">{{ __('Company Name: ' . $stage->route->company->company_name) }}</th>
+                            <th colspan="2" class="border-gray-200">{{ __('Route Name: ' . $stage->route->route_name) }}</th>
                         </thead>
                         <tbody>
                         <tr>

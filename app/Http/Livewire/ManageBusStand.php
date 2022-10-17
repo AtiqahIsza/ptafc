@@ -27,19 +27,20 @@ class ManageBusStand extends Component
 
     public function mount()
     {
-        $this->companies = Company::all();
+        $this->companies = collect();
         $this->routes = collect();
     }
 
     public function render()
     {
+        $this->companies = Company::orderBy('company_name')->get();
         return view('livewire.manage-bus-stand');
     }
 
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->routes = Route::where('company_id', $company)->get();
+            $this->routes = Route::where('company_id', $company)->orderBy('route_number')->get();
         }
     }
 

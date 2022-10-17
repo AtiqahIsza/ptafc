@@ -24,9 +24,9 @@
                 <tr>
                     <th class="border-gray-200">{{ __('PDA Tag') }}</th>
                     <th class="border-gray-200">{{ __('IMEI') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
                     <th class="border-gray-200">{{ __('Status') }}</th>
-                    <th class="border-gray-200">{{ __('Date Created') }}</th>
-                    <th class="border-gray-200">{{ __('Date Registered') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
                 </thead>
@@ -35,14 +35,18 @@
                     <tr>
                         <td><span class="fw-normal">{{ $pda->pda_tag }}</span></td>
                         <td><span class="fw-normal">{{ $pda->imei }}</span></td>
-                        @if($pda->status==1)
-                            <td><span class="fw-normal">ACTIVE</span></td>
+                        @if ($pda->updated_at != NULL && $pda->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $pda->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $pda->UpdatedBy->username}}</span></td>
                         @else
-                            <td><span class="fw-normal">INACTIVE</span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
                         @endif
-
-                        <td><span class="fw-normal">{{ $pda->date_created }}</span></td>
-                        <td><span class="fw-normal">{{ $pda->date_registered }}</span></td>
+                        @if($pda->status==1)
+                            <td><span class="badge bg-success">ACTIVE</span></td>
+                        @else
+                            <td><span class="badge bg-danger">INACTIVE</span></td>
+                        @endif
                         <td>
                             <!-- Button Modal -->
                             <button wire:click.prevent="edit({{ $pda }})" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalEdit">Edit</button>

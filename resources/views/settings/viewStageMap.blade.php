@@ -69,12 +69,17 @@
             <div class="card card-body border-0 shadow table-wrapper table-responsive">
                 <table class="table table-borderless">
                     <thead>
-                    <th class="border-gray-200">{{ __('Company Name:') }}</th>
-                    <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->company->company_name }}</span></th>
-                    <th>&nbsp;</th>
-                    <th class="border-gray-200">{{ __('Route Name:') }}</th>
-                    <th class="border-gray-200"><span class="badge bg-primary">{{ $stage->route->route_name }}</span></th>
-                    <th>&nbsp;</th>
+                        <th class="border-gray-200">{{ __('Company Name: ' . $stage->route->company->company_name ) }}</th>
+                        <th class="border-gray-200">&nbsp;</th>
+                        <th class="border-gray-200">{{ __('Route Name: ' . $stage->route->route_name) }}</th>
+                        <th class="border-gray-200">&nbsp;</th>
+                        @if ($updatedBy->updated_at != NULL && $updatedBy->updated_by != NULL)
+                            <th class="border-gray-200">{{ __('Updated At: ' . $updatedBy->updated_at ) }}</th>
+                            <th class="border-gray-200">{{ __('Updated By: ' . $updatedBy->updatedBy->username) }}</th>
+                        @else
+                            <th class="border-gray-200">{{ __('Updated At: -' ) }}</th>
+                            <th class="border-gray-200">{{ __('Updated By: -') }}</th>
+                        @endif
                     </thead>
                     <tbody>
                     <tr>
@@ -94,7 +99,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="4">
+                        <td colspan="6">
                             <div class="d-block mb-md-0" style="position: relative">
                                 <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                             </div>

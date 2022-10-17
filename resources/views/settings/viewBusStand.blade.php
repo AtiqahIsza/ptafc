@@ -115,18 +115,25 @@
                         <td>&nbsp;</td>
                         <td style="background-color: #0C0E71;width: 20px"> </td>
                         <td><strong>Radius of Bus Stand</strong></td>
+                        @if ($updatedBy->updated_at != NULL && $updatedBy->updated_by != NULL)
+                            <td class="border-gray-200">{{ __('Updated At: ' . $updatedBy->updated_at ) }}</td>
+                            <td class="border-gray-200">{{ __('Updated By: ' . $updatedBy->updatedBy->username) }}</td>
+                        @else
+                            <td class="border-gray-200">{{ __('Updated At: -' ) }}</td>
+                            <td class="border-gray-200">{{ __('Updated By: -') }}</td>
+                        @endif
                         <td>&nbsp;</td>
                     </tr>
                     <tr>
-                        <td colspan="10">&nbsp;</td>
+                        <td colspan="12">&nbsp;</td>
                     </tr>
                     <tr>
-                        <td colspan="10">
+                        <td colspan="12">
                             <div id="map"></div>
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="10">
+                        <td colspan="12">
                             <div class="d-block mb-md-0" style="position: relative">
                                 <input type="button" onclick="window.history.back()" class="btn btn-warning" value="Back">
                             </div>

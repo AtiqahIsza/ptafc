@@ -43,7 +43,7 @@ class ReportSalesByBus extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->buses = Bus::where('company_id', $company)->get();
+            $this->buses = Bus::where('company_id', $company)->where('status',1)->get();
         }
     }
 
@@ -221,6 +221,14 @@ class ReportSalesByBus extends Component
                                 $total_bus['total_by_per_bus'] = $finalTotalBy;
                             }
                             $AllDates['total_sales_per_bus'] = $total_bus;
+                            $tidArr = [];
+                            if($allBus->terminal_id!=NULL && $total_bus != []){
+                                $tidArr['tid'] =  $allBus->terminal_id;
+                                array_splice($AllDates, 0, 0, $tidArr);
+                            }elseif($allBus->terminal_id==NULL && $total_bus != []){
+                                $tidArr['tid'] =  "No Data";
+                                array_splice($AllDates, 0, 0, $tidArr);
+                            }
                             $AllBusTrip[$busNo] = $AllDates;
             
                             $grandBy += $finalTotalBy;
@@ -386,6 +394,16 @@ class ReportSalesByBus extends Component
                                 $total_bus['total_by_per_bus'] = $finalTotalBy;
                             }
                             $AllDates['total_sales_per_bus'] = $total_bus;
+
+                            $tidArr = [];
+                            if($busPerCompany->terminal_id!=NULL && $total_bus != []){
+                                $tidArr['tid'] =  $busPerCompany->terminal_id;
+                                array_splice($AllDates, 0, 0, $tidArr);
+                            }elseif($busPerCompany->terminal_id==NULL && $total_bus != []){
+                                $tidArr['tid'] =  "No Data";
+                                array_splice($AllDates, 0, 0, $tidArr);
+                            }
+                            
                             $AllBusTrip[$busNo] = $AllDates;
         
                             $grandBy += $finalTotalBy;
@@ -546,6 +564,16 @@ class ReportSalesByBus extends Component
                             $total_bus['total_by_per_bus'] = $finalTotalBy;
                         }
                         $AllDates['total_sales_per_bus'] = $total_bus;
+
+                        $tidArr = [];
+                        if($busDetails->terminal_id!=NULL && $total_bus != []){
+                            $tidArr['tid'] =  $busDetails->terminal_id;
+                            array_splice($AllDates, 0, 0, $tidArr);
+                        }elseif($busDetails->terminal_id==NULL && $total_bus != []){
+                            $tidArr['tid'] =  "No Data";
+                            array_splice($AllDates, 0, 0, $tidArr);
+                        }
+
                         $AllBusTrip[$busNo] = $AllDates;
         
                         $grandBy += $finalTotalBy;

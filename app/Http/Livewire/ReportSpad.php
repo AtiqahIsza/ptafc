@@ -60,11 +60,1843 @@ class ReportSpad extends Component
     public function updatedSelectedCompany($company)
     {
         if (!is_null($company)) {
-            $this->routes = Route::where('company_id', $company)->get();
+            $this->routes = Route::where('company_id', $company)->where('status',1)->get();
         }
     }
 
+    //FAST
     public function printSummary()
+    {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printSummary()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . '23:59:59');
+
+        $prevStart = Carbon::create($validatedData['dateFrom'])->startOfMonth()->subMonthsNoOverflow()->toDateString();
+        $prevEnd = Carbon::create($validatedData['dateTo'])->subMonthsNoOverflow()->endOfMonth()->toDateString();
+
+        $previousStartMonth = new Carbon($prevStart);
+        $previousEndMonth = new Carbon($prevEnd . ' 23:59:59');
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //Summary all routes for all company
+                if($validatedData['route_id']=='All'){
+                    $allRoutes = Route::where('status', 1)->orderBy('route_number')->get();
+                    $allTrips = [];
+
+                    foreach($allRoutes as $allRoute){
+                        $tripPerRoute = DB::select("SELECT route.id, trip_details.trip_code, route.route_number,
+                        (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                        , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership,
+                        ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                        ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route.route_number, trip_details.trip_code
+                        ORDER BY route.route_number, trip_details.trip_code;");
+
+                        $outTripArr = [];
+                        $inTripArr = [];
+                        if(!$tripPerRoute){
+                            $out->writeln("In tripPerRoute < 0");
+                            $outTrip = new \stdClass;
+                            $outTrip->id = $allRoute->id;
+                            $outTrip->trip_code = 0;
+                            $outTrip->route_number = $allRoute->route_number;
+                            $outTrip->route_name = $allRoute->route_name;
+                            $outTrip->farebox = 0.00;
+                            $outTrip->ridership = 0;
+                            $outTrip->average_pax = 0;
+                            $outTrip->trip_served = 0;
+                            $outTrip->km_served = 0.00;
+                            $outTrip->bus_deployed = 0;
+                            $outTripArr[] = $outTrip;
+                            $allTrips = array_merge($allTrips, $outTripArr);
+
+                            $inTrip = new \stdClass;
+                            $inTrip->id = $allRoute->id;
+                            $inTrip->trip_code = 1;
+                            $inTrip->route_number = $allRoute->route_number;
+                            $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                            $inTrip->farebox = 0.00;
+                            $inTrip->ridership = 0;
+                            $inTrip->average_pax = 0;
+                            $inTrip->trip_served = 0;
+                            $inTrip->km_served = 0.00;
+                            $inTrip->bus_deployed = 0;
+
+                            $inTripArr[] = $inTrip;
+                            $allTrips = array_merge($allTrips, $inTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $outExist = false;
+                            $inExist = false;
+                            foreach($tripPerRoute as $loop => $trip){
+                                if($trip->trip_code==0){
+                                    $outExist = true;
+                                }
+                                if($trip->trip_code==1){
+                                    $inExist = true;
+                                }
+                            }
+
+                            if($outExist==false && $inExist==true){
+                                $outTrip = new \stdClass;
+                                $outTrip->id = $allRoute->id;
+                                $outTrip->trip_code = 0;
+                                $outTrip->route_number = $allRoute->route_number;
+                                $outTrip->route_name = $allRoute->route_name;
+                                $outTrip->farebox = 0.00;
+                                $outTrip->ridership = 0;
+                                $outTrip->average_pax = 0;
+                                $outTrip->trip_served = 0;
+                                $outTrip->km_served = 0.00;
+                                $outTrip->bus_deployed = 0;
+                                $outTripArr[] = $outTrip;
+                                $allTrips = array_merge($allTrips, $outTripArr);
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+                            }
+                            elseif($outExist==true && $inExist==false){
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+
+                                $inTrip = new \stdClass;
+                                $inTrip->id = $allRoute->id;
+                                $inTrip->trip_code = 1;
+                                $inTrip->route_number = $allRoute->route_number;
+                                $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                                $inTrip->farebox = 0.00;
+                                $inTrip->ridership = 0;
+                                $inTrip->average_pax = 0;
+                                $inTrip->trip_served = 0;
+                                $inTrip->km_served = 0.00;
+                                $inTrip->bus_deployed = 0;
+
+                                $inTripArr[] = $inTrip;
+                                $allTrips = array_merge($allTrips, $inTripArr);
+                            }else{
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+                            }
+                        }
+                    }
+
+                    $prevTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                    SUM(total_adult) + SUM(total_concession) AS ridership
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                    AND route.status = 1
+                    GROUP BY route.route_number, trip_details.trip_code
+                    ORDER BY route.route_number, trip_details.trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, 
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $count = 0;
+                    $countMissedTripPerRoute = 0;
+                    $countMissedTripGrand = 0;
+                    $earlyDepartCount = 0;
+                    $lateDepartCount = 0;
+                    $earlyEndCount = 0;
+                    $lateEndCount = 0;
+                    $prevRidership = 0;
+                    $prevFarebox = 0.00;
+                    $tripPlannedRoute = 0;
+                    $kmPlannedRoute = 0;
+                    $busUsedRoute = 0;
+                    $earlyDepartGrand = 0;
+                    $lateDepartGrand = 0;
+                    $earlyEndGrand = 0;
+                    $lateEndGrand = 0;
+                    $prevRidershipGrand = 0;
+                    $prevFareboxGrand = 0.00;
+                    $tripPlannedGrand = 0;
+                    $kmPlannedGrand = 0;
+                    $busUsedGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->trip_code . " ");
+                        
+                        //Total Per Route
+                        if($allTrip->route_number != $pastRoute && $pastRoute != NULL){
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->bus_deployed = $busUsedRoute;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $noTripArr);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $noTripArr);
+                                }
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $totPerRoute);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $totPerRoute);
+                                }
+                            }
+                            $count++;
+                            $prevRidership=0;
+                            $prevFarebox=0;
+                            $tripPlannedRoute=0;
+                            $kmPlannedRoute=0;
+                            $countMissedTripPerRoute=0;
+                            $earlyDepartCount = 0;
+                            $lateDepartCount = 0;
+                            $earlyEndCount = 0;
+                            $lateEndCount = 0;
+                            $busUsedRoute = 0;
+                        }
+
+                        $busUsedRoute += $allTrip->bus_deployed;
+                        $busUsedGrand += $allTrip->bus_deployed;
+
+                        //Previous month
+                        $foundPrev = false;
+                        foreach($prevTrips as $key1 => $prevTrip){
+                            if($prevTrip->trip_code == $allTrip->trip_code && $prevTrip->route_number == $allTrip->route_number){
+                                $prevRidership += $prevTrip->ridership;
+                                $prevFarebox += $prevTrip->farebox;
+                                $prevRidershipGrand += $prevTrip->ridership;
+                                $prevFareboxGrand += $prevTrip->farebox;
+
+                                $allTrip->ridership_prev = $prevTrip->ridership;
+                                //Increment ridership collection (%)
+                                if($prevTrip->ridership==0){
+                                    if($allTrip->ridership==0){
+                                        $allTrip->ridership_increase = 0;
+                                    }else{
+                                        $allTrip->ridership_increase = 100;
+                                    }
+                                }else{
+                                    $increaseRidership = (($allTrip->ridership -  $allTrip->ridership_prev) /  $allTrip->ridership_prev) * 100;
+                                    $allTrip->ridership_increase = number_format((float)$increaseRidership, 2, '.', '');
+                                }
+                
+                                $allTrip->farebox_prev = $prevTrip->farebox;
+                                //Incremeant farebox collection (%)
+                                if($prevTrip->farebox==0){
+                                    if($allTrip->farebox==0){
+                                        $allTrip->farebox_increase = 0;
+                                    }else{
+                                        $allTrip->farebox_increase = 100;
+                                    }
+                                }else{
+                                    $increaseFarebox = (($allTrip->farebox - $allTrip->farebox_prev) / $allTrip->farebox_prev) * 100;
+                                    $allTrip->farebox_increase = number_format((float)$increaseFarebox, 2, '.', '');
+                                }
+                                
+                                $foundPrev = true;
+                                break ;
+                            }
+                        }if(!$foundPrev){
+                            $allTrip->ridership_prev = 0;
+                            if($allTrip->ridership==0){
+                                $allTrip->ridership_increase = 0;
+                            }else{
+                                $allTrip->ridership_increase = 100;
+                            }
+
+                            $allTrip->farebox_prev = 0.00;
+                            if($allTrip->farebox==0){
+                                $allTrip->farebox_increase = 0;
+                            }else{
+                                $allTrip->farebox_increase = 100;
+                            }
+                        }
+
+                        //Planned Trip
+                        $foundPlanned = false;
+                        foreach($plannedTrips as $key2 => $plannedTrip){
+                            if($plannedTrip->trip_code == $allTrip->trip_code && $plannedTrip->route_number == $allTrip->route_number){
+                                $tripPlannedRoute += $plannedTrip->trip_planned;
+                                $kmPlannedRoute += $plannedTrip->km_planned;
+                                $tripPlannedGrand += $plannedTrip->trip_planned;
+                                $kmPlannedGrand += $plannedTrip->km_planned;
+
+                                $allTrip->trip_planned = $plannedTrip->trip_planned;
+                                $allTrip->km_planned = $plannedTrip->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $allTrip->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripPerRoute += $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $foundPlanned = true;
+                                break;
+                            }
+                        }if(!$foundPlanned){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0.00;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        //Early Depart
+                        $earlyDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyDeparts as $key3 => $earlyDepart){
+                            $allTrip->early_depart = $earlyDepart->countEarlyLate;
+                            $earlyDepartCount += $earlyDepart->countEarlyLate;
+                            $earlyDepartGrand += $earlyDepart->countEarlyLate;
+                        }
+
+                        //Late Depart
+                        $lateDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateDeparts as $key4 => $lateDepart){
+                            $allTrip->late_depart = $lateDepart->countEarlyLate;
+                            $lateDepartCount += $lateDepart->countEarlyLate;
+                            $lateDepartGrand += $lateDepart->countEarlyLate;
+                        }
+
+                        //Early End
+                        $earlyEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyEnds as $key5 => $earlyEnd){
+                            $allTrip->early_end = $earlyEnd->countEarlyLate;
+                            $earlyEndCount += $earlyEnd->countEarlyLate;
+                            $earlyEndGrand += $earlyEnd->countEarlyLate;
+                        }
+
+                        //Late End
+                        $lateEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateEnds as $key6 => $lateEnd){
+                            $allTrip->late_end = $lateEnd->countEarlyLate;
+                            $lateEndCount += $lateEnd->countEarlyLate;
+                            $lateEndGrand += $lateEnd->countEarlyLate;
+                        }
+
+                        $allTrip->breakdown = 0;
+                        $allTrip->accident = 0;
+                        $allTrip->complaint = 0;
+
+                        $pastRoute = $allTrip->route_number;
+
+                        if($lastKey==$key){
+                            $totGrands = DB::select("SELECT
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1");
+
+                            foreach($totGrands as $keyGrand => $grand){
+                                $grand->ridership_prev = $prevRidershipGrand;
+                                if($grand->ridership_prev==0){
+                                    if($grand->ridership==0){
+                                        $grand->ridership_increase = 0;
+                                    }else{
+                                        $grand->ridership_increase = 100;
+                                    }
+                                }else{
+                                    $calcRidershipIn = (($grand->ridership -  $grand->ridership_prev) /  $grand->ridership_prev) * 100;
+                                    $grand->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                }
+
+                                $grand->farebox_prev = $prevFareboxGrand;
+                                if($grand->farebox_prev==0){
+                                    if($grand->farebox==0){
+                                        $grand->farebox_increase = 0;
+                                    }else{
+                                        $grand->farebox_increase = 100;
+                                    }
+                                }else{
+                                    $calcFareboxIn = (($grand->farebox -  $grand->farebox_prev) /  $grand->farebox_prev) * 100;
+                                    $grand->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                }
+
+                                $grand->trip_planned = $tripPlannedGrand;
+                                $grand->km_planned = $kmPlannedGrand;
+                                $grand->missed_trip = $countMissedTripGrand;
+                                $grand->early_depart = $earlyDepartGrand;
+                                $grand->late_depart = $lateDepartGrand;
+                                $grand->early_end = $earlyEndGrand;
+                                $grand->late_end = $lateEndGrand;
+                                $grand->bus_deployed = $busUsedGrand;
+                                $grand->breakdown = 0;
+                                $grand->accident = 0;
+                                $grand->complaint = 0;
+                            }
+
+                            $newKey = $key + $count +1;
+                            array_splice($allTrips, $newKey, 0, $totGrands);
+
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $noTripArr);
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+    
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $totPerRoute);
+                            }
+                        }
+
+                    }
+
+                }
+            }else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+
+                if($validatedData['route_id']=='All'){
+                    $allRoutes = Route::where('company_id', $companyDetails->id)->where('status', 1)->orderBy('route_number')->get();
+                    $allTrips = [];
+
+                    foreach($allRoutes as $allRoute){
+                        $tripPerRoute = DB::select("SELECT route.id, trip_details.trip_code, route.route_number,
+                        (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                        , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership,
+                        ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                        ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route.route_number, trip_details.trip_code
+                        ORDER BY route.route_number, trip_details.trip_code;");
+
+                        $outTripArr = [];
+                        $inTripArr = [];
+                        if(!$tripPerRoute){
+                            $out->writeln("In tripPerRoute < 0");
+                            $outTrip = new \stdClass;
+                            $outTrip->id = $allRoute->id;
+                            $outTrip->trip_code = 0;
+                            $outTrip->route_number = $allRoute->route_number;
+                            $outTrip->route_name = $allRoute->route_name;
+                            $outTrip->farebox = 0.00;
+                            $outTrip->ridership = 0;
+                            $outTrip->average_pax = 0;
+                            $outTrip->trip_served = 0;
+                            $outTrip->km_served = 0.00;
+                            $outTrip->bus_deployed = 0;
+                            $outTripArr[] = $outTrip;
+                            $allTrips = array_merge($allTrips, $outTripArr);
+
+                            $inTrip = new \stdClass;
+                            $inTrip->id = $allRoute->id;
+                            $inTrip->trip_code = 1;
+                            $inTrip->route_number = $allRoute->route_number;
+                            $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                            $inTrip->farebox = 0.00;
+                            $inTrip->ridership = 0;
+                            $inTrip->average_pax = 0;
+                            $inTrip->trip_served = 0;
+                            $inTrip->km_served = 0.00;
+                            $inTrip->bus_deployed = 0;
+
+                            $inTripArr[] = $inTrip;
+                            $allTrips = array_merge($allTrips, $inTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $outExist = false;
+                            $inExist = false;
+                            foreach($tripPerRoute as $loop => $trip){
+                                if($trip->trip_code==0){
+                                    $outExist = true;
+                                }
+                                if($trip->trip_code==1){
+                                    $inExist = true;
+                                }
+                            }
+
+                            if($outExist==false && $inExist==true){
+                                $outTrip = new \stdClass;
+                                $outTrip->id = $allRoute->id;
+                                $outTrip->trip_code = 0;
+                                $outTrip->route_number = $allRoute->route_number;
+                                $outTrip->route_name = $allRoute->route_name;
+                                $outTrip->farebox = 0.00;
+                                $outTrip->ridership = 0;
+                                $outTrip->average_pax = 0;
+                                $outTrip->trip_served = 0;
+                                $outTrip->km_served = 0.00;
+                                $outTrip->bus_deployed = 0;
+                                $outTripArr[] = $outTrip;
+                                $allTrips = array_merge($allTrips, $outTripArr);
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+                            }
+                            elseif($outExist==true && $inExist==false){
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+
+                                $inTrip = new \stdClass;
+                                $inTrip->id = $allRoute->id;
+                                $inTrip->trip_code = 1;
+                                $inTrip->route_number = $allRoute->route_number;
+                                $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                                $inTrip->farebox = 0.00;
+                                $inTrip->ridership = 0;
+                                $inTrip->average_pax = 0;
+                                $inTrip->trip_served = 0;
+                                $inTrip->km_served = 0.00;
+                                $inTrip->bus_deployed = 0;
+
+                                $inTripArr[] = $inTrip;
+                                $allTrips = array_merge($allTrips, $inTripArr);
+                            }else{
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+                            }
+                        }
+                    }
+
+                    $prevTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                    SUM(total_adult) + SUM(total_concession) AS ridership
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                    AND route.status = 1
+                    GROUP BY route.route_number, trip_details.trip_code
+                    ORDER BY route.route_number, trip_details.trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, 
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $count = 0;
+                    $countMissedTripPerRoute = 0;
+                    $countMissedTripGrand = 0;
+                    $earlyDepartCount = 0;
+                    $lateDepartCount = 0;
+                    $earlyEndCount = 0;
+                    $lateEndCount = 0;
+                    $prevRidership = 0;
+                    $prevFarebox = 0.00;
+                    $tripPlannedRoute = 0;
+                    $kmPlannedRoute = 0;
+                    $busUsedRoute = 0;
+                    $earlyDepartGrand = 0;
+                    $lateDepartGrand = 0;
+                    $earlyEndGrand = 0;
+                    $lateEndGrand = 0;
+                    $prevRidershipGrand = 0;
+                    $prevFareboxGrand = 0.00;
+                    $tripPlannedGrand = 0;
+                    $kmPlannedGrand = 0;
+                    $busUsedGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->trip_code . " ");
+                        
+                        //Total Per Route
+                        if($allTrip->route_number != $pastRoute && $pastRoute != NULL){
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->bus_deployed = $busUsedRoute;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $noTripArr);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $noTripArr);
+                                }
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $totPerRoute);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $totPerRoute);
+                                }
+                            }
+                            $count++;
+                            $prevRidership=0;
+                            $prevFarebox=0;
+                            $tripPlannedRoute=0;
+                            $kmPlannedRoute=0;
+                            $countMissedTripPerRoute=0;
+                            $earlyDepartCount = 0;
+                            $lateDepartCount = 0;
+                            $earlyEndCount = 0;
+                            $lateEndCount = 0;
+                            $busUsedRoute = 0;
+                        }
+
+                        $busUsedRoute += $allTrip->bus_deployed;
+                        $busUsedGrand += $allTrip->bus_deployed;
+
+                        //Previous month
+                        $foundPrev = false;
+                        foreach($prevTrips as $key1 => $prevTrip){
+                            if($prevTrip->trip_code == $allTrip->trip_code && $prevTrip->route_number == $allTrip->route_number){
+                                $prevRidership += $prevTrip->ridership;
+                                $prevFarebox += $prevTrip->farebox;
+                                $prevRidershipGrand += $prevTrip->ridership;
+                                $prevFareboxGrand += $prevTrip->farebox;
+
+                                $allTrip->ridership_prev = $prevTrip->ridership;
+                                //Increment ridership collection (%)
+                                if($prevTrip->ridership==0){
+                                    if($allTrip->ridership==0){
+                                        $allTrip->ridership_increase = 0;
+                                    }else{
+                                        $allTrip->ridership_increase = 100;
+                                    }
+                                }else{
+                                    $increaseRidership = (($allTrip->ridership -  $allTrip->ridership_prev) /  $allTrip->ridership_prev) * 100;
+                                    $allTrip->ridership_increase = number_format((float)$increaseRidership, 2, '.', '');
+                                }
+                
+                                $allTrip->farebox_prev = $prevTrip->farebox;
+                                //Incremeant farebox collection (%)
+                                if($prevTrip->farebox==0){
+                                    if($allTrip->farebox==0){
+                                        $allTrip->farebox_increase = 0;
+                                    }else{
+                                        $allTrip->farebox_increase = 100;
+                                    }
+                                }else{
+                                    $increaseFarebox = (($allTrip->farebox - $allTrip->farebox_prev) / $allTrip->farebox_prev) * 100;
+                                    $allTrip->farebox_increase = number_format((float)$increaseFarebox, 2, '.', '');
+                                }
+                                
+                                $foundPrev = true;
+                                break ;
+                            }
+                        }if(!$foundPrev){
+                            $allTrip->ridership_prev = 0;
+                            if($allTrip->ridership==0){
+                                $allTrip->ridership_increase = 0;
+                            }else{
+                                $allTrip->ridership_increase = 100;
+                            }
+
+                            $allTrip->farebox_prev = 0.00;
+                            if($allTrip->farebox==0){
+                                $allTrip->farebox_increase = 0;
+                            }else{
+                                $allTrip->farebox_increase = 100;
+                            }
+                        }
+
+                        //Planned Trip
+                        $foundPlanned = false;
+                        foreach($plannedTrips as $key2 => $plannedTrip){
+                            if($plannedTrip->trip_code == $allTrip->trip_code && $plannedTrip->route_number == $allTrip->route_number){
+                                $tripPlannedRoute += $plannedTrip->trip_planned;
+                                $kmPlannedRoute += $plannedTrip->km_planned;
+                                $tripPlannedGrand += $plannedTrip->trip_planned;
+                                $kmPlannedGrand += $plannedTrip->km_planned;
+
+                                $allTrip->trip_planned = $plannedTrip->trip_planned;
+                                $allTrip->km_planned = $plannedTrip->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $allTrip->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripPerRoute += $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $foundPlanned = true;
+                                break;
+                            }
+                        }if(!$foundPlanned){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0.00;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        //Early Depart
+                        $earlyDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyDeparts as $key3 => $earlyDepart){
+                            $allTrip->early_depart = $earlyDepart->countEarlyLate;
+                            $earlyDepartCount += $earlyDepart->countEarlyLate;
+                            $earlyDepartGrand += $earlyDepart->countEarlyLate;
+                        }
+
+                        //Late Depart
+                        $lateDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateDeparts as $key4 => $lateDepart){
+                            $allTrip->late_depart = $lateDepart->countEarlyLate;
+                            $lateDepartCount += $lateDepart->countEarlyLate;
+                            $lateDepartGrand += $lateDepart->countEarlyLate;
+                        }
+
+                        //Early End
+                        $earlyEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyEnds as $key5 => $earlyEnd){
+                            $allTrip->early_end = $earlyEnd->countEarlyLate;
+                            $earlyEndCount += $earlyEnd->countEarlyLate;
+                            $earlyEndGrand += $earlyEnd->countEarlyLate;
+                        }
+
+                        //Late End
+                        $lateEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateEnds as $key6 => $lateEnd){
+                            $allTrip->late_end = $lateEnd->countEarlyLate;
+                            $lateEndCount += $lateEnd->countEarlyLate;
+                            $lateEndGrand += $lateEnd->countEarlyLate;
+                        }
+
+                        $allTrip->breakdown = 0;
+                        $allTrip->accident = 0;
+                        $allTrip->complaint = 0;
+
+                        $pastRoute = $allTrip->route_number;
+
+                        if($lastKey==$key){
+                            $totGrands = DB::select("SELECT
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.company_id = " . $companyDetails->id . ";");
+
+                            foreach($totGrands as $keyGrand => $grand){
+                                $grand->ridership_prev = $prevRidershipGrand;
+                                if($grand->ridership_prev==0){
+                                    if($grand->ridership==0){
+                                        $grand->ridership_increase = 0;
+                                    }else{
+                                        $grand->ridership_increase = 100;
+                                    }
+                                }else{
+                                    $calcRidershipIn = (($grand->ridership -  $grand->ridership_prev) /  $grand->ridership_prev) * 100;
+                                    $grand->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                }
+
+                                $grand->farebox_prev = $prevFareboxGrand;
+                                if($grand->farebox_prev==0){
+                                    if($grand->farebox==0){
+                                        $grand->farebox_increase = 0;
+                                    }else{
+                                        $grand->farebox_increase = 100;
+                                    }
+                                }else{
+                                    $calcFareboxIn = (($grand->farebox -  $grand->farebox_prev) /  $grand->farebox_prev) * 100;
+                                    $grand->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                }
+
+                                $grand->trip_planned = $tripPlannedGrand;
+                                $grand->km_planned = $kmPlannedGrand;
+                                $grand->missed_trip = $countMissedTripGrand;
+                                $grand->early_depart = $earlyDepartGrand;
+                                $grand->late_depart = $lateDepartGrand;
+                                $grand->early_end = $earlyEndGrand;
+                                $grand->late_end = $lateEndGrand;
+                                $grand->bus_deployed = $busUsedGrand;
+                                $grand->breakdown = 0;
+                                $grand->accident = 0;
+                                $grand->complaint = 0;
+                            }
+
+                            $newKey = $key + $count +1;
+                            array_splice($allTrips, $newKey, 0, $totGrands);
+
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $noTripArr);
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+    
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $totPerRoute);
+                            }
+                        }
+
+                    }
+
+                }
+                else{
+                    $allRoute = Route::where('id', $validatedData['route_id'])->first();
+                    $allTrips = [];
+                    $outTripArr = [];
+                    $inTripArr = [];
+
+                    $tripPerRoute = DB::select("SELECT route.id, trip_details.trip_code, route.route_number,
+                    (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                    , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                    SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                    SUM(total_adult) + SUM(total_concession) AS ridership,
+                    ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                    ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                    (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                    SUM(trip_details.total_mileage) as km_served,
+                    COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.id = " . $allRoute->id . "
+                    GROUP BY route.route_number, trip_details.trip_code
+                    ORDER BY route.route_number, trip_details.trip_code;");
+
+                    if(!$tripPerRoute){
+                        $out->writeln("In tripPerRoute < 0");
+                        $outTrip = new \stdClass;
+                        $outTrip->id = $allRoute->id;
+                        $outTrip->trip_code = 0;
+                        $outTrip->route_number = $allRoute->route_number;
+                        $outTrip->route_name = $allRoute->route_name;
+                        $outTrip->farebox = 0.00;
+                        $outTrip->ridership = 0;
+                        $outTrip->average_pax = 0;
+                        $outTrip->trip_served = 0;
+                        $outTrip->km_served = 0.00;
+                        $outTrip->bus_deployed = 0;
+                        $outTripArr[] = $outTrip;
+                        $allTrips = array_merge($allTrips, $outTripArr);
+
+                        $inTrip = new \stdClass;
+                        $inTrip->id = $allRoute->id;
+                        $inTrip->trip_code = 1;
+                        $inTrip->route_number = $allRoute->route_number;
+                        $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                        $inTrip->farebox = 0.00;
+                        $inTrip->ridership = 0;
+                        $inTrip->average_pax = 0;
+                        $inTrip->trip_served = 0;
+                        $inTrip->km_served = 0.00;
+                        $inTrip->bus_deployed = 0;
+
+                        $inTripArr[] = $inTrip;
+                        $allTrips = array_merge($allTrips, $inTripArr);
+                    }else{
+                        $out->writeln("In tripPerRoute > 0");
+                        $outExist = false;
+                        $inExist = false;
+                        foreach($tripPerRoute as $loop => $trip){
+                            if($trip->trip_code==0){
+                                $outExist = true;
+                            }
+                            if($trip->trip_code==1){
+                                $inExist = true;
+                            }
+                        }
+
+                        if($outExist==false && $inExist==true){
+                            $outTrip = new \stdClass;
+                            $outTrip->id = $allRoute->id;
+                            $outTrip->trip_code = 0;
+                            $outTrip->route_number = $allRoute->route_number;
+                            $outTrip->route_name = $allRoute->route_name;
+                            $outTrip->farebox = 0.00;
+                            $outTrip->ridership = 0;
+                            $outTrip->average_pax = 0;
+                            $outTrip->trip_served = 0;
+                            $outTrip->km_served = 0.00;
+                            $outTrip->bus_deployed = 0;
+                            $outTripArr[] = $outTrip;
+                            $allTrips = array_merge($allTrips, $outTripArr);
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+                        }
+                        elseif($outExist==true && $inExist==false){
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+
+                            $inTrip = new \stdClass;
+                            $inTrip->id = $allRoute->id;
+                            $inTrip->trip_code = 1;
+                            $inTrip->route_number = $allRoute->route_number;
+                            $inTrip->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                            $inTrip->farebox = 0.00;
+                            $inTrip->ridership = 0;
+                            $inTrip->average_pax = 0;
+                            $inTrip->trip_served = 0;
+                            $inTrip->km_served = 0.00;
+                            $inTrip->bus_deployed = 0;
+
+                            $inTripArr[] = $inTrip;
+                            $allTrips = array_merge($allTrips, $inTripArr);
+                        }else{
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+                        }
+                    }
+
+                    $prevTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                    SUM(total_adult) + SUM(total_concession) AS ridership
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                    AND route.status = 1
+                    GROUP BY route.route_number, trip_details.trip_code
+                    ORDER BY route.route_number, trip_details.trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, 
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $count = 0;
+                    $countMissedTripPerRoute = 0;
+                    $countMissedTripGrand = 0;
+                    $earlyDepartCount = 0;
+                    $lateDepartCount = 0;
+                    $earlyEndCount = 0;
+                    $lateEndCount = 0;
+                    $prevRidership = 0;
+                    $prevFarebox = 0.00;
+                    $tripPlannedRoute = 0;
+                    $kmPlannedRoute = 0;
+                    $busUsedRoute = 0;
+                    $earlyDepartGrand = 0;
+                    $lateDepartGrand = 0;
+                    $earlyEndGrand = 0;
+                    $lateEndGrand = 0;
+                    $prevRidershipGrand = 0;
+                    $prevFareboxGrand = 0.00;
+                    $tripPlannedGrand = 0;
+                    $kmPlannedGrand = 0;
+                    $busUsedGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->trip_code . " ");
+                        
+                        //Total Per Route
+                        if($allTrip->route_number != $pastRoute && $pastRoute != NULL){
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->bus_deployed = $busUsedRoute;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $noTripArr);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $noTripArr);
+                                }
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                if($count==0){
+                                    array_splice($allTrips, $key, 0, $totPerRoute);
+                                }else{
+                                    $newKey = $key + $count;
+                                    array_splice($allTrips, $newKey, 0, $totPerRoute);
+                                }
+                            }
+                            $count++;
+                            $prevRidership=0;
+                            $prevFarebox=0;
+                            $tripPlannedRoute=0;
+                            $kmPlannedRoute=0;
+                            $countMissedTripPerRoute=0;
+                            $earlyDepartCount = 0;
+                            $lateDepartCount = 0;
+                            $earlyEndCount = 0;
+                            $lateEndCount = 0;
+                            $busUsedRoute = 0;
+                        }
+
+                        $busUsedRoute += $allTrip->bus_deployed;
+                        $busUsedGrand += $allTrip->bus_deployed;
+
+                        //Previous month
+                        $foundPrev = false;
+                        foreach($prevTrips as $key1 => $prevTrip){
+                            if($prevTrip->trip_code == $allTrip->trip_code && $prevTrip->route_number == $allTrip->route_number){
+                                $prevRidership += $prevTrip->ridership;
+                                $prevFarebox += $prevTrip->farebox;
+                                $prevRidershipGrand += $prevTrip->ridership;
+                                $prevFareboxGrand += $prevTrip->farebox;
+
+                                $allTrip->ridership_prev = $prevTrip->ridership;
+                                //Increment ridership collection (%)
+                                if($prevTrip->ridership==0){
+                                    if($allTrip->ridership==0){
+                                        $allTrip->ridership_increase = 0;
+                                    }else{
+                                        $allTrip->ridership_increase = 100;
+                                    }
+                                }else{
+                                    $increaseRidership = (($allTrip->ridership -  $allTrip->ridership_prev) /  $allTrip->ridership_prev) * 100;
+                                    $allTrip->ridership_increase = number_format((float)$increaseRidership, 2, '.', '');
+                                }
+                
+                                $allTrip->farebox_prev = $prevTrip->farebox;
+                                //Incremeant farebox collection (%)
+                                if($prevTrip->farebox==0){
+                                    if($allTrip->farebox==0){
+                                        $allTrip->farebox_increase = 0;
+                                    }else{
+                                        $allTrip->farebox_increase = 100;
+                                    }
+                                }else{
+                                    $increaseFarebox = (($allTrip->farebox - $allTrip->farebox_prev) / $allTrip->farebox_prev) * 100;
+                                    $allTrip->farebox_increase = number_format((float)$increaseFarebox, 2, '.', '');
+                                }
+                                
+                                $foundPrev = true;
+                                break ;
+                            }
+                        }if(!$foundPrev){
+                            $allTrip->ridership_prev = 0;
+                            if($allTrip->ridership==0){
+                                $allTrip->ridership_increase = 0;
+                            }else{
+                                $allTrip->ridership_increase = 100;
+                            }
+
+                            $allTrip->farebox_prev = 0.00;
+                            if($allTrip->farebox==0){
+                                $allTrip->farebox_increase = 0;
+                            }else{
+                                $allTrip->farebox_increase = 100;
+                            }
+                        }
+
+                        //Planned Trip
+                        $foundPlanned = false;
+                        foreach($plannedTrips as $key2 => $plannedTrip){
+                            if($plannedTrip->trip_code == $allTrip->trip_code && $plannedTrip->route_number == $allTrip->route_number){
+                                $tripPlannedRoute += $plannedTrip->trip_planned;
+                                $kmPlannedRoute += $plannedTrip->km_planned;
+                                $tripPlannedGrand += $plannedTrip->trip_planned;
+                                $kmPlannedGrand += $plannedTrip->km_planned;
+
+                                $allTrip->trip_planned = $plannedTrip->trip_planned;
+                                $allTrip->km_planned = $plannedTrip->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $allTrip->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripPerRoute += $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $foundPlanned = true;
+                                break;
+                            }
+                        }if(!$foundPlanned){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0.00;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        //Early Depart
+                        $earlyDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyDeparts as $key3 => $earlyDepart){
+                            $allTrip->early_depart = $earlyDepart->countEarlyLate;
+                            $earlyDepartCount += $earlyDepart->countEarlyLate;
+                            $earlyDepartGrand += $earlyDepart->countEarlyLate;
+                        }
+
+                        //Late Depart
+                        $lateDeparts = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateDeparts as $key4 => $lateDepart){
+                            $allTrip->late_depart = $lateDepart->countEarlyLate;
+                            $lateDepartCount += $lateDepart->countEarlyLate;
+                            $lateDepartGrand += $lateDepart->countEarlyLate;
+                        }
+
+                        //Early End
+                        $earlyEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) > '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyEnds as $key5 => $earlyEnd){
+                            $allTrip->early_end = $earlyEnd->countEarlyLate;
+                            $earlyEndCount += $earlyEnd->countEarlyLate;
+                            $earlyEndGrand += $earlyEnd->countEarlyLate;
+                        }
+
+                        //Late End
+                        $lateEnds = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->id . "
+                        AND route_scheduler_mstr.trip_code = " . $allTrip->trip_code . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_end_time, cast(trip_details.end_trip as TIME)) < '-00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        foreach($lateEnds as $key6 => $lateEnd){
+                            $allTrip->late_end = $lateEnd->countEarlyLate;
+                            $lateEndCount += $lateEnd->countEarlyLate;
+                            $lateEndGrand += $lateEnd->countEarlyLate;
+                        }
+
+                        $allTrip->breakdown = 0;
+                        $allTrip->accident = 0;
+                        $allTrip->complaint = 0;
+
+                        $pastRoute = $allTrip->route_number;
+
+                        if($lastKey==$key){
+                            $totGrands = DB::select("SELECT 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totGrands){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidershipGrand;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFareboxGrand;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedGrand;
+                                $noTrip->km_planned = $kmPlannedGrand;
+                                $noTrip->missed_trip = $countMissedTripGrand;
+                                $noTrip->early_depart = $earlyDepartGrand;
+                                $noTrip->late_depart = $lateDepartGrand;
+                                $noTrip->early_end = $earlyEndGrand;
+                                $noTrip->late_end = $lateEndGrand;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $noTripArr);
+                            }else{
+                                foreach($totGrands as $keyGrand => $grand){
+                                    $grand->ridership_prev = $prevRidershipGrand;
+                                    if($grand->ridership_prev==0){
+                                        if($grand->ridership==0){
+                                            $grand->ridership_increase = 0;
+                                        }else{
+                                            $grand->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($grand->ridership -  $grand->ridership_prev) /  $grand->ridership_prev) * 100;
+                                        $grand->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+
+                                    $grand->farebox_prev = $prevFareboxGrand;
+                                    if($grand->farebox_prev==0){
+                                        if($grand->farebox==0){
+                                            $grand->farebox_increase = 0;
+                                        }else{
+                                            $grand->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($grand->farebox -  $grand->farebox_prev) /  $grand->farebox_prev) * 100;
+                                        $grand->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+
+                                    $grand->trip_planned = $tripPlannedGrand;
+                                    $grand->km_planned = $kmPlannedGrand;
+                                    $grand->missed_trip = $countMissedTripGrand;
+                                    $grand->early_depart = $earlyDepartGrand;
+                                    $grand->late_depart = $lateDepartGrand;
+                                    $grand->early_end = $earlyEndGrand;
+                                    $grand->late_end = $lateEndGrand;
+                                    $grand->bus_deployed = $busUsedGrand;
+                                    $grand->breakdown = 0;
+                                    $grand->accident = 0;
+                                    $grand->complaint = 0;
+                                }
+
+                                $newKey = $key + $count +1;
+                                array_splice($allTrips, $newKey, 0, $totGrands);
+                            }
+
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership,
+                            ROUND((case when ((SUM(total_adult) + SUM(total_concession)) = 0) THEN 0
+                            ELSE (SUM(total_adult_amount) + SUM(total_concession_amount))/(SUM(total_adult) + SUM(total_concession)) END),2) as average_pax,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.route_number = '" . $pastRoute . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In totPerRoute < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $pastRoute;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->average_pax = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->bus_deployed = 0;
+                                $noTrip->ridership_prev = $prevRidership;
+                                $noTrip->ridership_increase = 0;
+                                $noTrip->farebox_prev = $prevFarebox;
+                                $noTrip->farebox_increase = 0;
+                                $noTrip->trip_planned = $tripPlannedRoute;
+                                $noTrip->km_planned = $kmPlannedRoute;
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+                                $noTrip->early_depart = $earlyDepartCount;
+                                $noTrip->late_depart = $lateDepartCount;
+                                $noTrip->early_end = $earlyEndCount;
+                                $noTrip->late_end = $lateEndCount;
+                                $noTrip->breakdown = 0;
+                                $noTrip->accident = 0;
+                                $noTrip->complaint = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $noTripArr);
+                            }else{
+                                $out->writeln("In totPerRoute > 0");
+                                foreach($totPerRoute as $keyRoute => $perRoute){
+                                    $perRoute->ridership_prev = $prevRidership;
+                                    if($perRoute->ridership_prev==0){
+                                        if($perRoute->ridership==0){
+                                            $perRoute->ridership_increase = 0;
+                                        }else{
+                                            $perRoute->ridership_increase = 100;
+                                        }
+                                    }else{
+                                        $calcRidershipIn = (($perRoute->ridership -  $perRoute->ridership_prev) /  $perRoute->ridership_prev) * 100;
+                                        $perRoute->ridership_increase = number_format((float)$calcRidershipIn, 2, '.', '');
+                                    }
+                                    
+                                    $perRoute->farebox_prev = $prevFarebox;
+                                    if($perRoute->farebox_prev==0){
+                                        if($perRoute->farebox==0){
+                                            $perRoute->farebox_increase = 0;
+                                        }else{
+                                            $perRoute->farebox_increase = 100;
+                                        }
+                                    }else{
+                                        $calcFareboxIn = (($perRoute->farebox -  $perRoute->farebox_prev) /  $perRoute->farebox_prev) * 100;
+                                        $perRoute->farebox_increase = number_format((float)$calcFareboxIn, 2, '.', '');
+                                    }
+    
+                                    $perRoute->trip_planned = $tripPlannedRoute;
+                                    $perRoute->km_planned = $kmPlannedRoute;
+                                    $perRoute->missed_trip = $countMissedTripPerRoute;
+                                    $perRoute->early_depart = $earlyDepartCount;
+                                    $perRoute->late_depart = $lateDepartCount;
+                                    $perRoute->early_end = $earlyEndCount;
+                                    $perRoute->late_end = $lateEndCount;
+                                    $perRoute->bus_deployed = $busUsedRoute;
+                                    $perRoute->breakdown = 0;
+                                    $perRoute->accident = 0;
+                                    $perRoute->complaint = 0;
+                                }
+    
+                                $newKey = $key + $count+1;
+                                array_splice($allTrips, $newKey, 0, $totPerRoute);
+                            }
+                        }
+
+                    }
+
+                }
+            }
+            return Excel::download(new SPADSummary($allTrips, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Summary_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    public function printSummaryOld()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN printSummary()");
@@ -124,7 +1956,8 @@ class ReportSpad extends Component
                      //Summary all routes for all company
                     if($validatedData['route_id']=='All'){
                         $allRoutes = Route::orderBy('route_number')->get();
-            
+                        //$allRoutes = Route::with('trip')->orderBy('route_number')->get();
+                        //dd($allRoutes);
                         foreach($allRoutes as $allRoute) {
                             $existInTrip = false;
                             $existOutTrip = false;
@@ -236,13 +2069,13 @@ class ReportSpad extends Component
                                 $increaseRidershipIn = 100;
                                 $increaseRidershipFormatIn = 100;
                             }else{
-                            if($totalRidershipIn==0){
-                                $increaseRidershipIn = -100;
-                                $increaseRidershipFormatIn = -100;
-                            }else{
-                                $increaseRidershipIn = (($totalRidershipIn - $prevRidershipIn) / $prevRidershipIn) * 100;
-                                $increaseRidershipFormatIn = number_format((float)$increaseRidershipIn, 2, '.', '');
-                            }
+                                if($totalRidershipIn==0){
+                                    $increaseRidershipIn = -100;
+                                    $increaseRidershipFormatIn = -100;
+                                }else{
+                                    $increaseRidershipIn = (($totalRidershipIn - $prevRidershipIn) / $prevRidershipIn) * 100;
+                                    $increaseRidershipFormatIn = number_format((float)$increaseRidershipIn, 2, '.', '');
+                                }
                             }
             
                             //Incremeant farebox collection (%)
@@ -250,13 +2083,13 @@ class ReportSpad extends Component
                                 $increaseFareboxIn = 100;
                                 $increaseFareboxFormatIn = 100;
                             }else{
-                            if($totalFareboxIn==0){
-                                $increaseFareboxIn  = -100;
-                                $increaseFareboxFormatIn  = -100;
-                            }else{
-                                $increaseFareboxIn = (($totalFareboxIn - $prevFareboxIn) / $prevFareboxIn) * 100;
-                                $increaseFareboxFormatIn = number_format((float)$increaseFareboxIn, 2, '.', '');
-                            }
+                                if($totalFareboxIn==0){
+                                    $increaseFareboxIn  = -100;
+                                    $increaseFareboxFormatIn  = -100;
+                                }else{
+                                    $increaseFareboxIn = (($totalFareboxIn - $prevFareboxIn) / $prevFareboxIn) * 100;
+                                    $increaseFareboxFormatIn = number_format((float)$increaseFareboxIn, 2, '.', '');
+                                }
                             }
             
                             //Average Fare per pax (RM)
@@ -1730,7 +3563,8 @@ class ReportSpad extends Component
                     //Summary specific routes for specific company
                     else{
                         //Get all route per company
-                        $chosenRoute = Route::where('id', $this->state['route_id'])->first();
+                        $chosenRoute = Route::with('trip')->where('id', $this->state['route_id'])->first();
+                        dd($chosenRoute);
                         $existInTrip = false;
                         $existOutTrip = false;
                         $totalFareboxIn = 0;
@@ -2721,7 +4555,1291 @@ class ReportSpad extends Component
         }
     }
 
-    public function printRoute()
+    //FAST
+    public function printRoute(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printRoute()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . '23:59:59');
+
+        $prevStart = Carbon::create($validatedData['dateFrom'])->startOfMonth()->subMonthsNoOverflow()->toDateString();
+        $prevEnd = Carbon::create($validatedData['dateTo'])->subMonthsNoOverflow()->endOfMonth()->toDateString();
+
+        $previousStartMonth = new Carbon($prevStart);
+        $previousEndMonth = new Carbon($prevEnd . '23:59:59');
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'ALL';
+                if(!empty($validatedData['route_id'])) {
+                    //Route all route all company
+                    if($validatedData['route_id']=='All') {
+                        $getAllRoutes = Route::where('status', 1)->orderBy('route_number')->get();
+                        $allTrips = [];
+
+                        foreach($getAllRoutes as $allRoute){
+                            $out->writeln("All Route: " . $allRoute->route_number);
+
+                            $tripOutbound = DB::select("SELECT route.route_number, route.route_name, trip_details.trip_code,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 0
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$tripOutbound){
+                                $out->writeln("In tripOutbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name = $allRoute->route_name;
+                                $noTrip->trip_code = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $tripOutbound);
+                            }
+
+                            $tripInbound = DB::select("SELECT route.route_number, route.route_name as route_name_in, trip_details.trip_code,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 1
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$tripInbound){
+                                $out->writeln("In tripInbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name_in = $allRoute->route_name;
+                                $noTrip->trip_code = 1;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $tripInbound);
+                            }
+
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In tripInbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $totPerRoute);
+                            }
+                        }
+
+                        $totGrand = DB::select("SELECT (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "';");
+
+                        $noTripArr = [];
+                        if(!$totGrand){
+                            $out->writeln("In tripInbound < 0");
+                            $noTrip = new \stdClass;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $allTrips = array_merge($allTrips, $totGrand);
+                        }
+
+                        //Trip Planned By Trip Code
+                        $tripPlanned = DB::select("SELECT route.route_number, route.route_name, route_scheduler_mstr.trip_code,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        GROUP BY route_number, route_scheduler_mstr.trip_code
+                        ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                        $tripPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $tripPlannedGrand = DB::select("SELECT
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1;");
+
+                        $lastKey = array_key_last($allTrips);
+                        $count = 0;
+                        foreach($allTrips as $key => $allTrip){
+                            $out->writeln("New Loop: " . $key);
+                            $found = false;
+
+                            if(property_exists($allTrip, 'route_name') || property_exists($allTrip, 'route_name_in')){
+                                $out->writeln("ROUTE: " .  $allTrip->route_number . " TRIP CODE: " .  $allTrip->trip_code);
+                                if($allTrip->trip_code==1){
+                                    $out->writeln("Edit route name inbound");
+                                    $allTrip->route_name = implode(" - ", array_reverse(explode("-", $allTrip->route_name_in)));
+                                }
+                                foreach($tripPlanned as $key2 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        if($tripPlan->trip_code == $allTrip->trip_code){
+                                            $allTrip->trip_planned = $tripPlan->trip_planned;
+                                            $allTrip->km_planned = $tripPlan->km_planned;
+
+                                            $found = true;
+                                            break ;
+                                        }
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                AND trip_details.trip_code = '" . $allTrip->trip_code . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }elseif(!property_exists($allTrip, 'route_name') && property_exists($allTrip, 'route_number')){
+                                $out->writeln("TOTAL ROUTE: " .  $allTrip->route_number );
+                                foreach($tripPlannedRoute as $key3 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        $allTrip->trip_planned = $tripPlan->trip_planned;
+                                        $allTrip->km_planned = $tripPlan->km_planned;
+
+                                        $found = true;
+                                        break ;
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }else{
+                                $out->writeln("IN GRAND");
+                                foreach($tripPlannedGrand as $key4 => $tripPlan){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.status = 1;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }    
+                            }
+                        }
+                    }
+                }
+            }
+            else{
+                $selectedCompany = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $selectedCompany->company_name;
+                if(!empty($validatedData['route_id'])) {
+                    if($validatedData['route_id']=='All'){
+                        $getAllRoutes = Route::where('status', 1)->where('company_id', $selectedCompany->id)
+                        ->orderBy('route_number')->get();
+                        $allTrips = [];
+
+                        foreach($getAllRoutes as $allRoute){
+                            $out->writeln("All Route: " . $allRoute->route_number);
+
+                            $tripOutbound = DB::select("SELECT route.route_number, route.route_name, trip_details.trip_code,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 0
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$tripOutbound){
+                                $out->writeln("In tripOutbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name = $allRoute->route_name;
+                                $noTrip->trip_code = 0;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $tripOutbound);
+                            }
+
+                            $tripInbound = DB::select("SELECT route.route_number, route.route_name as route_name_in, trip_details.trip_code,
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 1
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$tripInbound){
+                                $out->writeln("In tripInbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name_in = $allRoute->route_name;
+                                $noTrip->trip_code = 1;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $tripInbound);
+                            }
+
+                            $totPerRoute = DB::select("SELECT route.route_number, 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            GROUP BY route.id;");
+
+                            $noTripArr = [];
+                            if(!$totPerRoute){
+                                $out->writeln("In tripInbound < 0");
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->total_adult = 0;
+                                $noTrip->total_concession = 0;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                                $allTrips = array_merge($allTrips, $noTripArr);
+                            }else{
+                                $out->writeln("In tripPerRoute > 0");
+                                $allTrips = array_merge($allTrips, $totPerRoute);
+                            }
+                        }
+
+                        $totGrand = DB::select("SELECT (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.company_id = " . $selectedCompany->id . ";");
+
+                        $noTripArr = [];
+                        if(!$totGrand){
+                            $out->writeln("In tripInbound < 0");
+                            $noTrip = new \stdClass;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $allTrips = array_merge($allTrips, $totGrand);
+                        }
+
+                        //Trip Planned By Trip Code
+                        $tripPlanned = DB::select("SELECT route.route_number, route.route_name, route_scheduler_mstr.trip_code,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        SUM(route.distance) as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.company_id = " . $selectedCompany->id . "
+                        GROUP BY route_number, route_scheduler_mstr.trip_code
+                        ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                        $tripPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        SUM(route.distance) as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.company_id = " . $selectedCompany->id . "
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $tripPlannedGrand = DB::select("SELECT
+                        count(route_scheduler_details.id) as trip_planned, 
+                        SUM(route.distance) as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.company_id = " . $selectedCompany->id . ";");
+
+                        $lastKey = array_key_last($allTrips);
+                        $count = 0;
+                        foreach($allTrips as $key => $allTrip){
+                            $out->writeln("New Loop: " . $key);
+                            $found = false;
+
+                            if(property_exists($allTrip, 'route_name') || property_exists($allTrip, 'route_name_in')){
+                                $out->writeln("ROUTE: " .  $allTrip->route_number . " TRIP CODE: " .  $allTrip->trip_code);
+                                if($allTrip->trip_code==1){
+                                    $out->writeln("Edit route name inbound");
+                                    $allTrip->route_name = implode(" - ", array_reverse(explode("-", $allTrip->route_name_in)));
+                                }
+                                foreach($tripPlanned as $key2 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        if($tripPlan->trip_code == $allTrip->trip_code){
+                                            $allTrip->trip_planned = $tripPlan->trip_planned;
+                                            $allTrip->km_planned = $tripPlan->km_planned;
+
+                                            $found = true;
+                                            break ;
+                                        }
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                AND trip_details.trip_code = '" . $allTrip->trip_code . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }elseif(!property_exists($allTrip, 'route_name') && property_exists($allTrip, 'route_number')){
+                                $out->writeln("TOTAL ROUTE: " .  $allTrip->route_number );
+                                foreach($tripPlannedRoute as $key3 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        $allTrip->trip_planned = $tripPlan->trip_planned;
+                                        $allTrip->km_planned = $tripPlan->km_planned;
+
+                                        $found = true;
+                                        break ;
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }else{
+                                $out->writeln("IN GRAND");
+                                foreach($tripPlannedGrand as $key4 => $tripPlan){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.status = 1
+                                AND route.company_id = " . $selectedCompany->id . ";");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }    
+                            }
+                        }
+                    }
+                    else{
+                        $allRoute = Route::where('id', $validatedData['route_id'])->first();
+                        $allTrips = [];
+                        $out->writeln("One Route: " . $allRoute->id);
+
+                        $tripOutbound = DB::select("SELECT route.route_number, route.route_name, trip_details.trip_code,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allRoute->id . "
+                        AND trip_details.trip_code = 0
+                        GROUP BY route.id;");
+
+                        $noTripArr = [];
+                        if(!$tripOutbound){
+                            $out->writeln("In tripOutbound < 0");
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allRoute->route_number;
+                            $noTrip->route_name = $allRoute->route_name;
+                            $noTrip->trip_code = 0;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripOutbound > 0");
+                            $allTrips = array_merge($allTrips, $tripOutbound);
+                        }
+
+                        $tripInbound = DB::select("SELECT route.route_number, route.route_name as route_name_in, trip_details.trip_code,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allRoute->id . "
+                        AND trip_details.trip_code = 1
+                        GROUP BY route.id;");
+
+                        $noTripArr = [];
+                        if(!$tripInbound){
+                            $out->writeln("In tripInbound < 0");
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allRoute->route_number;
+                            $noTrip->route_name_in = $allRoute->route_name;
+                            $noTrip->trip_code = 1;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripInbound > 0");
+                            $allTrips = array_merge($allTrips, $tripInbound);
+                        }
+
+                        $totPerRoute = DB::select("SELECT route.route_number, 
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession,
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allRoute->id . "
+                        GROUP BY route.id;");
+
+                        $noTripArr = [];
+                        if(!$totPerRoute){
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allRoute->route_number;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $allTrips = array_merge($allTrips, $totPerRoute);
+                        }
+                    
+                        $totGrand = DB::select("SELECT (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        IFNULL((SUM(trip_details.total_mileage)),0.00) as km_served,
+                        IFNULL((SUM(total_adult_amount) + SUM(total_concession_amount)),0.00) AS farebox, 
+                        IFNULL((SUM(total_adult)),0) as total_adult, IFNULL((SUM(total_concession)),0) as total_concession,
+                        IFNULL((SUM(total_adult) + SUM(total_concession)),0) AS ridership
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.id = " . $allRoute->id . ";");
+
+                        $noTripArr = [];
+                        if(!$totGrand){
+                            $noTrip = new \stdClass;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->total_adult = 0;
+                            $noTrip->total_concession = 0;
+                            $noTrip->ridership = 0;
+
+                            $noTripArr[] = $noTrip;
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $allTrips = array_merge($allTrips, $totGrand);
+                        }
+
+                        dd($allTrips);
+
+                        //Trip Planned By Trip Code
+                        $tripPlanned = DB::select("SELECT route.route_number, route.route_name, route_scheduler_mstr.trip_code,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route_number, route_scheduler_mstr.trip_code
+                        ORDER BY route_number, route_scheduler_mstr.trip_code;");
+
+                        $tripPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $tripPlannedGrand = DB::select("SELECT
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        AND route.id = " . $allRoute->id . ";");
+
+                        $lastKey = array_key_last($allTrips);
+                        $count = 0;
+                        foreach($allTrips as $key => $allTrip){
+                            $out->writeln("New Loop: " . $key);
+                            $found = false;
+
+                            if(property_exists($allTrip, 'route_name') || property_exists($allTrip, 'route_name_in')){
+                                $out->writeln("ROUTE: " .  $allTrip->route_number . " TRIP CODE: " .  $allTrip->trip_code);
+                                if($allTrip->trip_code==1){
+                                    $out->writeln("Edit route name inbound");
+                                    $allTrip->route_name = implode(" - ", array_reverse(explode("-", $allTrip->route_name_in)));
+                                }
+                                foreach($tripPlanned as $key2 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        if($tripPlan->trip_code == $allTrip->trip_code){
+                                            $allTrip->trip_planned = $tripPlan->trip_planned;
+                                            $allTrip->km_planned = $tripPlan->km_planned;
+
+                                            $found = true;
+                                            break ;
+                                        }
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                AND trip_details.trip_code = '" . $allTrip->trip_code . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }elseif(!property_exists($allTrip, 'route_name') && property_exists($allTrip, 'route_number')){
+                                $out->writeln("TOTAL ROUTE: " .  $allTrip->route_number );
+                                foreach($tripPlannedRoute as $key3 => $tripPlan){
+                                    if($tripPlan->route_number == $allTrip->route_number){
+                                        $allTrip->trip_planned = $tripPlan->trip_planned;
+                                        $allTrip->km_planned = $tripPlan->km_planned;
+
+                                        $found = true;
+                                        break ;
+                                    }
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.route_number = '" . $allTrip->route_number . "'
+                                GROUP BY route.id;");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }
+                            }else{
+                                $out->writeln("IN GRAND");
+                                foreach($tripPlannedGrand as $key4 => $tripPlan){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $allTrip->trip_planned = 0;
+                                    $allTrip->km_planned = 0;
+                                }
+
+                                //Previous highest ridership and sales
+                                $prevDataSQL = DB::select("SELECT
+                                SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                                SUM(total_adult) + SUM(total_concession) AS ridership
+                                FROM trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '" . $previousStartMonth . "' AND '" . $previousEndMonth . "'
+                                AND route.status = 1
+                                AND route.id = " . $allRoute->id . ";");
+
+                                if(count($prevDataSQL)>0){
+                                    foreach($prevDataSQL as $prevKey => $prevData){
+                                        $allTrip->prev_ridership = $prevData->ridership;
+                                        //Increment ridership inbound collection (%)
+                                        if($prevData->ridership==0){
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = 0;
+                                            }else{
+                                                $allTrip->increase_ridership = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->ridership==0){
+                                                $allTrip->increase_ridership = -100;
+                                            }else{
+                                                $increaseRidership = (($allTrip->ridership - $prevData->ridership) / $prevData->ridership) * 100;
+                                                $allTrip->increase_ridership = number_format((float)$increaseRidership, 2, '.', '');
+                                            }
+                                        }
+
+                                        $allTrip->prev_farebox = $prevData->farebox;
+                                        //Increment farebox inbound collection (%)
+                                        if($prevData->farebox==0){
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = 0;
+                                            }else{
+                                                $allTrip->increase_farebox = 100;
+                                            }
+                                        }else{
+                                            if($allTrip->farebox==0){
+                                                $allTrip->increase_farebox = -100;
+                                            }else{
+                                                $increaseSales = (($allTrip->farebox - $prevData->farebox) / $prevData->farebox) * 100;
+                                                $allTrip->increase_farebox = number_format((float)$increaseSales, 2, '.', '');
+                                            }
+                                        }
+                                    }
+                                }else{
+                                    $allTrip->prev_ridership = 0;
+                                    if($allTrip->ridership==0){
+                                        $allTrip->increase_ridership = 0;
+                                    }else{
+                                        $allTrip->increase_ridership = 100;
+                                    }
+
+                                    $allTrip->prev_farebox = 0.00;
+                                    if($allTrip->farebox==0){
+                                        $allTrip->increase_farebox = 0;
+                                    }else{
+                                        $allTrip->increase_farebox = 100;
+                                    }
+                                }    
+                            }
+                        }
+                    }
+                }
+            }
+            return Excel::download(new SPADRoute($allTrips, $networkArea, $validatedData['dateFrom'], $validatedData['dateTo']), 'Route_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    public function printRouteOld()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN printRoute()");
@@ -3796,6 +6914,307 @@ class ReportSpad extends Component
         }
     }
 
+    //FAST
+    public function printTripFast(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printTrip()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . '23:59:59');
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'ALL';
+                if(!empty($validatedData['route_id'])) {
+                    //Route all route all company
+                    if($validatedData['route_id']=='All') {
+                        $getAllRoutes = Route::where('status', 1)->orderBy('route_number')->get();
+                        $allTrips = [];
+                        $totOutArr = [];
+                        $totInArr = [];
+                        $totDateArr = [];
+                        $totRouteArr = [];
+                        $totGrandArr = [];
+
+                        foreach($getAllRoutes as $allRoute){
+                            $tripPerRoute = DB::select("SELECT trip_details.trip_code, route.id, route.route_number, 
+                            (case when (trip_details.trip_code = 1) THEN (
+                                SELECT stage_name FROM stage WHERE route_id = route.id order by stage_order DESC LIMIT 1) 
+                                ELSE (
+                                SELECT stage_name FROM stage WHERE route_id = route.id order by stage_order ASC LIMIT 1) 
+                                END) as start_point,
+                            (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                            , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                            trip_details.trip_number, 
+                            trip_details.id as no_of_trip, CONCAT('T', trip_details.id) as trip_no,
+                            bus.bus_registration_number, driver_id, cast(trip_details.start_trip as date) as service_date, 
+                            route_scheduler_mstr.schedule_start_time as service_start, 
+                            cast(trip_details.start_trip as TIME) as actual_start, 
+                            (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                                SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                                FROM ticket_sales_transaction 
+                                WHERE trip_number = trip_details.trip_number 
+                                order by sales_date ASC LIMIT 1) 
+                                ELSE 'No Sales' END) as sales_start,
+                            route_scheduler_mstr.schedule_end_time as service_end, 
+                            cast(trip_details.end_trip as TIME) as actual_end,
+                            (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                                SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                                FROM ticket_sales_transaction 
+                                WHERE trip_number = trip_details.trip_number 
+                                order by sales_date DESC LIMIT 1) 
+                                ELSE 'No Sales' END) as sales_end,
+                            total_adult_amount + total_concession_amount AS farebox, 
+                            total_adult + total_concession AS ridership, total_adult, total_concession
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            ORDER BY service_date, trip_code;");
+
+                            $totOutbound = DB::select("SELECT trip_details.trip_code, route.id, route.route_name, 
+                            cast(trip_details.start_trip as date) as service_date,
+                            IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                            IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                            IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 0
+                            GROUP BY service_date;");
+
+                            $totInbound = DB::select("SELECT trip_details.trip_code, route.id, 
+                            CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route.route_name, '-', 2), '-', -1), ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route.route_name, '-', 2), '-', 1)) as route_name,
+                            cast(trip_details.start_trip as date) as service_date,
+                            IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                            IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                            IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            AND trip_details.trip_code = 1
+                            GROUP BY service_date;");
+
+                            $totPerDate = DB::select("SELECT route.id, route.route_name, 
+                            cast(trip_details.start_trip as date) as service_date,
+                            IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                            IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                            IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                            FROM trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id = " . $allRoute->id . "
+                            GROUP BY service_date;");
+
+                            if($tripPerRoute && $totOutbound && $totInbound && $totPerDate){
+                                $out->writeln("In totPerDate && totInbound && tripInbound && totOutbound && tripOutbound");
+                                $allTrips = array_merge($allTrips, $tripPerRoute);
+                                $totOutArr = array_merge($totOutArr, $totOutbound);
+                                $totInArr = array_merge($totInArr, $totInbound);
+                                $totDateArr = array_merge($totDateArr, $totPerDate);
+                            }
+                        }
+
+                        $totPerRoute = DB::select("SELECT route.id, route.route_number, route.route_name,
+                        IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                        IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1
+                        GROUP BY route.id
+                        ORDER BY route.route_number;");
+
+                        if($totPerRoute){
+                            $out->writeln("In totPerRoute");
+                            $totRouteArr = array_merge($totRouteArr, $totPerRoute);
+                            
+                        }
+
+                        // foreach($getAllRoutes as $allRoute){
+                        //     foreach($all_dates as $all_date){
+                        //         $startDay = new Carbon($all_date);
+                        //         $endDay = new Carbon($all_date . '23:59:59');
+
+                        //         $out->writeln("All Route: " . $allRoute->route_number . " Service Date: " . $all_date);
+
+                        //         $tripOutbound = DB::select("SELECT trip_details.trip_code, route.id, route.route_number, 
+                        //         (SELECT stage_name FROM stage WHERE route_id = route.id order by stage_order ASC LIMIT 1) as start_point,
+                        //         route.route_name, trip_details.trip_number, trip_details.id as no_of_trip, 
+                        //         CONCAT('T', trip_details.id) as trip_no, bus.bus_registration_number, driver_id, 
+                        //         cast(trip_details.start_trip as date) as service_date, 
+                        //         route_scheduler_mstr.schedule_start_time as service_start, 
+                        //         cast(trip_details.start_trip as TIME) as actual_start, 
+                        //         (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                        //             SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                        //             FROM ticket_sales_transaction 
+                        //             WHERE trip_number = trip_details.trip_number 
+                        //             order by sales_date ASC LIMIT 1) 
+                        //             ELSE 'No Sales' END) as sales_start,
+                        //         route_scheduler_mstr.schedule_end_time as service_end, 
+                        //         cast(trip_details.end_trip as TIME) as actual_end,
+                        //         (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                        //             SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                        //             FROM ticket_sales_transaction 
+                        //             WHERE trip_number = trip_details.trip_number 
+                        //             order by sales_date DESC LIMIT 1) 
+                        //             ELSE 'No Sales' END) as sales_end,
+                        //         total_adult_amount + total_concession_amount AS farebox, 
+                        //         total_adult + total_concession AS ridership, total_adult, total_concession
+                        //         FROM trip_details
+                        //         JOIN mybas.route ON route.id = trip_details.route_id
+                        //         JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                        //         JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        //         WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        //         AND trip_details.route_id = " . $allRoute->id . "
+                        //         AND trip_details.trip_code = 0
+                        //         ORDER BY service_date, trip_code;");
+
+                        //         $totOutbound = DB::select("SELECT trip_details.trip_code, route.route_name as route_name_code,
+                        //         IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                        //         IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        //         IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        //         FROM trip_details
+                        //         JOIN mybas.route ON route.id = trip_details.route_id
+                        //         WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        //         AND trip_details.route_id =  " . $allRoute->id . "
+                        //         AND trip_details.trip_code = 0
+                        //         GROUP BY route.id;");
+
+                        //         $tripInbound = DB::select("SELECT trip_details.trip_code, route.id, route.route_number, 
+                        //         (SELECT stage_name FROM stage WHERE route_id = route.id order by stage_order DESC LIMIT 1) as start_point,
+                        //         CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1), ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) as route_name,
+                        //         trip_details.trip_number, 
+                        //         trip_details.id as no_of_trip, CONCAT('T', trip_details.id) as trip_no,
+                        //         bus.bus_registration_number, driver_id, cast(trip_details.start_trip as date) as service_date, 
+                        //         route_scheduler_mstr.schedule_start_time as service_start, 
+                        //         cast(trip_details.start_trip as TIME) as actual_start, 
+                        //         (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                        //             SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                        //             FROM ticket_sales_transaction 
+                        //             WHERE trip_number = trip_details.trip_number 
+                        //             order by sales_date ASC LIMIT 1) 
+                        //             ELSE 'No Sales' END) as sales_start,
+                        //         route_scheduler_mstr.schedule_end_time as service_end, 
+                        //         cast(trip_details.end_trip as TIME) as actual_end,
+                        //         (case when ((total_adult_amount + total_concession_amount)> 0.00) THEN (
+                        //             SELECT cast(ticket_sales_transaction.sales_date as TIME) 
+                        //             FROM ticket_sales_transaction 
+                        //             WHERE trip_number = trip_details.trip_number 
+                        //             order by sales_date DESC LIMIT 1) 
+                        //             ELSE 'No Sales' END) as sales_end,
+                        //         total_adult_amount + total_concession_amount AS farebox, 
+                        //         total_adult + total_concession AS ridership, total_adult, total_concession
+                        //         FROM trip_details
+                        //         JOIN mybas.route ON route.id = trip_details.route_id
+                        //         JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                        //         JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        //         WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        //         AND trip_details.route_id = " . $allRoute->id . "
+                        //         AND trip_details.trip_code = 1
+                        //         ORDER BY service_date, trip_code;");
+
+                        //         $totInbound = DB::select("SELECT trip_details.trip_code, CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1), ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) as route_name_code,
+                        //         IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                        //         IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        //         IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        //         FROM trip_details
+                        //         JOIN mybas.route ON route.id = trip_details.route_id
+                        //         WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        //         AND trip_details.route_id = " . $allRoute->id . "
+                        //         AND trip_details.trip_code = 1
+                        //         GROUP BY route.id;");
+
+                        //         $totPerDate = DB::select("SELECT route.route_number as route_number_date, cast(trip_details.start_trip as date) as service_date,
+                        //         IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                        //         IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        //         IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        //         FROM trip_details
+                        //         JOIN mybas.route ON route.id = trip_details.route_id
+                        //         WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        //         AND trip_details.route_id = " . $allRoute->id . "
+                        //         GROUP BY trip_details.route_id;");
+
+                        //         if($totPerDate && $totInbound && $tripInbound && $totOutbound && $tripOutbound){
+                        //             $out->writeln("In totPerDate && totInbound && tripInbound && totOutbound && tripOutbound");
+                        //             $allTrips = array_merge($allTrips, $tripOutbound, $totOutbound, $tripInbound, $totInbound, $totPerDate);
+                        //         }
+                                
+                        //     }
+                        //     $totPerRoute = DB::select("SELECT route.route_number as route_number_route,
+                        //     IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox,
+                        //     IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        //     IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        //     FROM trip_details
+                        //     JOIN mybas.route ON route.id = trip_details.route_id
+                        //     WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        //     AND trip_details.route_id = " . $allRoute->id . "
+                        //     GROUP BY trip_details.route_id;");
+
+                        //     if($totPerRoute){
+                        //         $out->writeln("In totPerRoute > 0");
+                        //         $allTrips = array_merge($allTrips, $totPerRoute);
+                        //     }
+                        // }
+                        $grandTot = DB::select("SELECT
+                        IFNULL((SUM(trip_details.total_adult_amount) + SUM(trip_details.total_concession_amount)), 0.00) AS farebox_grand,
+                        IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership, 
+                        IFNULL(SUM(total_adult),0) as total_adult, IFNULL(SUM(total_concession),0) as total_concession
+                        FROM trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.status = 1;");
+
+                        if($grandTot){
+                            $out->writeln("In grandTot > 0");
+                            $totGrandArr = array_merge($totGrandArr, $grandTot);
+                        }
+
+                        //dd($allTrips);
+                    }
+                }
+            }
+            else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+                if(!empty($validatedData['route_id'])) {
+                    //Route all route all company
+                    if($validatedData['route_id']=='All') {
+
+                    }
+                    else{
+
+                    }
+                }
+            }
+            $out->writeln(Carbon::now() . "Go to excel");
+            return Excel::download(new SPADTrip($allTrips, $totOutArr, $totInArr, $totDateArr, $totRouteArr, $totGrandArr,
+            $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Trip_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
     public function printTrip()
     {
         $out = new ConsoleOutput();
@@ -3859,7 +7278,14 @@ class ReportSpad extends Component
                                     $existInTrip = true;
                                     foreach ($allInboundTrips as $allInboundTrip) {
                                         $tripIn['trip_no'] = 'T' . $allInboundTrip->id;
-                                        $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+
+                                        //Check bus_id
+                                        if($allInboundTrip->bus_id!=NULL) {
+                                            $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+                                        }
+                                        else{
+                                            $tripIn['bus_no']  = "No Data";
+                                        }
             
                                         //Check driver_id
                                         if($allInboundTrip->driver_id != NULL) {
@@ -3977,7 +7403,14 @@ class ReportSpad extends Component
                                     $existOutTrip = true;
                                     foreach ($allOutboundTrips as $allOutboundTrip) {
                                         $tripOut['trip_no'] = 'T' . $allOutboundTrip->id;
-                                        $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
+
+                                        //Check bus_id
+                                        if($allOutboundTrip->bus_id!=NULL) {
+                                            $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
+                                        }
+                                        else{
+                                            $tripOut['bus_no'] = "No Data";
+                                        }
             
                                         //Check driver_id
                                         if($allOutboundTrip->driver_id!=NULL) {
@@ -4207,9 +7640,15 @@ class ReportSpad extends Component
                                 if (count($allInboundTrips) > 0) {
                                     $existInTrip = true;
                                     foreach ($allInboundTrips as $allInboundTrip) {
-        
                                         $tripIn['trip_no'] = 'T' . $allInboundTrip->id;
-                                        $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+
+                                        //Check bus_id
+                                        if($allInboundTrip->bus_id!=NULL) {
+                                            $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+                                        }
+                                        else{
+                                            $tripIn['bus_no']  = "No Data";
+                                        }
         
                                         //Check driver_id
                                         if($allInboundTrip->driver_id != NULL) {
@@ -4328,8 +7767,15 @@ class ReportSpad extends Component
                                     $existOutTrip = true;
                                     foreach ($allOutboundTrips as $allOutboundTrip) {
                                         $tripOut['trip_no'] = 'T' .  $allOutboundTrip->id;
-                                        $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
-        
+
+                                        //Check bus_id
+                                        if($allOutboundTrip->bus_id!=NULL) {
+                                            $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
+                                        }
+                                        else{
+                                            $tripOut['bus_no'] = "No Data";
+                                        }
+
                                         //Check driver_id
                                         if($allOutboundTrip->driver_id!=NULL) {
                                             $tripOut['driver_id'] = $allOutboundTrip->BusDriver->driver_number;
@@ -4552,9 +7998,15 @@ class ReportSpad extends Component
                             if (count($allInboundTrips) > 0) {
                                 $existInTrip = true;
                                 foreach ($allInboundTrips as $allInboundTrip) {
-
                                     $tripIn['trip_no'] = 'T' . $allInboundTrip->id;
-                                    $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+
+                                    //Check bus_id
+                                    if($allInboundTrip->bus_id!=NULL) {
+                                        $tripIn['bus_no'] = $allInboundTrip->Bus->bus_registration_number;
+                                    }
+                                    else{
+                                        $tripIn['bus_no'] = "No Data";
+                                    }
 
                                     //Check driver_id
                                     if($allInboundTrip->driver_id != NULL) {
@@ -4673,7 +8125,14 @@ class ReportSpad extends Component
                                 $existOutTrip = true;
                                 foreach ($allOutboundTrips as $allOutboundTrip) {
                                     $tripOut['trip_no'] = 'T' . $allOutboundTrip->id;
-                                    $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
+
+                                    //Check bus_id
+                                    if($allOutboundTrip->bus_id!=NULL) {
+                                        $tripOut['bus_no'] = $allOutboundTrip->Bus->bus_registration_number;
+                                    }
+                                    else{
+                                        $tripOut['bus_no'] = "No Data";
+                                    }
 
                                     //Check driver_id
                                     if($allOutboundTrip->driver_id!=NULL) {
@@ -4863,7 +8322,7 @@ class ReportSpad extends Component
                     }
                 }
             }
-            return Excel::download(new SPADTrip($tripSPAD, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Trip_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+            //return Excel::download(new SPADTrip($tripSPAD, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Trip_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
         }else{
             $this->dispatchBrowserEvent('company-required');
         }
@@ -6127,6 +9586,1012 @@ class ReportSpad extends Component
         }
     }
 
+    public function printClaimDetailsFast(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printClaimDetails()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . '23:59:59');
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //ClaimDetails all routes for all company
+                if($validatedData['route_id']=='All'){
+                   
+                    //All Trip IB/OB
+                    $allTrips = DB::select("SELECT trip_details.id, trip_details.trip_code, cast(trip_details.start_trip as DATE) as service_date, route.company_id,
+                    route.route_number, route.route_name, trip_details.trip_number, stage.stage_name, bus.bus_registration_number, bus.bus_age, bus_driver.driver_number, COUNT(stage.id) as bus_stop_travel, 
+                    (case when (trip_details.trip_code = 1) THEN route.inbound_distance ELSE route.outbound_distance END) as distance, 
+                    (case when (route.company_id = 29) THEN 3.42 * distance ELSE 1.33 * distance END) as travel_claim,
+                    trip_details.total_mileage, (case when (route.company_id = 29) THEN 3.42 * trip_details.total_mileage 
+                    ELSE 1.33 * trip_details.total_mileage END) as travel_gps_claim, route_scheduler_mstr.schedule_start_time as service_start, 
+                    cast(trip_details.start_trip as TIME) as actual_start, route_scheduler_mstr.schedule_end_time as service_end, 
+                    cast(trip_details.end_trip as TIME) as actual_end, total_adult_amount + total_concession_amount AS farebox, 
+                    total_adult + total_concession AS ridership, total_adult, total_concession
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    JOIN mybas.stage ON stage.route_id = route.id 
+                    JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                    JOIN mybas.bus_driver ON bus_driver.id = trip_details.driver_id
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                    WHERE start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY trip_details.id
+                    ORDER BY route.route_number, service_date, trip_details.trip_code, trip_details.id;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $totalBusStop = 0;
+                    $pastRouteNo = "";
+                    $pastCode = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totalPerTripCode = [];
+                    $totalPerDate = [];
+                    //dd($allTrips);
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New loop: " . $allTrip->id);
+                        $out->writeln("Past date: " . $pastDate . " | Past Trip Code: " . $pastCode . " | Past Route No: " . $pastRouteNo);
+
+                        //Enter total per date per trip_code
+                        if($allTrip->service_date != $pastDate || $allTrip->trip_code != $pastCode || $allTrip->route_number != $pastRouteNo
+                        && $pastDate != NULL && $pastCode != NULL && $pastRouteNo != NULL){
+                            $out->writeln("Inside Splice Total Trip Code Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerTripCode);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per date
+                        if(($allTrip->route_number == $pastRouteNo || $allTrip->route_number != $pastRouteNo) &&
+                        $allTrip->service_date != $pastDate && $pastDate != NULL){
+                            //dd($totalPerDate);
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Add punctuality
+                        $diff = strtotime($allTrip->service_start) - strtotime($allTrip->actual_start);
+                        if ($diff > 5 || $diff < -5) {
+                            $allTrip->punctuality = "NOT PUNCTUAL";
+                        } else {
+                            $allTrip->punctuality = "ONTIME";
+                        }
+
+                        //Add IB/OB
+                        if($allTrip->trip_code == 0){
+                            $allTrip->trip_code_name = "OB";
+                        }else{
+                            $allTrip->trip_code_name = "IB";
+                        }
+
+                        //Add claim
+                        if($allTrip->company_id == 29){
+                            $allTrip->claim = 3.42;
+                        }else{
+                            $allTrip->claim = 1.33;
+                        }
+
+                        $salesTimeSQL = DB::select("SELECT cast(MIN(ticket_sales_transaction.sales_date) as TIME) as sales_start, 
+                        CAST(MAX(ticket_sales_transaction.sales_date) AS TIME) as sales_end
+                        FROM mybas.ticket_sales_transaction
+                        JOIN mybas.trip_details ON trip_details.trip_number = ticket_sales_transaction.trip_number
+                        WHERE trip_details.trip_number = '" . $allTrip->trip_number . "';");
+
+                        foreach($salesTimeSQL as $key2 => $salesTime){
+                            $out->writeln("Inside sales loop" );
+                            if($salesTime->sales_start==NULL){
+                                $out->writeln("No Sales");
+                                $allTrip->sales_start = "No Sales";
+                                $allTrip->sales_end = "No Sales";
+                            }else{
+                                $out->writeln("With Sales");
+                                $allTrip->sales_start = $salesTime->sales_start;
+                                $allTrip->sales_end = $salesTime->sales_start;
+                            }
+                        }
+                        $out->writeln("Out sales loop");
+
+                        //TOTAL PER TRIP CODE 
+                        $startDate = new Carbon($allTrip->service_date);
+                        $endDate = new Carbon($allTrip->service_date . '23:59:59');
+
+                        $totalPerTripCode = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                        route.route_name, cast(trip_details.start_trip as DATE) as service_date,
+                        SUM(route.inbound_distance) as distance, 
+                        SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND trip_details.trip_code = " . $allTrip->trip_code . "
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerTripCode as $key3 => $perTripCode){
+                            $out->writeln("Inside total per trip code loop" );
+
+                            $totalBusStop = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND trip_details.trip_code = " . $allTrip->trip_code . "
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStop as $key4 => $busStop){
+                                $out->writeln("Inside total bus stop per trip code loop" );
+                                $perTripCode->bus_stop_travel = $busStop->bus_stop_travel;
+                            }
+                        }
+
+                        //TOTAL PER TRIP DATE
+                        $totalPerDate = DB::select("SELECT cast(trip_details.start_trip as DATE) as service_date,
+                        route.route_number, SUM(route.inbound_distance) as distance, SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerDate as $key5 => $perDate){
+                            $out->writeln("Inside total per date loop" );
+
+                            $totalBusStopPerDate = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStopPerDate as $key6 => $busStopPerDate){
+                                $out->writeln("Inside total bus stop per date loop" );
+                                $perDate->bus_stop_travel = $busStopPerDate->bus_stop_travel;
+                            }
+                        }
+                        $pastRouteNo = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+                        $pastCode = $allTrip->trip_code;
+
+                        if($lastKey==$key){
+                            //Grand Total
+                            $grandTotal = DB::select("SELECT SUM(route.inbound_distance) as distance, 
+                            SUM(trip_details.total_mileage) as travel_gps, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                            ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                            SUM(total_adult) + SUM(total_concession) as ridership, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                            foreach($grandTotal as $key7 => $grand){
+                                $out->writeln("Inside grand total loop" );
+
+                                $grandTotalBus = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                                FROM mybas.trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                JOIN mybas.stage ON stage.route_id = route.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                                foreach($grandTotalBus as $key8 => $grandBus){
+                                    $out->writeln("Inside total bus stop grand loop" );
+                                    $grand->bus_stop_travel = $grandBus->bus_stop_travel;
+                                }
+                            }
+
+                            $newKey = $key + $count;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotal);
+                            array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            array_splice($allTrips, $newKey, 0,  $totalPerTripCode);
+                        }
+                    }
+                    $out->writeln("Out loop");
+                }
+            }
+            else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+
+                //ClaimDetails all routes for specific company
+                if($validatedData['route_id']=='All'){
+                    //All Trip IB/OB
+                    $allTrips = DB::select("SELECT trip_details.id, trip_details.trip_code, cast(trip_details.start_trip as DATE) as service_date, route.company_id,
+                    route.route_number, route.route_name, trip_details.trip_number, stage.stage_name, bus.bus_registration_number, bus.bus_age, bus_driver.driver_number, COUNT(stage.id) as bus_stop_travel, 
+                    (case when (trip_details.trip_code = 1) THEN route.inbound_distance ELSE route.outbound_distance END) as distance, 
+                    (case when (route.company_id = 29) THEN 3.42 * distance ELSE 1.33 * distance END) as travel_claim,
+                    trip_details.total_mileage, (case when (route.company_id = 29) THEN 3.42 * trip_details.total_mileage 
+                    ELSE 1.33 * trip_details.total_mileage END) as travel_gps_claim, route_scheduler_mstr.schedule_start_time as service_start, 
+                    cast(trip_details.start_trip as TIME) as actual_start, route_scheduler_mstr.schedule_end_time as service_end, 
+                    cast(trip_details.end_trip as TIME) as actual_end, total_adult_amount + total_concession_amount AS farebox, 
+                    total_adult + total_concession AS ridership, total_adult, total_concession
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    JOIN mybas.stage ON stage.route_id = route.id 
+                    JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                    JOIN mybas.bus_driver ON bus_driver.id = trip_details.driver_id
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                    WHERE start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.company_id = " . $companyDetails->id. "
+                    GROUP BY trip_details.id
+                    ORDER BY route.route_number, service_date, trip_details.trip_code, trip_details.id;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $totalBusStop = 0;
+                    $pastRouteNo = "";
+                    $pastCode = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totalPerTripCode = [];
+                    $totalPerDate = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New loop: " . $allTrip->id);
+                        $out->writeln("Past date: " . $pastDate . " | Past Trip Code: " . $pastCode . " | Past Route No: " . $pastRouteNo);
+
+                        //Enter total per date per trip_code
+                        if($allTrip->service_date != $pastDate || $allTrip->trip_code != $pastCode || $allTrip->route_number != $pastRouteNo
+                        && $pastDate != NULL && $pastCode != NULL && $pastRouteNo != NULL){
+                            $out->writeln("Inside Splice Total Trip Code Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerTripCode);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per date
+                        if(($allTrip->route_number == $pastRouteNo || $allTrip->route_number != $pastRouteNo) &&
+                        $allTrip->service_date != $pastDate && $pastDate != NULL){
+                            //dd($totalPerDate);
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Add punctuality
+                        $diff = strtotime($allTrip->service_start) - strtotime($allTrip->actual_start);
+                        if ($diff > 5 || $diff < -5) {
+                            $allTrip->punctuality = "NOT PUNCTUAL";
+                        } else {
+                            $allTrip->punctuality = "ONTIME";
+                        }
+
+                        //Add IB/OB
+                        if($allTrip->trip_code == 0){
+                            $allTrip->trip_code_name = "OB";
+                        }else{
+                            $allTrip->trip_code_name = "IB";
+                        }
+
+                        //Add claim
+                        if($allTrip->company_id == 29){
+                            $allTrip->claim = 3.42;
+                        }else{
+                            $allTrip->claim = 1.33;
+                        }
+
+                        $salesTimeSQL = DB::select("SELECT cast(MIN(ticket_sales_transaction.sales_date) as TIME) as sales_start, 
+                        CAST(MAX(ticket_sales_transaction.sales_date) AS TIME) as sales_end
+                        FROM mybas.ticket_sales_transaction
+                        JOIN mybas.trip_details ON trip_details.trip_number = ticket_sales_transaction.trip_number
+                        WHERE trip_details.trip_number = '" . $allTrip->trip_number . "';");
+
+                        foreach($salesTimeSQL as $key2 => $salesTime){
+                            $out->writeln("Inside sales loop" );
+                            if($salesTime->sales_start==NULL){
+                                $out->writeln("No Sales");
+                                $allTrip->sales_start = "No Sales";
+                                $allTrip->sales_end = "No Sales";
+                            }else{
+                                $out->writeln("With Sales");
+                                $allTrip->sales_start = $salesTime->sales_start;
+                                $allTrip->sales_end = $salesTime->sales_start;
+                            }
+                        }
+                        $out->writeln("Out sales loop");
+
+                        //TOTAL PER TRIP CODE 
+                        $startDate = new Carbon($allTrip->service_date);
+                        $endDate = new Carbon($allTrip->service_date . '23:59:59');
+
+                        $totalPerTripCode = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                        route.route_name, cast(trip_details.start_trip as DATE) as service_date,
+                        SUM(route.inbound_distance) as distance, 
+                        SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND trip_details.trip_code = " . $allTrip->trip_code . "
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerTripCode as $key3 => $perTripCode){
+                            $out->writeln("Inside total per trip code loop" );
+
+                            $totalBusStop = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND trip_details.trip_code = " . $allTrip->trip_code . "
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStop as $key4 => $busStop){
+                                $out->writeln("Inside total bus stop per trip code loop" );
+                                $perTripCode->bus_stop_travel = $busStop->bus_stop_travel;
+                            }
+                        }
+
+                        //TOTAL PER TRIP DATE
+                        $totalPerDate = DB::select("SELECT cast(trip_details.start_trip as DATE) as service_date,
+                        route.route_number, SUM(route.inbound_distance) as distance, SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerDate as $key5 => $perDate){
+                            $out->writeln("Inside total per date loop" );
+
+                            $totalBusStopPerDate = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStopPerDate as $key6 => $busStopPerDate){
+                                $out->writeln("Inside total bus stop per date loop" );
+                                $perDate->bus_stop_travel = $busStopPerDate->bus_stop_travel;
+                            }
+                        }
+                        $pastRouteNo = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+                        $pastCode = $allTrip->trip_code;
+
+                        if($lastKey==$key){
+                            //Grand Total
+                            $grandTotal = DB::select("SELECT SUM(route.inbound_distance) as distance, 
+                            SUM(trip_details.total_mileage) as travel_gps, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                            ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                            SUM(total_adult) + SUM(total_concession) as ridership, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                            foreach($grandTotal as $key7 => $grand){
+                                $out->writeln("Inside grand total loop" );
+
+                                $grandTotalBus = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                                FROM mybas.trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                JOIN mybas.stage ON stage.route_id = route.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                                foreach($grandTotalBus as $key8 => $grandBus){
+                                    $out->writeln("Inside total bus stop grand loop" );
+                                    $grand->bus_stop_travel = $grandBus->bus_stop_travel;
+                                }
+                            }
+
+                            $newKey = $key + $count;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotal);
+                            array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            array_splice($allTrips, $newKey, 0,  $totalPerTripCode);
+                        }
+                    }
+                    $out->writeln("Out loop");
+                }
+                //ClaimDetails specific routes for specific company
+                else{
+                    //All Trip IB/OB
+                    $allTrips = DB::select("SELECT trip_details.id, trip_details.trip_code, cast(trip_details.start_trip as DATE) as service_date, route.company_id,
+                    route.route_number, route.route_name, trip_details.trip_number, stage.stage_name, bus.bus_registration_number, bus.bus_age, bus_driver.driver_number, COUNT(stage.id) as bus_stop_travel, 
+                    (case when (trip_details.trip_code = 1) THEN route.inbound_distance ELSE route.outbound_distance END) as distance, 
+                    (case when (route.company_id = 29) THEN 3.42 * distance ELSE 1.33 * distance END) as travel_claim,
+                    trip_details.total_mileage, (case when (route.company_id = 29) THEN 3.42 * trip_details.total_mileage 
+                    ELSE 1.33 * trip_details.total_mileage END) as travel_gps_claim, route_scheduler_mstr.schedule_start_time as service_start, 
+                    cast(trip_details.start_trip as TIME) as actual_start, route_scheduler_mstr.schedule_end_time as service_end, 
+                    cast(trip_details.end_trip as TIME) as actual_end, total_adult_amount + total_concession_amount AS farebox, 
+                    total_adult + total_concession AS ridership, total_adult, total_concession
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    JOIN mybas.stage ON stage.route_id = route.id 
+                    JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                    JOIN mybas.bus_driver ON bus_driver.id = trip_details.driver_id
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                    WHERE start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.id = " . $validatedData['route_id'] . "
+                    GROUP BY trip_details.id
+                    ORDER BY route.route_number, service_date, trip_details.trip_code, trip_details.id;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $totalBusStop = 0;
+                    $pastRouteNo = "";
+                    $pastCode = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totalPerTripCode = [];
+                    $totalPerDate = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New loop: " . $allTrip->id);
+                        $out->writeln("Past date: " . $pastDate . " | Past Trip Code: " . $pastCode . " | Past Route No: " . $pastRouteNo);
+
+                        //Enter total per date per trip_code
+                        if($allTrip->service_date != $pastDate || $allTrip->trip_code != $pastCode || $allTrip->route_number != $pastRouteNo
+                        && $pastDate != NULL && $pastCode != NULL && $pastRouteNo != NULL){
+                            $out->writeln("Inside Splice Total Trip Code Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerTripCode);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per date
+                        if(($allTrip->route_number == $pastRouteNo || $allTrip->route_number != $pastRouteNo) &&
+                        $allTrip->service_date != $pastDate && $pastDate != NULL){
+                            //dd($totalPerDate);
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " - " . $allTrip->trip_code);
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totalPerTripCode);
+                            }else{
+                                $newKey = $key + $count - 1;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Add punctuality
+                        $diff = strtotime($allTrip->service_start) - strtotime($allTrip->actual_start);
+                        if ($diff > 5 || $diff < -5) {
+                            $allTrip->punctuality = "NOT PUNCTUAL";
+                        } else {
+                            $allTrip->punctuality = "ONTIME";
+                        }
+
+                        //Add IB/OB
+                        if($allTrip->trip_code == 0){
+                            $allTrip->trip_code_name = "OB";
+                        }else{
+                            $allTrip->trip_code_name = "IB";
+                        }
+
+                        //Add claim
+                        if($allTrip->company_id == 29){
+                            $allTrip->claim = 3.42;
+                        }else{
+                            $allTrip->claim = 1.33;
+                        }
+                        
+                        $salesTimeSQL = DB::select("SELECT cast(MIN(ticket_sales_transaction.sales_date) as TIME) as sales_start, 
+                        CAST(MAX(ticket_sales_transaction.sales_date) AS TIME) as sales_end
+                        FROM mybas.ticket_sales_transaction
+                        JOIN mybas.trip_details ON trip_details.trip_number = ticket_sales_transaction.trip_number
+                        WHERE trip_details.trip_number = '" . $allTrip->trip_number . "';");
+
+                        foreach($salesTimeSQL as $key2 => $salesTime){
+                            $out->writeln("Inside sales loop" );
+                            if($salesTime->sales_start==NULL){
+                                $out->writeln("No Sales");
+                                $allTrip->sales_start = "No Sales";
+                                $allTrip->sales_end = "No Sales";
+                            }else{
+                                $out->writeln("With Sales");
+                                $allTrip->sales_start = $salesTime->sales_start;
+                                $allTrip->sales_end = $salesTime->sales_start;
+                            }
+                        }
+                        $out->writeln("Out sales loop");
+
+                        //TOTAL PER TRIP CODE 
+                        $startDate = new Carbon($allTrip->service_date);
+                        $endDate = new Carbon($allTrip->service_date . '23:59:59');
+
+                        $totalPerTripCode = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                        route.route_name, cast(trip_details.start_trip as DATE) as service_date,
+                        SUM(route.inbound_distance) as distance, 
+                        SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND trip_details.trip_code = " . $allTrip->trip_code . "
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerTripCode as $key3 => $perTripCode){
+                            $out->writeln("Inside total per trip code loop" );
+
+                            $totalBusStop = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND trip_details.trip_code = " . $allTrip->trip_code . "
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStop as $key4 => $busStop){
+                                $out->writeln("Inside total bus stop per trip code loop" );
+                                $perTripCode->bus_stop_travel = $busStop->bus_stop_travel;
+                            }
+                        }
+
+                        //TOTAL PER TRIP DATE
+                        $totalPerDate = DB::select("SELECT cast(trip_details.start_trip as DATE) as service_date,
+                        route.route_number, SUM(route.inbound_distance) as distance, SUM(trip_details.total_mileage) as travel_gps, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                        ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, 
+                        (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                        SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                        SUM(total_adult) + SUM(total_concession) as ridership, 
+                        SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                        AND route.route_number = '" . $allTrip->route_number . "';");
+
+                        foreach($totalPerDate as $key5 => $perDate){
+                            $out->writeln("Inside total per date loop" );
+
+                            $totalBusStopPerDate = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.stage ON stage.route_id = route.id
+                            WHERE trip_details.start_trip BETWEEN '" . $startDate . "' AND '" . $endDate . "'
+                            AND route.route_number = '" . $allTrip->route_number . "';");
+
+                            foreach($totalBusStopPerDate as $key6 => $busStopPerDate){
+                                $out->writeln("Inside total bus stop per date loop" );
+                                $perDate->bus_stop_travel = $busStopPerDate->bus_stop_travel;
+                            }
+                        }
+                        $pastRouteNo = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+                        $pastCode = $allTrip->trip_code;
+
+                        if($lastKey==$key){
+                            //Grand Total
+                            $grandTotal = DB::select("SELECT SUM(route.inbound_distance) as distance, 
+                            SUM(trip_details.total_mileage) as travel_gps, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(route.inbound_distance) 
+                            ELSE 1.33 * SUM(route.inbound_distance) END) as travel_claim, trip_details.total_mileage, 
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END) as travel_gps_claim, 
+                            SUM(total_adult) as total_adult, SUM(total_concession) as total_concession, 
+                            SUM(total_adult) + SUM(total_concession) as ridership, 
+                            SUM(total_adult_amount) + SUM(total_concession_amount) as farebox
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                            foreach($grandTotal as $key7 => $grand){
+                                $out->writeln("Inside grand total loop" );
+
+                                $grandTotalBus = DB::select("SELECT COUNT(stage.id) as bus_stop_travel
+                                FROM mybas.trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                JOIN mybas.stage ON stage.route_id = route.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom. "' AND '" . $dateTo . "'");
+
+                                foreach($grandTotalBus as $key8 => $grandBus){
+                                    $out->writeln("Inside total bus stop grand loop" );
+                                    $grand->bus_stop_travel = $grandBus->bus_stop_travel;
+                                }
+                            }
+
+                            $newKey = $key + $count;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotal);
+                            array_splice($allTrips, $newKey, 0, $totalPerDate);
+                            array_splice($allTrips, $newKey, 0,  $totalPerTripCode);
+                        }
+                    }
+                    $out->writeln("Out loop");
+                }
+            }
+            $out->writeln(Carbon::now() . "Go to excel");
+            return Excel::download(new SPADClaimDetails($allTrips, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'ClaimDetails_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    public function printClaimDetailsFastOld(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printClaimDetails()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo']);
+        $all_dates = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        $claimDetails = collect();
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //ClaimDetails all routes for all company
+                if($validatedData['route_id']=='All'){
+                    $grandBusStop = 0;
+                    $grandTravel = 0;
+                    $grandClaim = 0;
+                    $grandTravelGPS = 0;
+                    $grandClaimGPS = 0;
+                    $grandCountPassenger = 0;
+                    $grandSales= 0;
+                    $grandAdult = 0;
+                    $grandConcession = 0;
+                    $allRoutes = Route::where('status',1)->orderBy('route_number')->get();
+
+                    foreach($allRoutes as $allRoute){
+                        if($allRoute->company_id==29){
+                            $charge = 3.42;
+                        }else{
+                            $charge = 1.33;
+                        }
+
+                        foreach($all_dates as $all_date){
+                            $dateFrom = new Carbon($all_date);
+                            $dateTo = new Carbon($all_date . '23:59:59');
+                            
+                            $out->writeln(Carbon::now() . "Before processing Inbound Trip...");
+
+                            //Inbound
+                            $stagePerRoute = Stage::where('route_id', $allRoute->id)->orderBy('stage_order', 'DESC')->first();
+                            $startPointIn = $stagePerRoute->stage_name;
+
+                            $tripInbound = DB::select("SELECT trip_details.id, route.route_number, trip_details.trip_code, cast(trip_details.start_trip as date) as service_date, trip_details.trip_number, bus.bus_registration_number, bus.bus_age, bus_driver.driver_number,
+                                                    COUNT(stage.id) as bus_stop_travel, route.inbound_distance as distance, " . $charge . " * route.inbound_distance AS travel_claim, 
+                                                    trip_details.total_mileage, " . $charge . " * trip_details.total_mileage AS travel_gps_claim,
+                                                    route_scheduler_mstr.schedule_start_time as service_start, cast(trip_details.start_trip as TIME) as actual_start, 
+                                                    route_scheduler_mstr.schedule_end_time as service_end, cast(trip_details.end_trip as TIME) as actual_end,
+                                                    total_adult_amount + total_concession_amount AS farebox, total_adult + total_concession AS ridership,
+                                                    total_adult, total_concession
+                                                    FROM mybas.trip_details
+                                                    JOIN mybas.route ON route.id = trip_details.route_id
+                                                    JOIN mybas.stage ON stage.route_id = route.id 
+                                                    JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                                                    JOIN mybas.bus_driver ON bus_driver.id = trip_details.driver_id
+                                                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                                    WHERE start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                                    AND route.id = " . $allRoute->id . "
+                                                    AND trip_details.trip_code = 1
+                                                    GROUP BY trip_details.id
+                                                    ORDER BY route.route_number, service_date, trip_details.trip_code, trip_details.id;");
+                            
+
+                            $salesInbound = DB::select("SELECT trip_details.id, cast(MIN(ticket_sales_transaction.sales_date) as TIME) as sales_start, 
+                                                        CAST(MAX(ticket_sales_transaction.sales_date) AS TIME) as sales_end
+                                                        FROM mybas.trip_details
+                                                        JOIN mybas.ticket_sales_transaction ON ticket_sales_transaction.trip_number = trip_details.trip_number
+                                                        JOIN mybas.route ON route.id = trip_details.route_id
+                                                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                                        AND route.id = " . $allRoute->id . "
+                                                        AND trip_details.trip_code = 1
+                                                        GROUP BY trip_details.id
+                                                        ORDER BY route.route_number, trip_details.id;");
+                            $totIn = [];
+                            $totalBusStopIn = 0;
+                            $totalTravelIn = 0;
+                            $totalClaimIn = 0;
+                            $totalTravelGPSIn = 0;
+                            $totalClaimGPSIn = 0;
+                            $totalCountPassengerIn = 0;
+                            $totalSalesIn = 0;
+                            $totalAdultIn = 0;
+                            $totalConcessionIn = 0;
+                            foreach($tripInbound as $key => $tripIn){
+                                $totalBusStopIn += $tripIn->bus_stop_travel;
+                                $totalTravelIn += $tripIn->distance;
+                                $totalClaimIn += $tripIn->travel_claim;
+                                $totalTravelGPSIn += $tripIn->total_mileage;
+                                $totalClaimGPSIn += $tripIn->travel_gps_claim;
+                                $totalCountPassengerIn += $tripIn->ridership;
+                                $totalSalesIn += $tripIn->farebox;
+                                $totalAdultIn += $tripIn->total_adult;
+                                $totalConcessionIn += $tripIn->total_concession;
+
+                                $tripIn->route_name = implode(" - ", array_reverse(explode("-", $allRoute->route_name)));
+                                $tripIn->stage_name = $startPointIn;
+                                $found=false;
+                                foreach($salesInbound as $key2 => $salesIn){
+                                    if($salesIn->id == $tripIn->id){
+                                        $tripIn->sales_start = $salesIn->sales_start;
+                                        $tripIn->sales_end = $salesIn->sales_end;
+                                        $found = true;
+
+                                        break ;
+                                    }
+                                }
+                                if(!$found){
+                                    $tripIn->sales_start = "No Sales";
+                                    $tripIn->sales_end = "No Sales";
+                                }
+                            }
+
+                            $totIn['total_bus_stop'] = $totalBusStopIn;
+                            $totIn['total_travel'] = $totalTravelIn;
+                            $totIn['total_claim'] = $totalClaimIn;
+                            $totIn['total_travel_gps'] = $totalTravelGPSIn;
+                            $totIn['total_claim_gps'] = $totalClaimGPSIn;
+                            $totIn['total_count_passenger'] = $totalCountPassengerIn;
+                            $totIn['total_sales'] = $totalSalesIn;
+                            $totIn['total_adult'] = $totalAdultIn;
+                            $totIn['total_concession'] = $totalConcessionIn;
+                            //$allTripIn['total_inbound'] = $totIn;
+                            array_push($tripInbound, $totIn);
+
+                            $out->writeln(Carbon::now() . "After processing Inbound Trip...");
+                            $out->writeln(Carbon::now() . "Before processing Outbound Trip...");
+
+                            //Outbound
+                            $tripOutbound = DB::select("SELECT trip_details.id, route.route_number, route.route_name, trip_details.trip_code, cast(trip_details.start_trip as date) as service_date, trip_details.trip_number, stage.stage_name, bus.bus_registration_number, bus.bus_age, bus_driver.driver_number,
+                                                    COUNT(stage.id) as bus_stop_travel, route.outbound_distance as distance, " . $charge . "  * route.inbound_distance AS travel_claim, 
+                                                    trip_details.total_mileage," . $charge . "  * trip_details.total_mileage AS travel_gps_claim,
+                                                    route_scheduler_mstr.schedule_start_time as service_start, cast(trip_details.start_trip as TIME) as actual_start, 
+                                                    route_scheduler_mstr.schedule_end_time as service_end, cast(trip_details.end_trip as TIME) as actual_end,
+                                                    total_adult_amount + total_concession_amount AS farebox, total_adult + total_concession AS ridership,
+                                                    total_adult, total_concession
+                                                    FROM mybas.trip_details
+                                                    JOIN mybas.route ON route.id = trip_details.route_id
+                                                    JOIN mybas.stage ON stage.route_id = route.id 
+                                                    JOIN mybas.bus ON bus.id = trip_details.bus_id 
+                                                    JOIN mybas.bus_driver ON bus_driver.id = trip_details.driver_id
+                                                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                                    WHERE start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                                    AND route.id = " . $allRoute->id . "
+                                                    AND trip_details.trip_code = 0
+                                                    GROUP BY trip_details.id
+                                                    ORDER BY route.route_number, service_date, trip_details.trip_code, trip_details.id;");
+                        
+                            $salesOutbound = DB::select("SELECT trip_details.id, cast(MIN(ticket_sales_transaction.sales_date) as TIME) as sales_start, 
+                                                        CAST(MAX(ticket_sales_transaction.sales_date) AS TIME) as sales_end
+                                                        FROM mybas.trip_details
+                                                        JOIN mybas.ticket_sales_transaction ON ticket_sales_transaction.trip_number = trip_details.trip_number
+                                                        JOIN mybas.route ON route.id = trip_details.route_id
+                                                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                                        AND route.id = " . $allRoute->id . "
+                                                        AND trip_details.trip_code = 0
+                                                        GROUP BY trip_details.id
+                                                        ORDER BY route.route_number, trip_details.id;");
+
+                            $totOut = [];
+                            $totalBusStopOut = 0;
+                            $totalTravelOut = 0;
+                            $totalClaimOut = 0;
+                            $totalTravelGPSOut = 0;
+                            $totalClaimGPSOut = 0;
+                            $totalCountPassengerOut = 0;
+                            $totalSalesOut = 0;
+                            $totalAdultOut = 0;
+                            $totalConcessionOut = 0;
+                            foreach($tripOutbound as $key => $tripOut){
+                                $totalBusStopOut += $tripOut->bus_stop_travel;
+                                $totalTravelOut += $tripOut->distance;
+                                $totalClaimOut += $tripOut->travel_claim;
+                                $totalTravelGPSOut += $tripOut->total_mileage;
+                                $totalClaimGPSOut += $tripOut->travel_gps_claim;
+                                $totalCountPassengerOut += $tripOut->ridership;
+                                $totalSalesOut += $tripOut->farebox;
+                                $totalAdultOut += $tripOut->total_adult;
+                                $totalConcessionOut += $tripOut->total_concession;
+                                $found=false;
+                                foreach($salesOutbound as $key2 => $salesOut){
+                                    if($salesOut->id == $tripOut->id){
+                                        $tripOut->sales_start = $salesOut->sales_start;
+                                        $tripOut->sales_end = $salesOut->sales_end;
+                                        $found = true;
+
+                                        break ;
+                                    }
+                                }
+                                if(!$found){
+                                    $tripOut->sales_start = "No Sales";
+                                    $tripOut->sales_end = "No Sales";
+                                }
+                            }
+                            $totOut['total_bus_stop'] = $totalBusStopOut;
+                            $totOut['total_travel'] = $totalTravelOut;
+                            $totOut['total_claim'] = $totalClaimOut;
+                            $totOut['total_travel_gps'] = $totalTravelGPSOut;
+                            $totOut['total_claim_gps'] = $totalClaimGPSOut;
+                            $totOut['total_count_passenger'] = $totalCountPassengerOut;
+                            $totOut['total_sales'] = $totalSalesOut;
+                            $totOut['total_adult'] = $totalAdultOut;
+                            $totOut['total_concession'] = $totalConcessionOut;
+                            //$allTripOut['total_outbound'] = $totOut;
+                            array_push($tripOutbound, $totOut);
+
+                            $out->writeln(Carbon::now() . "After processing Outbound Trip...");
+
+                            $totalBusStop = $totalBusStopIn + $totalBusStopOut;
+                            $totalTravel = $totalTravelIn + $totalTravelOut;
+                            $totalClaim = $totalClaimIn + $totalClaimOut;
+                            $totalTravelGPS = $totalTravelGPSIn + $totalTravelGPSOut;
+                            $totalClaimGPS = $totalClaimGPSIn + $totalClaimGPSOut;
+                            $totalCountPassenger = $totalCountPassengerIn + $totalCountPassengerOut;
+                            $totalSales = $totalSalesIn + $totalSalesOut;
+                            $totalAdult = $totalAdultIn + $totalAdultOut;
+                            $totalConcession = $totalConcessionIn + $totalConcessionOut;
+
+                            $allTripPerDate['inbound'] = $tripInbound;
+                            $allTripPerDate['outbound'] = $tripOutbound;
+                            $totalPerDate['total_bus_stop'] = $totalBusStop;
+                            $totalPerDate['total_travel'] = $totalTravel;
+                            $totalPerDate['total_claim'] = $totalClaim;
+                            $totalPerDate['total_travel_gps'] = $totalTravelGPS;
+                            $totalPerDate['total_claim_gps'] = $totalClaimGPS;
+                            $totalPerDate['total_count_passenger'] = $totalCountPassenger;
+                            $totalPerDate['total_sales'] = $totalSales;
+                            $totalPerDate['total_adult'] = $totalAdult;
+                            $totalPerDate['total_concession'] = $totalConcession;
+                            $allTripPerDate['total_per_date'] = $totalPerDate;
+                            $perDate[$all_date] = $allTripPerDate;
+
+                            $grandBusStop += $totalBusStop;
+                            $grandTravel +=  $totalTravel;
+                            $grandClaim += $totalClaim;
+                            $grandTravelGPS += $totalTravelGPS;
+                            $grandClaimGPS += $totalClaimGPS;
+                            $grandCountPassenger += $totalCountPassenger;
+                            $grandSales += $totalSales;
+                            $grandAdult += $totalAdult;
+                            $grandConcession += $totalConcession;
+                        }
+                        $perRoute[$allRoute->route_number] = $perDate;
+                        $out->writeln(Carbon::now() . "Completed for Route " . $allRoute->route_number);
+
+                    }
+                    $all['total_bus_stop'] = $grandBusStop;
+                    $all['total_travel'] = $grandTravel;
+                    $all['total_claim'] = $grandClaim;
+                    $all['total_travel_gps'] = $grandTravelGPS;
+                    $all['total_claim_gps'] = $grandClaimGPS;
+                    $all['total_count_passenger'] = $grandCountPassenger;
+                    $all['total_sales'] = $grandSales;
+                    $all['total_adult'] = $grandAdult;
+                    $all['total_concession'] = $grandConcession;
+                    $grand['allRoute'] = $perRoute;
+                    $grand['grand'] = $all;
+                    $claimDetails->add($grand);
+                    $out->writeln(Carbon::now() . "DONE ALL ROUTE ");
+                }
+            }
+            else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
+
+                //ClaimDetails all routes for specific company
+                if($validatedData['route_id']=='All'){
+
+                }
+                //ClaimDetails specific routes for specific company
+                else{
+
+                }
+            }
+            $out->writeln(Carbon::now() . "Go to excel");
+            return Excel::download(new SPADClaimDetails($claimDetails, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'ClaimDetails_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
     public function printClaimDetails()
     {
         $out = new ConsoleOutput();
@@ -6164,10 +10629,11 @@ class ReportSpad extends Component
                 if(!empty($validatedData['route_id'])) {
                     //ClaimDetails all routes for all company
                     if($validatedData['route_id']=='All'){
-                        $allRoutes = Route::orderBy('route_number')->get();
-            
+                        $allRoutes = Route::where('status',1)->orderBy('route_number')->get();
+
                         foreach($allRoutes as $allRoute) {
                             foreach($all_dates as $all_date) {
+                                $out->writeln($all_date . ' - ' . $allRoute->route_number);
                                 $totalBusStopIn = 0;
                                 $totalTravelIn = 0;
                                 $totalClaimIn = 0;
@@ -6212,7 +10678,11 @@ class ReportSpad extends Component
                                             $inbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
+                                        if($allRoute->company_id==29){
+                                            $charge = 3.42;
+                                        }else{
+                                            $charge = 1.33;
+                                        }
                                         $inbound['charge_km'] = $charge;
             
                                         if($allTripInbound->driver_id != NULL){
@@ -6241,8 +10711,7 @@ class ReportSpad extends Component
                                         $claimGPS = $charge * $travelGPS;
                                         $inbound['claim_gps'] = $claimGPS;
                                         $totalClaimGPSIn += $claimGPS;
-            
-                                        $inbound['status'] = "Complete";
+
                                         $inbound['travel_BOP'] = $travel;
                                         $inbound['claim_BOP'] = $claim;
             
@@ -6279,7 +10748,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
+                                            $diff = ((strtotime($inbound['service_start']) - strtotime($inbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $inbound['punctuality'] = "NOT PUNCTUAL";
                                             }else {
@@ -6287,6 +10756,29 @@ class ReportSpad extends Component
                                             }
                                         }else{
                                             $inbound['punctuality'] = "No Data";
+                                        }
+
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripInbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($inbound['actual_start']!="No Data" && $inbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($inbound['actual_end']) - strtotime($inbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $inbound['status'] = "Incomplete";
+                                                    $inbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $inbound['status'] = "Complete";
+                                                    $inbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $inbound['status'] = "Incomplete";
+                                                $inbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $inbound['status'] = "Incomplete";
+                                            $inbound['status_desc'] = "No GPS Tracking";
                                         }
             
                                         $adult = $allTripInbound->total_adult;
@@ -6383,7 +10875,11 @@ class ReportSpad extends Component
                                             $outbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
+                                        if($allRoute->company_id==29){
+                                            $charge = 3.42;
+                                        }else{
+                                            $charge = 1.33;
+                                        }
                                         $outbound['charge_km'] = $charge;
             
                                         if($allTripOutbound->driver_id != NULL){
@@ -6450,7 +10946,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
+                                            $diff = ((strtotime($outbound['service_start']) - strtotime($outbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $outbound['punctuality'] = "NOT PUNCTUAL";
                                             } else {
@@ -6458,6 +10954,29 @@ class ReportSpad extends Component
                                             }
                                         }else{
                                             $outbound['punctuality'] = "No Data";
+                                        }
+
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripOutbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($outbound['actual_start']!="No Data" && $outbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($outbound['actual_end']) - strtotime($outbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $outbound['status'] = "Incomplete";
+                                                    $outbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $outbound['status'] = "Complete";
+                                                    $outbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $outbound['status'] = "Incomplete";
+                                                $outbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $outbound['status'] = "Incomplete";
+                                            $outbound['status_desc'] = "No GPS Tracking";
                                         }
             
                                         $adult = $allTripOutbound->total_adult;
@@ -6663,10 +11182,16 @@ class ReportSpad extends Component
             }else{
                 $companyDetails = Company::where('id', $this->selectedCompany)->first();
                 $networkArea = $companyDetails->company_name;
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
+
                 if(!empty($validatedData['route_id'])) {
                     //ClaimDetails all routes for specific company
                     if($validatedData['route_id']=='All'){
-                        $allRouteCompanies = Route::where('company_id',$companyDetails->id)->orderBy('route_number')->get();
+                        $allRouteCompanies = Route::where('company_id',$companyDetails->id)->where('status',1)->orderBy('route_number')->get();
             
                         foreach($allRouteCompanies as $allRouteCompany) {
                             foreach($all_dates as $all_date) {
@@ -6713,7 +11238,6 @@ class ReportSpad extends Component
                                             $inbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
                                         $inbound['charge_km'] = $charge;
             
                                         if($allTripInbound->driver_id != NULL){
@@ -6780,7 +11304,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
+                                            $diff = ((strtotime($inbound['service_start']) - strtotime($inbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $inbound['punctuality'] = "NOT PUNCTUAL";
                                             }else {
@@ -6788,6 +11312,29 @@ class ReportSpad extends Component
                                             }
                                         }else{
                                             $inbound['punctuality'] = "No Data";
+                                        }
+
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripInbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($inbound['actual_start']!="No Data" && $inbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($inbound['actual_end']) - strtotime($inbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $inbound['status'] = "Incomplete";
+                                                    $inbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $inbound['status'] = "Complete";
+                                                    $inbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $inbound['status'] = "Incomplete";
+                                                $inbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $inbound['status'] = "Incomplete";
+                                            $inbound['status_desc'] = "No GPS Tracking";
                                         }
         
                                         $adult = $allTripInbound->total_adult;
@@ -6884,7 +11431,6 @@ class ReportSpad extends Component
                                             $outbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
                                         $outbound['charge_km'] = $charge;
             
                                         if($allTripOutbound->driver_id != NULL){
@@ -6951,7 +11497,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
+                                            $diff = ((strtotime($outbound['service_start']) - strtotime($outbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $outbound['punctuality'] = "NOT PUNCTUAL";
                                             } else {
@@ -6961,6 +11507,29 @@ class ReportSpad extends Component
                                             $outbound['punctuality'] = "No Data";
                                         }
         
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripOutbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($outbound['actual_start']!="No Data" && $outbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($outbound['actual_end']) - strtotime($outbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $outbound['status'] = "Incomplete";
+                                                    $outbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $outbound['status'] = "Complete";
+                                                    $outbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $outbound['status'] = "Incomplete";
+                                                $outbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $outbound['status'] = "Incomplete";
+                                            $outbound['status_desc'] = "No GPS Tracking";
+                                        }
+
                                         $adult = $allTripOutbound->total_adult;
                                         $concession = $allTripOutbound->total_concession;
                                         $countPassenger = $adult + $concession;
@@ -7212,7 +11781,6 @@ class ReportSpad extends Component
                                             $inbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
                                         $inbound['charge_km'] = $charge;
             
                                         if($allTripInbound->driver_id != NULL){
@@ -7279,7 +11847,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
+                                            $diff = ((strtotime($inbound['service_start']) - strtotime($inbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $inbound['punctuality'] = "NOT PUNCTUAL";
                                             }else {
@@ -7289,6 +11857,29 @@ class ReportSpad extends Component
                                             $inbound['punctuality'] = "No Data";
                                         }
         
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripInbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($inbound['actual_start']!="No Data" && $inbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($inbound['actual_end']) - strtotime($inbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $inbound['status'] = "Incomplete";
+                                                    $inbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $inbound['status'] = "Complete";
+                                                    $inbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $inbound['status'] = "Incomplete";
+                                                $inbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $inbound['status'] = "Incomplete";
+                                            $inbound['status_desc'] = "No GPS Tracking";
+                                        }
+                                        
                                         $adult = $allTripInbound->total_adult;
                                         $concession = $allTripInbound->total_concession;
                                         $countPassenger = $adult + $concession;
@@ -7382,7 +11973,6 @@ class ReportSpad extends Component
                                             $outbound['bus_age'] = "No Data";
                                         }
             
-                                        $charge = 1.33;
                                         $outbound['charge_km'] = $charge;
             
                                         if($allTripOutbound->driver_id != NULL){
@@ -7449,7 +12039,7 @@ class ReportSpad extends Component
                                         }
             
                                         if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
+                                            $diff = ((strtotime($outbound['service_start']) - strtotime($outbound['actual_start']))/60);
                                             if ($diff > 5 || $diff < -5) {
                                                 $outbound['punctuality'] = "NOT PUNCTUAL";
                                             } else {
@@ -7457,6 +12047,29 @@ class ReportSpad extends Component
                                             }
                                         }else{
                                             $outbound['punctuality'] = "No Data";
+                                        }
+
+                                        //Status
+                                        //Check GPS
+                                        $checkGPS = VehiclePosition::where('trip_id', $allTripOutbound->trip_number)->first();
+                                        if($checkGPS){
+                                            //Check actual start & end
+                                            if($outbound['actual_start']!="No Data" && $outbound['actual_end']!="No Data"){
+                                                $diff = ((strtotime($outbound['actual_end']) - strtotime($outbound['actual_start']))/60);
+                                                if ($diff < 5) {
+                                                    $outbound['status'] = "Incomplete";
+                                                    $outbound['status_desc'] = "Duplicate Trip";
+                                                }else {
+                                                    $outbound['status'] = "Complete";
+                                                    $outbound['status_desc'] = " - ";
+                                                }
+                                            }else {
+                                                $outbound['status'] = "Incomplete";
+                                                $outbound['status_desc'] = "Outside Schedule";
+                                            }
+                                        }else{
+                                            $outbound['status'] = "Incomplete";
+                                            $outbound['status_desc'] = "No GPS Tracking";
                                         }
         
                                         $adult = $allTripOutbound->total_adult;
@@ -7660,7 +12273,7 @@ class ReportSpad extends Component
                     }
                 }
             }
-            return Excel::download(new SPADClaimDetails($all_dates, $claimDetails, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'ClaimDetails_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+            return Excel::download(new SPADClaimDetails($claimDetails, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'ClaimDetails_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
         }else{
             $this->dispatchBrowserEvent('company-required');
         }
@@ -7685,1533 +12298,6 @@ class ReportSpad extends Component
         }else{
             $this->dispatchBrowserEvent('company-required');
         }
-
-        /*$startDate = new Carbon($validatedData['dateFrom']);
-        $endDate = new Carbon($validatedData['dateTo']);
-        $all_dates = array();
-
-        while ($startDate->lte($endDate)){
-            $all_dates[] = $startDate->toDateString();
-            $startDate->addDay();
-        }
-
-        $claimDetails = collect();
-        $grandBusStop = 0;
-        $grandTravel = 0;
-        $grandClaim = 0;
-        $grandTravelGPS = 0;
-        $grandClaimGPS = 0;
-        $grandCountPassenger = 0;
-        $grandSale = 0;
-        $grandTotal = 0;
-        $grandTotalAdult = 0;
-        $grandTotalConcession = 0;
-        if ($this->selectedCompany){
-            if($this->selectedCompany=='All'){
-                $networkArea = 'All';
-                if(!empty($validatedData['route_id'])) {
-                    //ClaimDetails all routes for all company
-                    if($validatedData['route_id']=='All'){
-                        $allRoutes = Route::all();
-            
-                        foreach($allRoutes as $allRoute) {
-                            foreach($all_dates as $all_date) {
-                                $totalBusStopIn = 0;
-                                $totalTravelIn = 0;
-                                $totalClaimIn = 0;
-                                $totalTravelGPSIn = 0;
-                                $totalClaimGPSIn = 0;
-                                $totalCountPassengerIn = 0;
-                                $totalSalesIn = 0;
-                                $totalTotalIn = 0;
-                                $totalAdultIn = 0;
-                                $totalConcessionIn = 0;
-                                $allTripIn = [];
-                                $allInbound = [];
-                                $existInTrip = false;
-                                $existOutTrip = false;
-                                $firstDate = new Carbon($all_date);
-                                $lastDate = new Carbon($all_date . '23:59:59');
-            
-                                //Inbound
-                                $allTripInbounds = TripDetail::where('route_id', $allRoute->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 1)
-                                    ->get();
-            
-                                $routeNameIn = $allRoute->route_name;
-                                if (count($allTripInbounds) > 0) {
-                                    $existInTrip = true;
-                                    $countIn = 0;
-            
-                                    foreach ($allTripInbounds as $allTripInbound) {
-                                        $inbound['trip_type'] = "IB";
-                                        $firstStage = Stage::where('route_id', $allTripInbound->route_id)->orderby('stage_order')->first();
-                                        $inbound['start_point'] = $firstStage->stage_name;
-                                        $inbound['trip_no'] = "T" . $allTripInbound->id;
-                                        $inbound['rph_no'] = $allTripInbound->trip_number;
-                                        
-                                        if($allTripInbound->bus_id != NULL){
-                                            $inbound['bus_plate_no'] = $allTripInbound->Bus->bus_registration_number;
-                                            $inbound['bus_age'] = $allTripInbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripInbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $inbound['bus_plate_no'] = "No Data";
-                                            $inbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $inbound['charge_km'] = $charge;
-            
-                                        if($allTripInbound->driver_id != NULL){
-                                            $inbound['driver_id'] = $allTripInbound->BusDriver->driver_number;
-                                        }else{
-                                            $inbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripInbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripInbound->route_id)->count();
-                                        $inbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopIn += $busStop;
-            
-                                        $travel = $allTripInbound->Route->inbound_distance;
-                                        $inbound['travel'] = $travel;
-                                        $totalTravelIn += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $inbound['claim'] = $claim;
-                                        $totalClaimIn += $claim;
-            
-                                        $travelGPS = $allTripInbound->total_mileage;
-                                        $inbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSIn += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $inbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSIn += $claimGPS;
-            
-                                        $inbound['status'] = "Complete";
-                                        $inbound['travel_BOP'] = $travel;
-                                        $inbound['claim_BOP'] = $claim;
-            
-                                        if($allTripInbound->route_schedule_mstr_id!=NULL){
-                                            $inbound['service_start'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $inbound['service_end'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $inbound['service_start'] = "No Data";
-                                            $inbound['service_end'] = "No Data";
-                                        }
-                                        $inbound['start_point_time'] = $inbound['service_start'];
-            
-                                        $inbound['actual_start'] = date("H:i", strtotime($allTripInbound->start_trip));
-                                        $inbound['actual_end'] = date("H:i", strtotime($allTripInbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $inbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $inbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $inbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $inbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $inbound['punctuality'] = "NOT PUNCTUAL";
-                                            }else {
-                                                $inbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $inbound['punctuality'] = "No Data";
-                                        }
-            
-                                        $adult = $allTripInbound->total_adult;
-                                        $concession = $allTripInbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripInbound->total_adult_amount + $allTripInbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $inbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerIn += $countPassenger;
-            
-                                        $inbound['total_sales'] = $sales;
-                                        $totalSalesIn += $sales;
-            
-                                        $inbound['total_on'] = $countPassenger;
-                                        $totalTotalIn += $countPassenger;
-            
-                                        $inbound['adult'] = $adult;
-                                        $totalAdultIn += $adult;
-            
-                                        $inbound['concession'] = $concession;
-                                        $totalConcessionIn += $concession;
-            
-                                        $allInbound[$countIn] = $inbound;
-                                        $countIn++;
-                                    }
-                                    $allTripIn[$routeNameIn] = $allInbound;
-                                    $totIn['total_bus_stop_in'] = $totalBusStopIn;
-                                    $totIn['total_travel_in'] = $totalTravelIn;
-                                    $totIn['total_claim_in'] = $totalClaimIn;
-                                    $totIn['total_travel_gps_in'] = $totalTravelGPSIn;
-                                    $totIn['total_claim_gps_in'] = $totalClaimGPSIn;
-                                    $totIn['total_count_passenger_in'] = $totalCountPassengerIn;
-                                    $totIn['total_sales_in'] = $totalSalesIn;
-                                    $totIn['total_total_in'] = $totalTotalIn;
-                                    $totIn['total_adult_in'] = $totalAdultIn;
-                                    $totIn['total_concession_in'] = $totalConcessionIn;
-                                    $allTripIn['total_inbound'] = $totIn;
-                                }
-            
-                                $totalBusStopOut = 0;
-                                $totalTravelOut = 0;
-                                $totalClaimOut = 0;
-                                $totalTravelGPSOut = 0;
-                                $totalClaimGPSOut = 0;
-                                $totalCountPassengerOut = 0;
-                                $totalSalesOut = 0;
-                                $totalTotalOut = 0;
-                                $totalAdultOut = 0;
-                                $totalConcessionOut = 0;
-                                $allTripOut = [];
-                                $allOutbound = [];
-                                //Outbound
-                                $allTripOutbounds = TripDetail::where('route_id', $allRoute->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 0)
-                                    ->get();
-            
-                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $routeNameIn)));
-                                if (count($allTripOutbounds) > 0) {
-                                    $existOutTrip = true;
-                                    $countOut = 0;
-            
-                                    foreach ($allTripOutbounds as $allTripOutbound) {
-                                        $outbound['trip_type'] = "OB";
-                                        $firstStage = Stage::where('route_id', $allTripOutbound->route_id)->orderby('stage_order', 'DESC')->first();
-                                        $outbound['start_point'] = $firstStage->stage_name;
-                                        $outbound['trip_no'] = "T" . $allTripOutbound->id;
-                                        $outbound['rph_no'] = $allTripOutbound->trip_number;
-            
-                                        if($allTripOutbound->bus_id != NULL){
-                                            $outbound['bus_plate_no'] = $allTripOutbound->Bus->bus_registration_number;
-                                            $outbound['bus_age'] = $allTripOutbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripOutbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $outbound['bus_plate_no']  = "No Data";
-                                            $outbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $outbound['charge_km'] = $charge;
-            
-                                        if($allTripOutbound->driver_id != NULL){
-                                            $outbound['driver_id'] = $allTripOutbound->BusDriver->driver_number;
-                                        }else{
-                                            $outbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripOutbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripOutbound->route_id)->count();
-                                        $outbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopOut += $busStop;
-            
-                                        $travel = $allTripOutbound->Route->inbound_distance;
-                                        $outbound['travel'] = $travel;
-                                        $totalTravelOut += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $outbound['claim'] = $claim;
-                                        $totalClaimOut += $claim;
-            
-                                        $travelGPS = $allTripOutbound->total_mileage;
-                                        $outbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSOut += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $outbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSOut += $claimGPS;
-            
-                                        $outbound['status'] = "Complete";
-                                        $outbound['travel_BOP'] = $travel;
-                                        $outbound['claim_BOP'] = $claim;
-            
-                                        if($allTripOutbound->route_schedule_mstr_id!=NULL){
-                                            $outbound['service_start'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $outbound['service_end'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $outbound['service_start'] = "No Data";
-                                            $outbound['service_end'] = "No Data";
-                                        }
-                                        $outbound['start_point_time'] = $outbound['service_start'];
-            
-                                        $outbound['actual_start'] = date("H:i", strtotime($allTripOutbound->start_trip));
-                                        $outbound['actual_end'] = date("H:i", strtotime($allTripOutbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $outbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $outbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $outbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $outbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $outbound['punctuality'] = "NOT PUNCTUAL";
-                                            } else {
-                                                $outbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $outbound['punctuality'] = "No Data";
-                                        }
-            
-                                        $adult = $allTripOutbound->total_adult;
-                                        $concession = $allTripOutbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripOutbound->total_adult_amount + $allTripOutbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $outbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerOut += $countPassenger;
-            
-                                        $outbound['total_sales'] = $sales;
-                                        $totalSalesOut += $sales;
-            
-                                        $outbound['total_on'] = $countPassenger;
-                                        $totalTotalOut += $countPassenger;
-                                        
-                                        $outbound['adult'] = $adult;
-                                        $totalAdultOut += $adult;
-                                        
-                                        $outbound['concession'] = $concession;
-                                        $totalConcessionOut += $concession;
-            
-                                        $allOutbound[$countOut] = $outbound;
-                                        $countOut++;
-                                    }
-                                    $allTripOut[$routeNameOut] = $allOutbound;
-                                    $totOut['total_bus_stop_out'] = $totalBusStopOut;
-                                    $totOut['total_travel_out'] = $totalTravelOut;
-                                    $totOut['total_claim_out'] = $totalClaimOut;
-                                    $totOut['total_travel_gps_out'] = $totalTravelGPSOut;
-                                    $totOut['total_claim_gps_out'] = $totalClaimGPSOut;
-                                    $totOut['total_count_passenger_out'] = $totalCountPassengerOut;
-                                    $totOut['total_sales_out'] = $totalSalesOut;
-                                    $totOut['total_total_out'] = $totalTotalOut;
-                                    $totOut['total_adult_out'] = $totalAdultOut;
-                                    $totOut['total_concession_out'] = $totalConcessionOut;
-                                    $allTripOut['total_outbound'] = $totOut;
-                                }
-            
-                                $totalBusStopDate = 0;
-                                $totalTravelDate = 0;
-                                $totalClaimDate = 0;
-                                $totalTravelGPSDate = 0;
-                                $totalClaimGPSDate = 0;
-                                $totalCountPassengerDate = 0;
-                                $totalSalesDate = 0;
-                                $totalTotalDate = 0;
-                                $totalAdultDate = 0;
-                                $totalConcessionDate = 0;
-                                $data_perDate = [];
-                                if ($existInTrip == true && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopIn + $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelIn + $totalTravelOut;
-                                    $totalClaimDate = $totalClaimIn + $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSIn + $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSIn + $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerIn + $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesIn + $totalSalesOut;
-                                    $totalTotalDate = $totalTotalIn + $totalTotalOut;
-                                    $totalAdultDate = $totalAdultIn + $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionIn + $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['data'] = $allDate;
-                                    $allData['route_name'] = $allRoute->route_name;
-                                    $route[$allRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } elseif ($existInTrip == true && $existOutTrip == false) {
-                                    $totalBusStopDate = $totalBusStopIn;
-                                    $totalTravelDate = $totalTravelIn;
-                                    $totalClaimDate = $totalClaimIn;
-                                    $totalTravelGPSDate = $totalTravelGPSIn;
-                                    $totalClaimGPSDate = $totalClaimGPSIn;
-                                    $totalCountPassengerDate = $totalCountPassengerIn;
-                                    $totalSalesDate = $totalSalesIn;
-                                    $totalTotalDate = $totalTotalIn;
-                                    $totalAdultDate = $totalAdultIn;
-                                    $totalConcessionDate = $totalConcessionIn;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } elseif ($existInTrip == false && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelOut;
-                                    $totalClaimDate = $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesOut;
-                                    $totalTotalDate = $totalTotalOut;
-                                    $totalAdultDate = $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } else {
-                                    $data_perDate['inbound_data'] = [];
-                                    $data_perDate['outbound_data'] = [];
-                                    $data_perDate['total_per_date'] = [];
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                }
-            
-                                $grandBusStop += $totalBusStopDate;
-                                $grandTravel += $totalTravelDate;
-                                $grandClaim += $totalClaimDate;
-                                $grandTravelGPS += $totalTravelGPSDate;
-                                $grandClaimGPS += $totalClaimGPSDate;
-                                $grandCountPassenger += $totalCountPassengerDate;
-                                $grandSale += $totalSalesDate;
-                                $grandTotal += $totalTotalDate;
-                                $grandTotalAdult+= $totalAdultDate;
-                                $grandTotalConcession += $totalConcessionDate;
-                            }
-                        }
-            
-                        $grand['grand_bus_stop'] = $grandBusStop;
-                        $grand['grand_travel'] = $grandTravel;
-                        $grand['grand_claim'] = $grandClaim;
-                        $grand['grand_travel_gps'] = $grandTravelGPS;
-                        $grand['grand_claim_gps'] = $grandClaimGPS;
-                        $grand['grand_count_passenger'] = $grandCountPassenger;
-                        $grand['grand_sales'] = $grandSale;
-                        $grand['grand_total'] = $grandTotal;
-                        $grand['grand_adult'] = $grandTotalAdult;
-                        $grand['grand_concession'] = $grandTotalConcession;
-            
-                        $data['grand'] = $grand;
-                        $claimDetails->add($data);
-                    }
-                }
-            }else{
-                $companyDetails = Company::where('id', $this->selectedCompany)->first();
-                $networkArea = $companyDetails->company_name;
-                if(!empty($validatedData['route_id'])) {
-                    //ClaimDetails all routes for specific company
-                    if($validatedData['route_id']=='All'){
-                        $allRouteCompanies = Route::where('company_id',$companyDetails->id)->get();
-            
-                        foreach($allRouteCompanies as $allRouteCompany) {
-                            foreach($all_dates as $all_date) {
-                                $totalBusStopIn = 0;
-                                $totalTravelIn = 0;
-                                $totalClaimIn = 0;
-                                $totalTravelGPSIn = 0;
-                                $totalClaimGPSIn = 0;
-                                $totalCountPassengerIn = 0;
-                                $totalSalesIn = 0;
-                                $totalTotalIn = 0;
-                                $totalAdultIn = 0;
-                                $totalConcessionIn = 0;
-                                $allTripIn = [];
-                                $allInbound = [];
-                                $existInTrip = false;
-                                $existOutTrip = false;
-                                $firstDate = new Carbon($all_date);
-                                $lastDate = new Carbon($all_date . '23:59:59');
-            
-                                //Inbound
-                                $allTripInbounds = TripDetail::where('route_id', $allRouteCompany->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 1)
-                                    ->get();
-                                $routeNameIn = $allRouteCompany->route_name;
-                                if (count($allTripInbounds) > 0) {
-                                    $existInTrip = true;
-                                    $countIn = 0;
-            
-                                    foreach ($allTripInbounds as $allTripInbound) {
-                                        $inbound['trip_type'] = "IB";
-                                        $firstStage = Stage::where('route_id', $allTripInbound->route_id)->orderby('stage_order')->first();
-                                        $inbound['start_point'] = $firstStage->stage_name;
-                                        $inbound['trip_no'] = "T" . $allTripInbound->id;
-                                        $inbound['rph_no'] = $allTripInbound->trip_number;
-                                        
-                                        if($allTripInbound->bus_id != NULL){
-                                            $inbound['bus_plate_no'] = $allTripInbound->Bus->bus_registration_number;
-                                            $inbound['bus_age'] = $allTripInbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripInbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $inbound['bus_plate_no'] = "No Data";
-                                            $inbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $inbound['charge_km'] = $charge;
-            
-                                        if($allTripInbound->driver_id != NULL){
-                                            $inbound['driver_id'] = $allTripInbound->BusDriver->driver_number;
-                                        }else{
-                                            $inbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripInbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripInbound->route_id)->count();
-                                        $inbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopIn += $busStop;
-            
-                                        $travel = $allTripInbound->Route->inbound_distance;
-                                        $inbound['travel'] = $travel;
-                                        $totalTravelIn += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $inbound['claim'] = $claim;
-                                        $totalClaimIn += $claim;
-            
-                                        $travelGPS = $allTripInbound->total_mileage;
-                                        $inbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSIn += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $inbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSIn += $claimGPS;
-            
-                                        $inbound['status'] = "Complete";
-                                        $inbound['travel_BOP'] = $travel;
-                                        $inbound['claim_BOP'] = $claim;
-            
-                                        if($allTripInbound->route_schedule_mstr_id!=NULL){
-                                            $inbound['service_start'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $inbound['service_end'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $inbound['service_start'] = "No Data";
-                                            $inbound['service_end'] = "No Data";
-                                        }
-                                        $inbound['start_point_time'] = $inbound['service_start'];
-            
-                                        $inbound['actual_start'] = date("H:i", strtotime($allTripInbound->start_trip));
-                                        $inbound['actual_end'] = date("H:i", strtotime($allTripInbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $inbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $inbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $inbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $inbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $inbound['punctuality'] = "NOT PUNCTUAL";
-                                            }else {
-                                                $inbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $inbound['punctuality'] = "No Data";
-                                        }
-        
-                                        $adult = $allTripInbound->total_adult;
-                                        $concession = $allTripInbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripInbound->total_adult_amount + $allTripInbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $inbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerIn += $countPassenger;
-            
-                                        $inbound['total_sales'] = $sales;
-                                        $totalSalesIn += $sales;
-            
-                                        $inbound['total_on'] = $countPassenger;
-                                        $totalTotalIn += $countPassenger;
-            
-                                        $inbound['adult'] = $adult;
-                                        $totalAdultIn += $adult;
-            
-                                        $inbound['concession'] = $concession;
-                                        $totalConcessionIn += $concession;
-            
-                                        $allInbound[$countIn] = $inbound;
-                                        $countIn++;
-                                    }
-                                    $allTripIn[$routeNameIn] = $allInbound;
-                                    $totIn['total_bus_stop_in'] = $totalBusStopIn;
-                                    $totIn['total_travel_in'] = $totalTravelIn;
-                                    $totIn['total_claim_in'] = $totalClaimIn;
-                                    $totIn['total_travel_gps_in'] = $totalTravelGPSIn;
-                                    $totIn['total_claim_gps_in'] = $totalClaimGPSIn;
-                                    $totIn['total_count_passenger_in'] = $totalCountPassengerIn;
-                                    $totIn['total_sales_in'] = $totalSalesIn;
-                                    $totIn['total_total_in'] = $totalTotalIn;
-                                    $totIn['total_adult_in'] = $totalAdultIn;
-                                    $totIn['total_concession_in'] = $totalConcessionIn;
-                                    $allTripIn['total_inbound'] = $totIn;
-                                }
-            
-                                $totalBusStopOut = 0;
-                                $totalTravelOut = 0;
-                                $totalClaimOut = 0;
-                                $totalTravelGPSOut = 0;
-                                $totalClaimGPSOut = 0;
-                                $totalCountPassengerOut = 0;
-                                $totalSalesOut = 0;
-                                $totalTotalOut = 0;
-                                $totalAdultOut = 0;
-                                $totalConcessionOut = 0;
-                                $allTripOut = [];
-                                $allOutbound = [];
-                                //Outbound
-                                $allTripOutbounds = TripDetail::where('route_id', $allRouteCompany->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 0)
-                                    ->get();
-        
-                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $routeNameIn)));
-                                if (count($allTripOutbounds) > 0) {
-                                    $existOutTrip = true;
-                                    $countOut = 0;
-            
-                                    foreach ($allTripOutbounds as $allTripOutbound) {
-                                        $outbound['trip_type'] = "OB";
-                                        $firstStage = Stage::where('route_id', $allTripOutbound->route_id)->orderby('stage_order', 'DESC')->first();
-                                        $outbound['start_point'] = $firstStage->stage_name;
-                                        $outbound['trip_no'] = "T" . $allTripOutbound->id;
-                                        $outbound['rph_no'] = $allTripOutbound->trip_number;
-            
-                                        if($allTripOutbound->bus_id != NULL){
-                                            $outbound['bus_plate_no'] = $allTripOutbound->Bus->bus_registration_number;
-                                            $outbound['bus_age'] = $allTripOutbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripOutbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $outbound['bus_plate_no']  = "No Data";
-                                            $outbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $outbound['charge_km'] = $charge;
-            
-                                        if($allTripOutbound->driver_id != NULL){
-                                            $outbound['driver_id'] = $allTripOutbound->BusDriver->driver_number;
-                                        }else{
-                                            $outbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripOutbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripOutbound->route_id)->count();
-                                        $outbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopOut += $busStop;
-            
-                                        $travel = $allTripOutbound->Route->inbound_distance;
-                                        $outbound['travel'] = $travel;
-                                        $totalTravelOut += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $outbound['claim'] = $claim;
-                                        $totalClaimOut += $claim;
-            
-                                        $travelGPS = $allTripOutbound->total_mileage;
-                                        $outbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSOut += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $outbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSOut += $claimGPS;
-            
-                                        $outbound['status'] = "Complete";
-                                        $outbound['travel_BOP'] = $travel;
-                                        $outbound['claim_BOP'] = $claim;
-            
-                                        if($allTripOutbound->route_schedule_mstr_id!=NULL){
-                                            $outbound['service_start'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $outbound['service_end'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $outbound['service_start'] = "No Data";
-                                            $outbound['service_end'] = "No Data";
-                                        }
-                                        $outbound['start_point_time'] = $outbound['service_start'];
-            
-                                        $outbound['actual_start'] = date("H:i", strtotime($allTripOutbound->start_trip));
-                                        $outbound['actual_end'] = date("H:i", strtotime($allTripOutbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $outbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $outbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $outbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $outbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $outbound['punctuality'] = "NOT PUNCTUAL";
-                                            } else {
-                                                $outbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $outbound['punctuality'] = "No Data";
-                                        }
-        
-                                        $adult = $allTripOutbound->total_adult;
-                                        $concession = $allTripOutbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripOutbound->total_adult_amount + $allTripOutbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number', $allTripOutbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $outbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerOut += $countPassenger;
-            
-                                        $outbound['total_sales'] = $sales;
-                                        $totalSalesOut += $sales;
-            
-                                        $outbound['total_on'] = $countPassenger;
-                                        $totalTotalOut += $countPassenger;
-                                        
-                                        $outbound['adult'] = $adult;
-                                        $totalAdultOut += $adult;
-                                        
-                                        $outbound['concession'] = $concession;
-                                        $totalConcessionOut += $concession;
-            
-                                        $allOutbound[$countOut] = $outbound;
-                                        $countOut++;
-                                    }
-                                    $allTripOut[$routeNameOut] = $allOutbound;
-                                    $totOut['total_bus_stop_out'] = $totalBusStopOut;
-                                    $totOut['total_travel_out'] = $totalTravelOut;
-                                    $totOut['total_claim_out'] = $totalClaimOut;
-                                    $totOut['total_travel_gps_out'] = $totalTravelGPSOut;
-                                    $totOut['total_claim_gps_out'] = $totalClaimGPSOut;
-                                    $totOut['total_count_passenger_out'] = $totalCountPassengerOut;
-                                    $totOut['total_sales_out'] = $totalSalesOut;
-                                    $totOut['total_total_out'] = $totalTotalOut;
-                                    $totOut['total_adult_out'] = $totalAdultOut;
-                                    $totOut['total_concession_out'] = $totalConcessionOut;
-                                    $allTripOut['total_outbound'] = $totOut;
-                                }
-            
-                                $totalBusStopDate = 0;
-                                $totalTravelDate = 0;
-                                $totalClaimDate = 0;
-                                $totalTravelGPSDate = 0;
-                                $totalClaimGPSDate = 0;
-                                $totalCountPassengerDate = 0;
-                                $totalSalesDate = 0;
-                                $totalTotalDate = 0;
-                                $totalAdultDate = 0;
-                                $totalConcessionDate = 0;
-                                $data_perDate = [];
-                                if ($existInTrip == true && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopIn + $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelIn + $totalTravelOut;
-                                    $totalClaimDate = $totalClaimIn + $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSIn + $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSIn + $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerIn + $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesIn + $totalSalesOut;
-                                    $totalTotalDate = $totalTotalIn + $totalTotalOut;
-                                    $totalAdultDate = $totalAdultIn + $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionIn + $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['data'] = $allDate;
-                                    $allData['route_name'] = $allRouteCompany->route_name;
-                                    $route[$allRouteCompany->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-        
-                                } elseif ($existInTrip == true && $existOutTrip == false) {
-                                    $totalBusStopDate = $totalBusStopIn;
-                                    $totalTravelDate = $totalTravelIn;
-                                    $totalClaimDate = $totalClaimIn;
-                                    $totalTravelGPSDate = $totalTravelGPSIn;
-                                    $totalClaimGPSDate = $totalClaimGPSIn;
-                                    $totalCountPassengerDate = $totalCountPassengerIn;
-                                    $totalSalesDate = $totalSalesIn;
-                                    $totalTotalDate = $totalTotalIn;
-                                    $totalAdultDate = $totalAdultIn;
-                                    $totalConcessionDate = $totalConcessionIn;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRouteCompany->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRouteCompany->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-        
-                                } elseif ($existInTrip == false && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelOut;
-                                    $totalClaimDate = $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesOut;
-                                    $totalTotalDate = $totalTotalOut;
-                                    $totalAdultDate = $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRouteCompany->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRouteCompany->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-        
-                                } else {
-                                    $data_perDate['inbound_data'] = [];
-                                    $data_perDate['outbound_data'] = [];
-                                    $data_perDate['total_per_date'] = [];
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $allRouteCompany->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$allRouteCompany->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                }
-            
-                                $grandBusStop += $totalBusStopDate;
-                                $grandTravel += $totalTravelDate;
-                                $grandClaim += $totalClaimDate;
-                                $grandTravelGPS += $totalTravelGPSDate;
-                                $grandClaimGPS += $totalClaimGPSDate;
-                                $grandCountPassenger += $totalCountPassengerDate;
-                                $grandSale += $totalSalesDate;
-                                $grandTotal += $totalTotalDate;
-                                $grandTotalAdult+= $totalAdultDate;
-                                $grandTotalConcession += $totalConcessionDate;
-                            }
-                        }
-            
-                        $grand['grand_bus_stop'] = $grandBusStop;
-                        $grand['grand_travel'] = $grandTravel;
-                        $grand['grand_claim'] = $grandClaim;
-                        $grand['grand_travel_gps'] = $grandTravelGPS;
-                        $grand['grand_claim_gps'] = $grandClaimGPS;
-                        $grand['grand_count_passenger'] = $grandCountPassenger;
-                        $grand['grand_sales'] = $grandSale;
-                        $grand['grand_total'] = $grandTotal;
-                        $grand['grand_adult'] = $grandTotalAdult;
-                        $grand['grand_concession'] = $grandTotalConcession;
-            
-                        $data['grand'] = $grand;
-                        $claimDetails->add($data);
-                    }
-                    //ClaimDetails specific routes for specific company
-                    else{
-                        $selectedRoute = Route::where('id', $this->state['route_id'])->first();
-        
-                        if($selectedRoute){
-                            foreach($all_dates as $all_date) {
-                                $totalBusStopIn = 0;
-                                $totalTravelIn = 0;
-                                $totalClaimIn = 0;
-                                $totalTravelGPSIn = 0;
-                                $totalClaimGPSIn = 0;
-                                $totalCountPassengerIn = 0;
-                                $totalSalesIn = 0;
-                                $totalTotalIn = 0;
-                                $totalAdultIn = 0;
-                                $totalConcessionIn = 0;
-                                $allTripIn = [];
-                                $allInbound = [];
-                                $existInTrip = false;
-                                $existOutTrip = false;
-                                $firstDate = new Carbon($all_date);
-                                $lastDate = new Carbon($all_date . '23:59:59');
-            
-                                //Inbound
-                                $allTripInbounds = TripDetail::where('route_id', $selectedRoute->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 1)
-                                    ->get();
-                                $routeNameIn = $selectedRoute->route_name;
-                                if (count($allTripInbounds) > 0) {
-                                    $existInTrip = true;
-                                    $countIn = 0;
-            
-                                    foreach ($allTripInbounds as $allTripInbound) {
-                                        $inbound['trip_type'] = "IB";
-                                        $firstStage = Stage::where('route_id', $allTripInbound->route_id)->orderby('stage_order')->first();
-                                        $inbound['start_point'] = $firstStage->stage_name;
-                                        $inbound['trip_no'] = "T" . $allTripInbound->id;
-                                        $inbound['rph_no'] = $allTripInbound->trip_number;
-                                        
-                                        if($allTripInbound->bus_id != NULL){
-                                            $inbound['bus_plate_no'] = $allTripInbound->Bus->bus_registration_number;
-                                            $inbound['bus_age'] = $allTripInbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripInbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $inbound['bus_plate_no'] = "No Data";
-                                            $inbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $inbound['charge_km'] = $charge;
-            
-                                        if($allTripInbound->driver_id != NULL){
-                                            $inbound['driver_id'] = $allTripInbound->BusDriver->driver_number;
-                                        }else{
-                                            $inbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripInbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripInbound->route_id)->count();
-                                        $inbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopIn += $busStop;
-            
-                                        $travel = $allTripInbound->Route->inbound_distance;
-                                        $inbound['travel'] = $travel;
-                                        $totalTravelIn += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $inbound['claim'] = $claim;
-                                        $totalClaimIn += $claim;
-            
-                                        $travelGPS = $allTripInbound->total_mileage;
-                                        $inbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSIn += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $inbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSIn += $claimGPS;
-            
-                                        $inbound['status'] = "Complete";
-                                        $inbound['travel_BOP'] = $travel;
-                                        $inbound['claim_BOP'] = $claim;
-            
-                                        if($allTripInbound->route_schedule_mstr_id!=NULL){
-                                            $inbound['service_start'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $inbound['service_end'] = Carbon::create($allTripInbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $inbound['service_start'] = "No Data";
-                                            $inbound['service_end'] = "No Data";
-                                        }
-                                        $inbound['start_point_time'] = $inbound['service_start'];
-            
-                                        $inbound['actual_start'] = date("H:i", strtotime($allTripInbound->start_trip));
-                                        $inbound['actual_end'] = date("H:i", strtotime($allTripInbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $inbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $inbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $inbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $inbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($inbound['service_start']!="No Data"){
-                                            $diff = strtotime($inbound['service_start']) - strtotime($inbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $inbound['punctuality'] = "NOT PUNCTUAL";
-                                            }else {
-                                                $inbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $inbound['punctuality'] = "No Data";
-                                        }
-        
-                                        $adult = $allTripInbound->total_adult;
-                                        $concession = $allTripInbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripInbound->total_adult_amount + $allTripInbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number', $allTripInbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $inbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerIn += $countPassenger;
-            
-                                        $inbound['total_sales'] = $sales;
-                                        $totalSalesIn += $sales;
-            
-                                        $inbound['total_on'] = $countPassenger;
-                                        $totalTotalIn += $countPassenger;
-            
-                                        $inbound['adult'] = $adult;
-                                        $totalAdultIn += $adult;
-            
-                                        $inbound['concession'] = $concession;
-                                        $totalConcessionIn += $concession;
-            
-                                        $allInbound[$countIn] = $inbound;
-                                        $countIn++;
-                                    }
-                                    $allTripIn[$routeNameIn] = $allInbound;
-                                    $totIn['total_bus_stop_in'] = $totalBusStopIn;
-                                    $totIn['total_travel_in'] = $totalTravelIn;
-                                    $totIn['total_claim_in'] = $totalClaimIn;
-                                    $totIn['total_travel_gps_in'] = $totalTravelGPSIn;
-                                    $totIn['total_claim_gps_in'] = $totalClaimGPSIn;
-                                    $totIn['total_count_passenger_in'] = $totalCountPassengerIn;
-                                    $totIn['total_sales_in'] = $totalSalesIn;
-                                    $totIn['total_total_in'] = $totalTotalIn;
-                                    $totIn['total_adult_in'] = $totalAdultIn;
-                                    $totIn['total_concession_in'] = $totalConcessionIn;
-                                    $allTripIn['total_inbound'] = $totIn;
-                                }
-            
-                                $totalBusStopOut = 0;
-                                $totalTravelOut = 0;
-                                $totalClaimOut = 0;
-                                $totalTravelGPSOut = 0;
-                                $totalClaimGPSOut = 0;
-                                $totalCountPassengerOut = 0;
-                                $totalSalesOut = 0;
-                                $totalTotalOut = 0;
-                                $totalAdultOut = 0;
-                                $totalConcessionOut = 0;
-                                $allTripOut = [];
-                                $allOutbound = [];
-                                //Outbound
-                                $allTripOutbounds = TripDetail::where('route_id', $selectedRoute->id)
-                                    ->whereBetween('start_trip', [$firstDate,$lastDate])
-                                    ->where('trip_code', 0)
-                                    ->get();
-                                $routeNameOut = implode(" - ", array_reverse(explode(" - ", $routeNameIn)));
-                                if (count($allTripOutbounds) > 0) {
-                                    $existOutTrip = true;
-                                    $countOut = 0;
-            
-                                    foreach ($allTripOutbounds as $allTripOutbound) {
-                                        $outbound['trip_type'] = "OB";
-                                        $firstStage = Stage::where('route_id', $allTripOutbound->route_id)->orderby('stage_order', 'DESC')->first();
-                                        $outbound['start_point'] = $firstStage->stage_name;
-                                        $outbound['trip_no'] = "T" . $allTripOutbound->id;
-                                        $outbound['rph_no'] = $allTripOutbound->trip_number;
-            
-                                        if($allTripOutbound->bus_id != NULL){
-                                            $outbound['bus_plate_no'] = $allTripOutbound->Bus->bus_registration_number;
-                                            $outbound['bus_age'] = $allTripOutbound->Bus->bus_age;
-                                            //$inbound['bus_age'] = Carbon::parse($allTripOutbound->Bus->bus_manufacturing_date)->diff(Carbon::now())->y;
-                                        }else{
-                                            $outbound['bus_plate_no']  = "No Data";
-                                            $outbound['bus_age'] = "No Data";
-                                        }
-            
-                                        $charge = 1.33;
-                                        $outbound['charge_km'] = $charge;
-            
-                                        if($allTripOutbound->driver_id != NULL){
-                                            $outbound['driver_id'] = $allTripOutbound->BusDriver->driver_number;
-                                        }else{
-                                            $outbound['driver_id'] = "No Data";
-                                        }
-            
-                                        //$busStop = BusStand::where('route_id', $allTripOutbound->route_id)->count();
-                                        $busStop = Stage::where('route_id', $allTripOutbound->route_id)->count();
-                                        $outbound['bus_stop_travel'] = $busStop;
-                                        $totalBusStopOut += $busStop;
-            
-                                        $travel = $allTripOutbound->Route->inbound_distance;
-                                        $outbound['travel'] = $travel;
-                                        $totalTravelOut += $travel;
-            
-                                        $claim = $charge * $travel;
-                                        $outbound['claim'] = $claim;
-                                        $totalClaimOut += $claim;
-            
-                                        $travelGPS = $allTripOutbound->total_mileage;
-                                        $outbound['travel_gps'] = $travelGPS;
-                                        $totalTravelGPSOut += $travelGPS;
-            
-                                        $claimGPS = $charge * $travelGPS;
-                                        $outbound['claim_gps'] = $claimGPS;
-                                        $totalClaimGPSOut += $claimGPS;
-            
-                                        $outbound['status'] = "Complete";
-                                        $outbound['travel_BOP'] = $travel;
-                                        $outbound['claim_BOP'] = $claim;
-            
-                                        if($allTripOutbound->route_schedule_mstr_id!=NULL){
-                                            $outbound['service_start'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_start_time)->format('H:i');
-                                            $outbound['service_end'] = Carbon::create($allTripOutbound->RouteScheduleMSTR->schedule_end_time)->format('H:i');
-                                        }else{
-                                            $outbound['service_start'] = "No Data";
-                                            $outbound['service_end'] = "No Data";
-                                        }
-                                        $outbound['start_point_time'] = $outbound['service_start'];
-            
-                                        $outbound['actual_start'] = date("H:i", strtotime($allTripOutbound->start_trip));
-                                        $outbound['actual_end'] = date("H:i", strtotime($allTripOutbound->end_trip));
-            
-                                        //Check 1st sales
-                                        $firstSales = TicketSalesTransaction::where('trip_number',$allTripOutbound->trip_number)
-                                            ->orderby('sales_date')
-                                            ->first();
-                                        if($firstSales){
-                                            $outbound['sales_start'] = date("H:i", strtotime($firstSales->sales_date));
-                                        }else{
-                                            $outbound['sales_start'] = "No Sales";
-                                        }
-            
-                                        //Check last sales
-                                        $lastSales = TicketSalesTransaction::where('trip_number',$allTripOutbound->trip_number)
-                                            ->orderby('sales_date', 'DESC')
-                                            ->first();
-                                        if($lastSales){
-                                            $outbound['sales_end'] = date("H:i", strtotime($lastSales->sales_date));
-                                        }else{
-                                            $outbound['sales_end'] = "No Sales";
-                                        }
-            
-                                        if($outbound['service_start']!="No Data"){
-                                            $diff = strtotime($outbound['service_start']) - strtotime($outbound['actual_start']);
-                                            if ($diff > 5 || $diff < -5) {
-                                                $outbound['punctuality'] = "NOT PUNCTUAL";
-                                            } else {
-                                                $outbound['punctuality'] = "ONTIME";
-                                            }
-                                        }else{
-                                            $outbound['punctuality'] = "No Data";
-                                        }
-        
-                                        $adult = $allTripOutbound->total_adult;
-                                        $concession = $allTripOutbound->total_concession;
-                                        $countPassenger = $adult + $concession;
-                                        $sales = $allTripOutbound->total_adult_amount + $allTripOutbound->total_concession_amount;
-                                        //Check tickets
-                                        if($countPassenger==0 || $sales==0){
-                                            $allTicketPerTrips = TicketSalesTransaction::where('trip_number',$allTripOutbound->trip_number)->get();
-                                            if(count($allTicketPerTrips)>0){
-                                                $adult = 0;
-                                                $concession = 0;
-                                                $countPassenger = 0;
-                                                $sales = 0;
-                                                foreach($allTicketPerTrips as $allTicketPerTrip){
-                                                    $sales += $allTicketPerTrip->actual_amount;
-                                                    if($allTicketPerTrip->passenger_type==0){
-                                                        $adult++;
-                                                    }else{
-                                                        $concession++;
-                                                    }
-                                                }
-                                                $countPassenger = $adult + $concession;
-                                            }
-                                        }
-                                        $outbound['pass_count'] = $countPassenger;
-                                        $totalCountPassengerOut += $countPassenger;
-            
-                                        $outbound['total_sales'] = $sales;
-                                        $totalSalesOut += $sales;
-            
-                                        $outbound['total_on'] = $countPassenger;
-                                        $totalTotalOut += $countPassenger;
-                                        
-                                        $outbound['adult'] = $adult;
-                                        $totalAdultOut += $adult;
-                                        
-                                        $outbound['concession'] = $concession;
-                                        $totalConcessionOut += $concession;
-            
-                                        $allOutbound[$countOut] = $outbound;
-                                        $countOut++;
-                                    }
-                                    $allTripOut[$routeNameOut] = $allOutbound;
-                                    $totOut['total_bus_stop_out'] = $totalBusStopOut;
-                                    $totOut['total_travel_out'] = $totalTravelOut;
-                                    $totOut['total_claim_out'] = $totalClaimOut;
-                                    $totOut['total_travel_gps_out'] = $totalTravelGPSOut;
-                                    $totOut['total_claim_gps_out'] = $totalClaimGPSOut;
-                                    $totOut['total_count_passenger_out'] = $totalCountPassengerOut;
-                                    $totOut['total_sales_out'] = $totalSalesOut;
-                                    $totOut['total_total_out'] = $totalTotalOut;
-                                    $totOut['total_adult_out'] = $totalAdultOut;
-                                    $totOut['total_concession_out'] = $totalConcessionOut;
-                                    $allTripOut['total_outbound'] = $totOut;
-                                }
-            
-                                $totalBusStopDate = 0;
-                                $totalTravelDate = 0;
-                                $totalClaimDate = 0;
-                                $totalTravelGPSDate = 0;
-                                $totalClaimGPSDate = 0;
-                                $totalCountPassengerDate = 0;
-                                $totalSalesDate = 0;
-                                $totalTotalDate = 0;
-                                $totalAdultDate = 0;
-                                $totalConcessionDate = 0;
-                                $data_perDate = [];
-                                if ($existInTrip == true && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopIn + $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelIn + $totalTravelOut;
-                                    $totalClaimDate = $totalClaimIn + $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSIn + $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSIn + $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerIn + $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesIn + $totalSalesOut;
-                                    $totalTotalDate = $totalTotalIn + $totalTotalOut;
-                                    $totalAdultDate = $totalAdultIn + $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionIn + $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['data'] = $allDate;
-                                    $allData['route_name'] = $selectedRoute->route_name;
-                                    $route[$selectedRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } elseif ($existInTrip == true && $existOutTrip == false) {
-                                    $totalBusStopDate = $totalBusStopIn;
-                                    $totalTravelDate = $totalTravelIn;
-                                    $totalClaimDate = $totalClaimIn;
-                                    $totalTravelGPSDate = $totalTravelGPSIn;
-                                    $totalClaimGPSDate = $totalClaimGPSIn;
-                                    $totalCountPassengerDate = $totalCountPassengerIn;
-                                    $totalSalesDate = $totalSalesIn;
-                                    $totalTotalDate = $totalTotalIn;
-                                    $totalAdultDate = $totalAdultIn;
-                                    $totalConcessionDate = $totalConcessionIn;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['inbound_data'] = $allTripIn;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $selectedRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$selectedRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } elseif ($existInTrip == false && $existOutTrip == true) {
-                                    $totalBusStopDate = $totalBusStopOut;
-                                    $totalTravelDate = $totalTravelOut;
-                                    $totalClaimDate = $totalClaimOut;
-                                    $totalTravelGPSDate = $totalTravelGPSOut;
-                                    $totalClaimGPSDate = $totalClaimGPSOut;
-                                    $totalCountPassengerDate = $totalCountPassengerOut;
-                                    $totalSalesDate = $totalSalesOut;
-                                    $totalTotalDate = $totalTotalOut;
-                                    $totalAdultDate = $totalAdultOut;
-                                    $totalConcessionDate = $totalConcessionOut;
-            
-                                    $perDate['total_bus_stop_date'] = $totalBusStopDate;
-                                    $perDate['total_travel_date'] = $totalTravelDate;
-                                    $perDate['total_claim_date'] = $totalClaimDate;
-                                    $perDate['total_travel_gps_date'] = $totalTravelGPSDate;
-                                    $perDate['total_claim_gps_date'] = $totalClaimGPSDate;
-                                    $perDate['total_count_passenger_date'] = $totalCountPassengerDate;
-                                    $perDate['total_sales_date'] = $totalSalesDate;
-                                    $perDate['total_total_date'] = $totalTotalDate;
-                                    $perDate['total_adult_date'] = $totalAdultDate;
-                                    $perDate['total_concession_date'] = $totalConcessionDate;
-            
-                                    $data_perDate['outbound_data'] = $allTripOut;
-                                    $data_perDate['total_per_date'] = $perDate;
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $selectedRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$selectedRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                } else {
-                                    $data_perDate['inbound_data'] = [];
-                                    $data_perDate['outbound_data'] = [];
-                                    $data_perDate['total_per_date'] = [];
-            
-                                    $allDate[$all_date] = $data_perDate;
-                                    $allData['route_name'] = $selectedRoute->route_name;
-                                    $allData['data'] = $allDate;
-                                    $route[$selectedRoute->route_number] = $allData;
-                                    $data['allRoute'] = $route;
-                                }
-            
-                                $grandBusStop += $totalBusStopDate;
-                                $grandTravel += $totalTravelDate;
-                                $grandClaim += $totalClaimDate;
-                                $grandTravelGPS += $totalTravelGPSDate;
-                                $grandClaimGPS += $totalClaimGPSDate;
-                                $grandCountPassenger += $totalCountPassengerDate;
-                                $grandSale += $totalSalesDate;
-                                $grandTotal += $totalTotalDate;
-                                $grandTotalAdult+= $totalAdultDate;
-                                $grandTotalConcession += $totalConcessionDate;
-                            }
-                        }
-            
-                        $grand['grand_bus_stop'] = $grandBusStop;
-                        $grand['grand_travel'] = $grandTravel;
-                        $grand['grand_claim'] = $grandClaim;
-                        $grand['grand_travel_gps'] = $grandTravelGPS;
-                        $grand['grand_claim_gps'] = $grandClaimGPS;
-                        $grand['grand_count_passenger'] = $grandCountPassenger;
-                        $grand['grand_sales'] = $grandSale;
-                        $grand['grand_total'] = $grandTotal;
-                        $grand['grand_adult'] = $grandTotalAdult;
-                        $grand['grand_concession'] = $grandTotalConcession;
-            
-                        $data['grand'] = $grand;
-                        $claimDetails->add($data);
-                    }
-                }
-            }
-            //return Excel::download(new SPADClaimDetails($all_dates, $claimDetails, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'ClaimDetails_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
-        }else{
-            $this->dispatchBrowserEvent('company-required');
-        }*/
     }
 
     public function printClaimDetailGPSOld(){
@@ -9439,7 +12525,816 @@ class ReportSpad extends Component
         }
     }
 
-    public function printClaimSummary()
+    //FAST
+    public function printClaimSummary(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printDailySummary()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $all_dates = array();
+        
+        while ($startDate->lte($endDate)) {
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //Claim Summary all route all company
+                if($validatedData['route_id']=='All'){
+
+                    $allTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                    , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                    cast(trip_details.start_trip as date) as service_date,
+                    (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                    SUM(trip_details.total_mileage) as km_served,
+                    ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                    ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY route_number, service_date, route.id, trip_details.trip_code
+                    ORDER BY route_number, service_date, trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY planned_date, route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, planned_date;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totServedRoute = [];
+                    $totPlannedRoute = [];
+                    $totServedDate = [];
+                    $totPlannedDate = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $found = false;
+
+                        //Enter total per date
+                        if($allTrip->service_date!= $pastDate && $pastDate != NULL){
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedDate);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per route
+                        if($allTrip->route_number!= $pastRoute && $pastRoute != NULL){
+                            $out->writeln("Inside Splice Total Route Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedRoute);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        foreach($plannedTrips as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number && 
+                            $tripPlan->planned_date == $allTrip->service_date && 
+                            $tripPlan->trip_code == $allTrip->trip_code){
+                            
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                $found = true;
+                                break ;
+                            
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        $serviceDateFrom = new Carbon($allTrip->service_date);
+                        $serviceDateTo = new Carbon($allTrip->service_date . " 23:59:59");
+
+                        $totServedDate = DB::select("SELECT route.route_number, cast(trip_details.start_trip as date) as service_date,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedDate = DB::select("SELECT route.route_number, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY planned_date, route_number
+                        ORDER BY route_number, planned_date;");
+
+                        $foundDate = false;
+                        if($totServedDate){
+                            foreach($totServedDate as $key3 => $totalTripServe){
+                                
+                                foreach($totPlannedDate as $key4 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundDate = true;
+                                    break ;
+                                }
+                                if(!$foundDate){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedDate as $key5 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundDate = true;
+                                break ;
+                            }
+                            if(!$foundDate){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedDate[] = $noTrip;
+                        }
+
+                        $totServedRoute = DB::select("SELECT route.route_number,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $foundRoute = false;
+                        if($totServedRoute){
+                            foreach($totServedRoute as $key6 => $totalTripServe){
+                                
+                                foreach($totPlannedRoute as $key7 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundRoute = true;
+                                    break ;
+                                }
+                                if(!$foundRoute){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedRoute as $key8 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundRoute = true;
+                                break ;
+                            }
+                            if(!$foundRoute){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedRoute[] = $noTrip;
+                        }
+
+                        $pastRoute = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1;");
+
+                            $grandTotPlanned = DB::select("SELECT 
+                            count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1;");
+
+                            foreach($grandTotServed as $grandKey => $grandServed){
+                                $foundRoute = false;
+                                foreach($grandTotPlanned as $key9 => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                            array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            array_splice($allTrips, $newKey, 0, $totServedDate);
+                        }
+                    }
+
+                }
+            }else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+                if($validatedData['route_id']=='All'){
+
+                    $allTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                    , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                    cast(trip_details.start_trip as date) as service_date,
+                    (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                    SUM(trip_details.total_mileage) as km_served,
+                    ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                    ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.company_id = '" . $companyDetails->id . "'
+                    GROUP BY route_number, service_date, route.id, trip_details.trip_code
+                    ORDER BY route_number, service_date, trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.company_id = '" . $companyDetails->id . "'
+                    GROUP BY planned_date, route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, planned_date;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totServedRoute = [];
+                    $totPlannedRoute = [];
+                    $totServedDate = [];
+                    $totPlannedDate = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $found = false;
+
+                        //Enter total per date
+                        if($allTrip->service_date!= $pastDate && $pastDate != NULL){
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedDate);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per route
+                        if($allTrip->route_number!= $pastRoute && $pastRoute != NULL){
+                            $out->writeln("Inside Splice Total Route Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedRoute);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        foreach($plannedTrips as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number && 
+                            $tripPlan->planned_date == $allTrip->service_date && 
+                            $tripPlan->trip_code == $allTrip->trip_code){
+                            
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                $found = true;
+                                break ;
+                            
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        $serviceDateFrom = new Carbon($allTrip->service_date);
+                        $serviceDateTo = new Carbon($allTrip->service_date . " 23:59:59");
+
+                        $totServedDate = DB::select("SELECT route.route_number, cast(trip_details.start_trip as date) as service_date,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedDate = DB::select("SELECT route.route_number, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY planned_date, route_number
+                        ORDER BY route_number, planned_date;");
+
+                        $foundDate = false;
+                        if($totServedDate){
+                            foreach($totServedDate as $key3 => $totalTripServe){
+                                
+                                foreach($totPlannedDate as $key4 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundDate = true;
+                                    break ;
+                                }
+                                if(!$foundDate){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedDate as $key5 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundDate = true;
+                                break ;
+                            }
+                            if(!$foundDate){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedDate[] = $noTrip;
+                        }
+
+                        $totServedRoute = DB::select("SELECT route.route_number,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $foundRoute = false;
+                        if($totServedRoute){
+                            foreach($totServedRoute as $key6 => $totalTripServe){
+                                
+                                foreach($totPlannedRoute as $key7 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundRoute = true;
+                                    break ;
+                                }
+                                if(!$foundRoute){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedRoute as $key8 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundRoute = true;
+                                break ;
+                            }
+                            if(!$foundRoute){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedRoute[] = $noTrip;
+                        }
+
+                        $pastRoute = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.company_id = '" . $companyDetails->id . "';");
+
+                            $grandTotPlanned = DB::select("SELECT 
+                            count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.company_id = '" . $companyDetails->id . "';");
+
+                            foreach($grandTotServed as $grandKey => $grandServed){
+                                $foundRoute = false;
+                                foreach($grandTotPlanned as $key9 => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                            array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            array_splice($allTrips, $newKey, 0, $totServedDate);
+                        }
+                    }
+
+                }
+                else{
+
+                    $allTrips = DB::select("SELECT trip_details.trip_code, route.route_number, 
+                    (case when (trip_details.trip_code = 1) THEN CONCAT(SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', -1)
+                    , ' - ', SUBSTRING_INDEX(SUBSTRING_INDEX(route_name, '-', 2), '-', 1)) ELSE route.route_name END) as route_name,
+                    cast(trip_details.start_trip as date) as service_date,
+                    (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                    SUM(trip_details.total_mileage) as km_served,
+                    ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                    ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                    FROM mybas.trip_details
+                    JOIN mybas.route ON route.id = trip_details.route_id
+                    WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.id = '" . $validatedData['route_id'] . "'
+                    GROUP BY route_number, service_date, route.id, trip_details.trip_code
+                    ORDER BY route_number, service_date, trip_code;");
+
+                    $plannedTrips = DB::select("SELECT route_scheduler_mstr.trip_code, route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.id = '" . $validatedData['route_id'] . "'
+                    GROUP BY planned_date, route_number, route_scheduler_mstr.trip_code
+                    ORDER BY route_number, planned_date;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastRoute = "";
+                    $pastDate = "";
+                    $count = 0;
+                    $totServedRoute = [];
+                    $totPlannedRoute = [];
+                    $totServedDate = [];
+                    $totPlannedDate = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $found = false;
+
+                        //Enter total per date
+                        if($allTrip->service_date!= $pastDate && $pastDate != NULL){
+                            $out->writeln("Inside Splice Total Date Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedDate);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedDate);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per route
+                        if($allTrip->route_number!= $pastRoute && $pastRoute != NULL){
+                            $out->writeln("Inside Splice Total Route Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $totServedRoute);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            }
+                            $count++;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        foreach($plannedTrips as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number && 
+                            $tripPlan->planned_date == $allTrip->service_date && 
+                            $tripPlan->trip_code == $allTrip->trip_code){
+                            
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                $found = true;
+                                break ;
+                            
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+
+                        $serviceDateFrom = new Carbon($allTrip->service_date);
+                        $serviceDateTo = new Carbon($allTrip->service_date . " 23:59:59");
+
+                        $totServedDate = DB::select("SELECT route.route_number, cast(trip_details.start_trip as date) as service_date,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedDate = DB::select("SELECT route.route_number, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $serviceDateFrom . "' AND '" . $serviceDateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY planned_date, route_number
+                        ORDER BY route_number, planned_date;");
+
+                        $foundDate = false;
+                        if($totServedDate){
+                            foreach($totServedDate as $key3 => $totalTripServe){
+                                
+                                foreach($totPlannedDate as $key4 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundDate = true;
+                                    break ;
+                                }
+                                if(!$foundDate){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedDate as $key5 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundDate = true;
+                                break ;
+                            }
+                            if(!$foundDate){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedDate[] = $noTrip;
+                        }
+
+                        $totServedRoute = DB::select("SELECT route.route_number,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                        ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $totPlannedRoute = DB::select("SELECT route.route_number, 
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route_number;");
+
+                        $foundRoute = false;
+                        if($totServedRoute){
+                            foreach($totServedRoute as $key6 => $totalTripServe){
+                                
+                                foreach($totPlannedRoute as $key7 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    $foundRoute = true;
+                                    break ;
+                                }
+                                if(!$foundRoute){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->service_date = $allTrip->service_date;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->travel_claim = 0.00;
+                            
+                            foreach($totPlannedRoute as $key8 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                $foundRoute = true;
+                                break ;
+                            }
+                            if(!$foundRoute){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                            }
+                            $totServedRoute[] = $noTrip;
+                        }
+
+                        $pastRoute = $allTrip->route_number;
+                        $pastDate = $allTrip->service_date;
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            ROUND((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage)
+                            ELSE 1.33 * SUM(trip_details.total_mileage) END),2) as travel_claim
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.id = '" . $validatedData['route_id'] . "';");
+
+                            $grandTotPlanned = DB::select("SELECT 
+                            count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.id = '" . $validatedData['route_id'] . "';");
+
+                            foreach($grandTotServed as $grandKey => $grandServed){
+                                $foundRoute = false;
+                                foreach($grandTotPlanned as $key9 => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                            array_splice($allTrips, $newKey, 0, $totServedRoute);
+                            array_splice($allTrips, $newKey, 0, $totServedDate);
+                        }
+                    }
+
+                }
+            }
+            return Excel::download(new SPADClaimSummary($allTrips, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Claim_Summary_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    public function printClaimSummaryOld()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN  printClaimSummary()");
@@ -9485,6 +13380,12 @@ class ReportSpad extends Component
                             $routeClaim = 0;
                             $routeTravelGPS = 0;
                             $routeClaimGPS = 0;
+
+                            if($allRoute->company_id==29){
+                                $charge = 3.42;
+                            }else{
+                                $charge = 1.33;
+                            }
             
                             foreach ($all_dates as $all_date) {
                                 $tripPlannedIn = 0;
@@ -9539,13 +13440,13 @@ class ReportSpad extends Component
                                         $travelGPS = $allTripInbound->total_mileage;
                                         $travelGPSIn += $travelGPS;
                                     }
-            
+
                                     //Total Claim In
-                                    $claimIn = $serviceServedIn * 1.33;
+                                    $claimIn = $serviceServedIn * $charge;
                                     $claimInFormat = round($claimIn,1);
             
                                     //Total Claim GPS In
-                                    $claimGPSIn = $travelGPSIn * 1.33;
+                                    $claimGPSIn = $travelGPSIn * $charge;
                                     $claimGPSInFormat = round($claimGPSIn,1);
             
                                     $inbound['route_name'] = $route_name_in;
@@ -9580,11 +13481,11 @@ class ReportSpad extends Component
                                     }
             
                                     //Total Claim Out
-                                    $claimOut = $serviceServedOut * 1.33;
+                                    $claimOut = $serviceServedOut * $charge;
                                     $claimOutFormat = round($claimOut,1);
             
                                     //Total Claim GPS Out
-                                    $claimGPSOut = $travelGPSOut * 1.33;
+                                    $claimGPSOut = $travelGPSOut * $charge;
                                     $claimGPSOutFormat = round($claimGPSOut,1);
             
                                     $outbound['route_name'] = $route_name_out;
@@ -9729,6 +13630,11 @@ class ReportSpad extends Component
             }else{
                 $companyDetails = Company::where('id', $this->selectedCompany)->first();
                 $networkArea = $companyDetails->company_name;
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
                 if(!empty($validatedData['route_id'])) {
                     //ClaimSummary all routes for specific company
                     if($validatedData['route_id']=='All'){
@@ -9799,11 +13705,11 @@ class ReportSpad extends Component
                                     }
         
                                     //Total Claim In
-                                    $claimIn = $serviceServedIn * 1.33;
+                                    $claimIn = $serviceServedIn * $charge;
                                     $claimInFormat = round($claimIn,1);
         
                                     //Total Claim GPS In
-                                    $claimGPSIn = $travelGPSIn * 1.33;
+                                    $claimGPSIn = $travelGPSIn * $charge;
                                     $claimGPSInFormat = round($claimGPSIn,1);
         
                                     $inbound['route_name'] = $route_name_in;
@@ -9837,11 +13743,11 @@ class ReportSpad extends Component
                                     }
         
                                     //Total Claim Out
-                                    $claimOut = $serviceServedOut * 1.33;
+                                    $claimOut = $serviceServedOut * $charge;
                                     $claimOutFormat = round($claimOut,1);
         
                                     //Total Claim GPS Out
-                                    $claimGPSOut = $travelGPSOut * 1.33;
+                                    $claimGPSOut = $travelGPSOut * $charge;
                                     $claimGPSOutFormat = round($claimGPSOut,1);
         
                                     $outbound['route_name'] = $route_name_out;
@@ -10042,13 +13948,13 @@ class ReportSpad extends Component
                                     $travelGPS = $allTripInbound->total_mileage;
                                     $travelGPSIn += $travelGPS;
                                 }
-        
+
                                 //Total Claim In
-                                $claimIn = $serviceServedIn * 1.33;
+                                $claimIn = $serviceServedIn * $charge;
                                 $claimInFormat = round($claimIn,1);
         
                                 //Total Claim GPS In
-                                $claimGPSIn = $travelGPSIn * 1.33;
+                                $claimGPSIn = $travelGPSIn * $charge;
                                 $claimGPSInFormat = round($claimGPSIn,1);
         
                                 $inbound['route_name'] = $route_name_in;
@@ -10081,13 +13987,13 @@ class ReportSpad extends Component
                                     $travelGPS = $allTripOutbound->total_mileage;
                                     $travelGPSOut += $travelGPS;
                                 }
-        
+                                
                                 //Total Claim Out
-                                $claimOut = $serviceServedOut * 1.33;
+                                $claimOut = $serviceServedOut * $charge;
                                 $claimOutFormat = round($claimOut,1);
         
                                 //Total Claim GPS Out
-                                $claimGPSOut = $travelGPSOut * 1.33;
+                                $claimGPSOut = $travelGPSOut * $charge;
                                 $claimGPSOutFormat = round($claimGPSOut,1);
         
                                 $outbound['route_name'] = $route_name_out;
@@ -10228,7 +14134,7 @@ class ReportSpad extends Component
         }
     }
 
-    public function printSummaryRoute()
+    public function printSummaryRouteOld()
     {  
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN printSummaryRoute()");
@@ -10323,7 +14229,7 @@ class ReportSpad extends Component
                                         if($isWeekday){
                                             $isFriday = $firstDate->format('l');
                                             if($isFriday=='Friday'){
-                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12])
+                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12,13])
                                                 ->where('status', 1)
                                                 ->where('route_id', $routePerCompany->id)
                                                 ->count();
@@ -10337,12 +14243,12 @@ class ReportSpad extends Component
                                         if($isWeekend){
                                             $isSunday = $firstDate->format('l');
                                             if($isSunday=='Sunday'){
-                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11])
+                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11,13])
                                                 ->where('route_id', $routePerCompany->id)
                                                 ->where('status', 1)
                                                 ->count();
                                             }else{
-                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12])
+                                                $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12,13])
                                                 ->where('status', 1)
                                                 ->where('route_id', $routePerCompany->id)
                                                 ->count();
@@ -10612,7 +14518,7 @@ class ReportSpad extends Component
                                     if($isWeekday){
                                         $isFriday = $firstDate->format('l');
                                         if($isFriday=='Friday'){
-                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12])
+                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12,13])
                                             ->where('status', 1)
                                             ->where('route_id', $routePerCompany->id)
                                             ->count();
@@ -10626,12 +14532,12 @@ class ReportSpad extends Component
                                     if($isWeekend){
                                         $isSunday = $firstDate->format('l');
                                         if($isSunday=='Sunday'){
-                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11])
+                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11,13])
                                             ->where('route_id', $routePerCompany->id)
                                             ->where('status', 1)
                                             ->count();
                                         }else{
-                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12])
+                                            $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12,13])
                                             ->where('status', 1)
                                             ->where('route_id', $routePerCompany->id)
                                             ->count();
@@ -10858,7 +14764,7 @@ class ReportSpad extends Component
                             if($isWeekday){
                                 $isFriday = $firstDate->format('l');
                                 if($isFriday=='Friday'){
-                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12])
+                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [1,3,5,7,12,13])
                                     ->where('status', 1)
                                     ->where('route_id', $selectedRoute->id)
                                     ->count();
@@ -10872,12 +14778,12 @@ class ReportSpad extends Component
                             if($isWeekend){
                                 $isSunday = $firstDate->format('l');
                                 if($isSunday=='Sunday'){
-                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11])
+                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,10,11,13])
                                     ->where('route_id', $selectedRoute->id)
                                     ->where('status', 1)
                                     ->count();
                                 }else{
-                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12])
+                                    $copies = RouteSchedulerMSTR::whereIn('trip_type', [2,3,4,5,8,9,12,13])
                                     ->where('status', 1)
                                     ->where('route_id', $selectedRoute->id)
                                     ->count();
@@ -11046,7 +14952,1115 @@ class ReportSpad extends Component
         }
     }
 
-    public function printSummaryNetwork()
+    //FAST
+    public function printSummaryRoute(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printDailySummary()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $startDayNo = $dateFrom->format('d');
+        $endDayNo = $dateTo->format('d');
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $all_dates = array();
+        
+        while ($startDate->lte($endDate)) {
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //Daily Summary all route all company
+                if($validatedData['route_id']=='All'){
+
+                    $getAllRoutes = Route::where('status', 1)->orderBy('company_id')->orderBy('route_number')->get();
+                    $allTrips = [];
+
+                    foreach($getAllRoutes as $allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+                        $tripPerRoute = DB::select("WITH RECURSIVE n_dte (n) AS (
+                            SELECT " . $startDayNo . "
+                            UNION ALL
+                            SELECT n + 1
+                            FROM n_dte
+                            WHERE n < " . $endDayNo . "
+                            ),
+                            all_mnth_days AS (
+                            SELECT route.id as route_id, route.route_number, route.route_name, route.company_id,
+                            DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY) AS mnth_first_day,
+                            n,
+                            CAST(DATE_ADD(DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY), INTERVAL n - 1 DAY) AS DATE) AS all_days_in_mnth
+                            FROM mybas.trip_details
+                            JOIN n_dte
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.id = '". $allRoute->id . "'
+                            group by n
+                            ORDER BY n ASC)
+                            
+                            SELECT
+                            amd.all_days_in_mnth AS service_date, amd.route_id, amd.route_number, amd.route_name, amd.company_id, 
+                            (case when (count(ie.id) IS NULL) THEN 0 ELSE count(ie.id) END) as trip_served,
+                            (case when (SUM(ie.total_mileage) IS NULL) THEN 0 ELSE SUM(ie.total_mileage) END) as km_served,
+                            (case when (SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) END) AS farebox, 
+                            (case when (SUM(ie.total_adult) + SUM(ie.total_concession) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult) + SUM(ie.total_concession) END) AS ridership
+                            FROM all_mnth_days AS amd
+                            LEFT JOIN trip_details AS ie ON CAST(ie.start_trip AS DATE) = amd.all_days_in_mnth
+                            AND ie.route_id = amd.route_id
+                            GROUP BY service_date;");
+
+                        $noTripArr = [];
+                        if(!$tripPerRoute){
+                            $out->writeln("In tripPerRoute < 0");
+                            foreach($all_dates as $all_date){
+                                $noTrip = new \stdClass;
+                                $noTrip->service_date = $all_date;
+                                $noTrip->route_id = $allRoute->id;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name = $allRoute->route_name;
+                                $noTrip->company_id = $allRoute->company_id;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                            }
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+                        }
+                        //$allTrips = array_merge($allTrips, $tripPerRoute);
+                        //$allTrips[$routeNo] = $tripPerRoute;
+                    }
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY planned_date, route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastNo = "";
+                    $pastCompany = "";
+                    $count = 0;
+                    $countMissedTrip = 0;
+                    $countMissedTripPerRoute = 0;
+                    $countMissedTripGrand = 0;
+                    $currTotServedPerRoute = [];
+                    $currTotPlannedPerRoute = [];
+                    $currTotServedPerCompany = [];
+                    $currTotPlannedPerCompany = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                        $startDay = new Carbon($allTrip->service_date);
+                        $endDay = new Carbon($allTrip->service_date . '23:59:59');
+                        if ($startDay->isWeekDay()) {
+                            $allTrip->day = "WEEKDAY";
+                        } elseif ($startDay->isWeekend()) {
+                            $allTrip->day = "WEEKEND";
+                        }
+                        $found = false;
+
+                        //Enter total per route
+                        if($allTrip->route_number!= $pastNo && $pastNo != NULL){
+                            $out->writeln("Inside Splice Total Route Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $currTotServedPerRoute);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $currTotServedPerRoute);
+                            }
+                            $count++;
+                            $countMissedTripPerRoute = 0;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per company
+                        if($allTrip->company_id != $pastCompany && $pastCompany != NULL){
+                            $out->writeln("Inside Splice Total Company Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $currTotServedPerCompany);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $currTotServedPerCompany);
+                            }
+                            $count++;
+                            $countMissedTrip = 0;
+                            $out->writeln("low count: " . $count);
+                        }
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                if($tripPlan->planned_date == $allTrip->service_date){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    //Total Missed Trip
+                                    $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                    if($diff>0){
+                                        $allTrip->missed_trip = $diff;
+                                        $countMissedTrip += $diff;
+                                        $countMissedTripPerRoute += $diff;
+                                        $countMissedTripGrand += $diff;
+                                    }else{
+                                        $allTrip->missed_trip = 0;
+                                    }
+
+                                    $found = true;
+                                    break ;
+                                }
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key3 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        $currTotServedPerRoute = DB::select("SELECT route.route_number, route.route_name, company.company_name, count(trip_details.id) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.company ON company.id = route.company_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route.company_id, route_number;");
+
+                        $currTotPlannedPerRoute = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route.route_number
+                        ORDER BY route.route_number;");
+
+                        $found = false;
+                        if($currTotServedPerRoute){
+                            foreach($currTotServedPerRoute as $key4 => $totalTripServe){
+                                //Early Late Per Route
+                                $earlyLateCountPerRoute = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND trip_details.route_id =  " . $allTrip->route_id . "
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                                GROUP BY trip_details.id);");
+
+                                foreach($earlyLateCountPerRoute as $key5 => $earlyLatePerRoute){
+                                    $totalTripServe->earlyLate = $earlyLatePerRoute->countEarlyLate;
+                                }
+
+                                foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    //Total Missed Trip Ver 2
+                                    $totalTripServe->missed_trip = $countMissedTripPerRoute;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                    $totalTripServe->missed_trip = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->route_name = $allTrip->route_name;
+                            $noTrip->company_id = $allTrip->company_id;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->ridership = 0;
+                            $noTrip->earlyLate = 0;
+                            
+                            foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                //Total Missed Trip Ver 2
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+
+                                $found = true;
+                                break ;
+                            }
+                            if(!$found){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                                $noTrip->missed_trip = 0;
+                            }
+                            $currTotServedPerRoute[] = $noTrip;
+                        }
+                        $pastNo = $allTrip->route_number;
+
+                        $currTotServedPerCompany = DB::select("SELECT company.company_name, count(trip_details.id) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.company ON company.id = route.company_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.company_id = " . $allTrip->company_id . "
+                        AND route.status = 1;");
+
+                        $currTotPlannedPerCompany = DB::select("SELECT company.company_name, count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.company ON company.id = route.company_id
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.company_id = " . $allTrip->company_id . "
+                        AND route.status = 1;");
+
+                        $found = false;
+                        foreach($currTotServedPerCompany as $key7 => $companyTripServe){
+                            //Early Late Per Company
+                            $earlyLateCountPerCompany = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                            FROM trip_details
+                            WHERE trip_details.id IN ( 
+                            SELECT trip_details.id
+                            FROM mybas.trip_details
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id IN (SELECT id FROM mybas.route WHERE company_id = " . $allTrip->company_id . ")
+                            AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                            OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                            GROUP BY trip_details.id);");
+
+                            foreach($earlyLateCountPerCompany  as $key5 => $earlyLatePerCompany){
+                                $companyTripServe->earlyLate = $earlyLatePerCompany->countEarlyLate;
+                            }
+
+                            foreach($currTotPlannedPerCompany as $key8 => $companyTripPlan){
+                                $companyTripServe->trip_planned = $companyTripPlan->trip_planned;
+                                $companyTripServe->km_planned = $companyTripPlan->km_planned;
+
+                                //Total Missed Trip Ver 2
+                                $companyTripServe->missed_trip = $countMissedTrip;
+
+                                $found = true;
+                                break ;
+                            }
+                            if(!$found){
+                                $companyTripServe->trip_planned = 0;
+                                $companyTripServe->km_planned = 0;
+                                $companyTripServe->missed_trip = 0;
+                            }
+                        }
+                        $pastCompany = $allTrip->company_id;
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT count(trip_details.id) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1;");
+
+                            $grandTotPlanned = DB::select("SELECT count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1;");
+
+                            foreach($grandTotServed as $grandInKey => $grandServed){
+                                $out->writeln("In grand total loop");
+                                //Early Late
+                                $grandTotEarlyLate = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'));");
+
+                                foreach($grandTotEarlyLate as $grandEarlyLateKey => $grandEarlyLate){
+                                    $grandServed->earlyLate = $grandEarlyLate->countEarlyLate;
+                                }
+
+                                foreach($grandTotPlanned as $grandPlanKey => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                    $grandServed->missed_trip = $countMissedTripGrand;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerCompany);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerRoute);
+                        }
+                    }
+                }
+            }else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+                //Daily Summary all route specific company
+                if($validatedData['route_id']=='All'){
+
+                    $getAllRoutes = Route::where('status', 1)
+                        ->where('company_id', $companyDetails->id)
+                        ->orderBy('company_id')
+                        ->orderBy('route_number')
+                        ->get();
+                    $allTrips = [];
+
+                    foreach($getAllRoutes as $allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+                        $tripPerRoute = DB::select("WITH RECURSIVE n_dte (n) AS (
+                            SELECT  " . $startDayNo . "
+                            UNION ALL
+                            SELECT n + 1
+                            FROM n_dte
+                            WHERE n < " . $endDayNo . "
+                            ),
+                            all_mnth_days AS (
+                            SELECT route.id as route_id, route.route_number, route.route_name, route.company_id,
+                            DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY) AS mnth_first_day,
+                            n,
+                            CAST(DATE_ADD(DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY), INTERVAL n - 1 DAY) AS DATE) AS all_days_in_mnth
+                            FROM mybas.trip_details
+                            JOIN n_dte
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.id = '". $allRoute->id . "'
+                            group by n
+                            ORDER BY n ASC)
+                            
+                            SELECT
+                            amd.all_days_in_mnth AS service_date, amd.route_id, amd.route_number, amd.route_name, amd.company_id, 
+                            (case when (count(ie.id) IS NULL) THEN 0 ELSE count(ie.id) END) as trip_served,
+                            (case when (SUM(ie.total_mileage) IS NULL) THEN 0 ELSE SUM(ie.total_mileage) END) as km_served,
+                            (case when (SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) END) AS farebox, 
+                            (case when (SUM(ie.total_adult) + SUM(ie.total_concession) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult) + SUM(ie.total_concession) END) AS ridership
+                            FROM all_mnth_days AS amd
+                            LEFT JOIN trip_details AS ie ON CAST(ie.start_trip AS DATE) = amd.all_days_in_mnth
+                            AND ie.route_id = amd.route_id
+                            GROUP BY service_date;");
+
+                        $noTripArr = [];
+                        if(!$tripPerRoute){
+                            $out->writeln("In tripPerRoute < 0");
+                            foreach($all_dates as $all_date){
+                                $noTrip = new \stdClass;
+                                $noTrip->service_date = $all_date;
+                                $noTrip->route_id = $allRoute->id;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name = $allRoute->route_name;
+                                $noTrip->company_id = $allRoute->company_id;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                            }
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+                        }
+                        //$allTrips = array_merge($allTrips, $tripPerRoute);
+                        //$allTrips[$routeNo] = $tripPerRoute;
+                    }
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY planned_date, route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastNo = "";
+                    $pastCompany = "";
+                    $count = 0;
+                    $countMissedTrip = 0;
+                    $countMissedTripPerRoute = 0;
+                    $countMissedTripGrand = 0;
+                    $currTotServedPerRoute = [];
+                    $currTotPlannedPerRoute = [];
+                    $currTotServedPerCompany = [];
+                    $currTotPlannedPerCompany = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                        $startDay = new Carbon($allTrip->service_date);
+                        $endDay = new Carbon($allTrip->service_date . '23:59:59');
+                        if ($startDay->isWeekDay()) {
+                            $allTrip->day = "WEEKDAY";
+                        } elseif ($startDay->isWeekend()) {
+                            $allTrip->day = "WEEKEND";
+                        }
+                        $found = false;
+
+                        //Enter total per route
+                        if($allTrip->route_number!= $pastNo && $pastNo != NULL){
+                            $out->writeln("Inside Splice Total Route Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $currTotServedPerRoute);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $currTotServedPerRoute);
+                            }
+                            $count++;
+                            $countMissedTripPerRoute = 0;
+                            $out->writeln("low count: " . $count);
+                        }
+
+                        //Enter total per company
+                        if($allTrip->company_id != $pastCompany && $pastCompany != NULL){
+                            $out->writeln("Inside Splice Total Company Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                            $out->writeln("up count: " . $count);
+
+                            if($count==0){
+                                array_splice($allTrips, $key, 0, $currTotServedPerCompany);
+                            }else{
+                                $newKey = $key + $count;
+                                $out->writeln("newKey: " . $newKey);
+                                array_splice($allTrips, $newKey, 0, $currTotServedPerCompany);
+                            }
+                            $count++;
+                            $countMissedTrip = 0;
+                            $out->writeln("low count: " . $count);
+                        }
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                if($tripPlan->planned_date == $allTrip->service_date){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    //Total Missed Trip
+                                    $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                    if($diff>0){
+                                        $allTrip->missed_trip = $diff;
+                                        $countMissedTrip += $diff;
+                                        $countMissedTripPerRoute += $diff;
+                                        $countMissedTripGrand += $diff;
+                                    }else{
+                                        $allTrip->missed_trip = 0;
+                                    }
+
+                                    $found = true;
+                                    break ;
+                                }
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key3 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        $currTotServedPerRoute = DB::select("SELECT route.route_number, route.route_name, company.company_name, count(trip_details.id) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.company ON company.id = route.company_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route_number
+                        ORDER BY route.company_id, route_number;");
+
+                        $currTotPlannedPerRoute = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.route_number = '" . $allTrip->route_number . "'
+                        GROUP BY route.route_number
+                        ORDER BY route.route_number;");
+
+                        $found = false;
+                        if($currTotServedPerRoute){
+                            foreach($currTotServedPerRoute as $key4 => $totalTripServe){
+                                //Early Late Per Route
+                                $earlyLateCountPerRoute = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND trip_details.route_id =  " . $allTrip->route_id . "
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                                GROUP BY trip_details.id);");
+
+                                foreach($earlyLateCountPerRoute as $key5 => $earlyLatePerRoute){
+                                    $totalTripServe->earlyLate = $earlyLatePerRoute->countEarlyLate;
+                                }
+
+                                foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                    $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                    $totalTripServe->km_planned = $totalTripPlan->km_planned;
+
+                                    //Total Missed Trip Ver 2
+                                    $totalTripServe->missed_trip = $countMissedTripPerRoute;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $totalTripServe->trip_planned = 0;
+                                    $totalTripServe->km_planned = 0;
+                                    $totalTripServe->missed_trip = 0;
+                                }
+                            }
+                        }else{
+                            $noTrip = new \stdClass;
+                            $noTrip->route_number = $allTrip->route_number;
+                            $noTrip->route_name = $allTrip->route_name;
+                            $noTrip->company_id = $allTrip->company_id;
+                            $noTrip->trip_served = 0;
+                            $noTrip->km_served = 0.00;
+                            $noTrip->farebox = 0.00;
+                            $noTrip->ridership = 0;
+                            $noTrip->earlyLate = 0;
+                            
+                            foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                $noTrip->km_planned = $totalTripPlan->km_planned;
+
+                                //Total Missed Trip Ver 2
+                                $noTrip->missed_trip = $countMissedTripPerRoute;
+
+                                $found = true;
+                                break ;
+                            }
+                            if(!$found){
+                                $noTrip->trip_planned = 0;
+                                $noTrip->km_planned = 0;
+                                $noTrip->missed_trip = 0;
+                            }
+                            $currTotServedPerRoute[] = $noTrip;
+                        }
+                        $pastNo = $allTrip->route_number;
+
+                        $currTotServedPerCompany = DB::select("SELECT company.company_name, count(trip_details.id) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.company ON company.id = route.company_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.company_id = " . $allTrip->company_id . "
+                        AND route.status = 1;");
+
+                        $currTotPlannedPerCompany = DB::select("SELECT company.company_name, count(route_scheduler_details.id) as trip_planned, 
+                        count(route_scheduler_details.id) * route.distance as km_planned
+                        FROM mybas.route
+                        JOIN mybas.company ON company.id = route.company_id
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.company_id = " . $allTrip->company_id . "
+                        AND route.status = 1;");
+
+                        $found = false;
+                        foreach($currTotServedPerCompany as $key7 => $companyTripServe){
+                            //Early Late Per Company
+                            $earlyLateCountPerCompany = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                            FROM trip_details
+                            WHERE trip_details.id IN ( 
+                            SELECT trip_details.id
+                            FROM mybas.trip_details
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND trip_details.route_id IN (SELECT id FROM mybas.route WHERE company_id = " . $allTrip->company_id . ")
+                            AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                            OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                            GROUP BY trip_details.id);");
+
+                            foreach($earlyLateCountPerCompany  as $key5 => $earlyLatePerCompany){
+                                $companyTripServe->earlyLate = $earlyLatePerCompany->countEarlyLate;
+                            }
+
+                            foreach($currTotPlannedPerCompany as $key8 => $companyTripPlan){
+                                $companyTripServe->trip_planned = $companyTripPlan->trip_planned;
+                                $companyTripServe->km_planned = $companyTripPlan->km_planned;
+
+                                //Total Missed Trip Ver 2
+                                $companyTripServe->missed_trip = $countMissedTrip;
+
+                                $found = true;
+                                break ;
+                            }
+                            if(!$found){
+                                $companyTripServe->trip_planned = 0;
+                                $companyTripServe->km_planned = 0;
+                                $companyTripServe->missed_trip = 0;
+                            }
+                        }
+                        $pastCompany = $allTrip->company_id;
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT count(trip_details.id) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.company_id = " . $allTrip->company_id . "
+                            AND route.status = 1;");
+
+                            $grandTotPlanned = DB::select("SELECT count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.company_id = " . $allTrip->company_id . "
+                            AND route.status = 1;");
+
+                            foreach($grandTotServed as $grandInKey => $grandServed){
+                                $out->writeln("In grand total loop");
+                                //Early Late
+                                $grandTotEarlyLate = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND trip_details.route_id IN (SELECT id FROM mybas.route WHERE company_id = " . $allTrip->company_id . ")
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'));");
+
+                                foreach($grandTotEarlyLate as $grandEarlyLateKey => $grandEarlyLate){
+                                    $grandServed->earlyLate = $grandEarlyLate->countEarlyLate;
+                                }
+
+                                foreach($grandTotPlanned as $grandPlanKey => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                    $grandServed->missed_trip = $countMissedTripGrand;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerCompany);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerRoute);
+                        }
+                    }
+                }
+                //Daily Summary specific route specific company
+                else{
+                    $allRoute = Route::where('id', $validatedData['route_id'])->first();
+                    $allTrips = [];
+
+                    if($allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+                        $tripPerRoute = DB::select("WITH RECURSIVE n_dte (n) AS (
+                            SELECT " . $startDayNo . "
+                            UNION ALL
+                            SELECT n + 1
+                            FROM n_dte
+                            WHERE n < " . $endDayNo . "
+                            ),
+                            all_mnth_days AS (
+                            SELECT route.id as route_id, route.route_number, route.route_name, route.company_id,
+                            DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY) AS mnth_first_day,
+                            n,
+                            CAST(DATE_ADD(DATE_ADD(MIN(trip_details.start_trip), INTERVAL - DAY(MIN(trip_details.start_trip)) + 1 DAY), INTERVAL n - 1 DAY) AS DATE) AS all_days_in_mnth
+                            FROM mybas.trip_details
+                            JOIN n_dte
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.id = '". $allRoute->id . "'
+                            group by n
+                            ORDER BY n ASC)
+                            
+                            SELECT
+                            amd.all_days_in_mnth AS service_date, amd.route_id, amd.route_number, amd.route_name, amd.company_id, 
+                            (case when (count(ie.id) IS NULL) THEN 0 ELSE count(ie.id) END) as trip_served,
+                            (case when (SUM(ie.total_mileage) IS NULL) THEN 0 ELSE SUM(ie.total_mileage) END) as km_served,
+                            (case when (SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult_amount) + SUM(ie.total_concession_amount) END) AS farebox, 
+                            (case when (SUM(ie.total_adult) + SUM(ie.total_concession) IS NULL) THEN 0 
+                            ELSE SUM(ie.total_adult) + SUM(ie.total_concession) END) AS ridership
+                            FROM all_mnth_days AS amd
+                            LEFT JOIN trip_details AS ie ON CAST(ie.start_trip AS DATE) = amd.all_days_in_mnth
+                            AND ie.route_id = amd.route_id
+                            GROUP BY service_date;");
+
+                        $noTripArr = [];
+                        if(!$tripPerRoute){
+                            $out->writeln("In tripPerRoute < 0");
+                            foreach($all_dates as $all_date){
+                                $noTrip = new \stdClass;
+                                $noTrip->service_date = $all_date;
+                                $noTrip->route_id = $allRoute->id;
+                                $noTrip->route_number = $allRoute->route_number;
+                                $noTrip->route_name = $allRoute->route_name;
+                                $noTrip->company_id = $allRoute->company_id;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+
+                                $noTripArr[] = $noTrip;
+                            }
+                            $allTrips = array_merge($allTrips, $noTripArr);
+                        }else{
+                            $out->writeln("In tripPerRoute > 0");
+                            $allTrips = array_merge($allTrips, $tripPerRoute);
+                        }
+                        //$allTrips = array_merge($allTrips, $tripPerRoute);
+                        //$allTrips[$routeNo] = $tripPerRoute;
+                    }
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY planned_date, route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $pastNo = "";
+                    $pastCompany = "";
+                    $count = 0;
+                    $countMissedTrip = 0;
+                    $countMissedTripPerRoute = 0;
+                    $currTotServedPerRoute = [];
+                    $currTotPlannedPerRoute = [];
+                    $currTotServedPerCompany = [];
+                    $currTotPlannedPerCompany = [];
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number . " - " . $allTrip->service_date . " ");
+                        $startDay = new Carbon($allTrip->service_date);
+                        $endDay = new Carbon($allTrip->service_date . '23:59:59');
+                        if ($startDay->isWeekDay()) {
+                            $allTrip->day = "WEEKDAY";
+                        } elseif ($startDay->isWeekend()) {
+                            $allTrip->day = "WEEKEND";
+                        }
+                        $found = false;
+
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                if($tripPlan->planned_date == $allTrip->service_date){
+                                    $allTrip->trip_planned = $tripPlan->trip_planned;
+                                    $allTrip->km_planned = $tripPlan->km_planned;
+
+                                    //Total Missed Trip
+                                    $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                    if($diff>0){
+                                        $allTrip->missed_trip = $diff;
+                                        $countMissedTrip += $diff;
+                                        $countMissedTripPerRoute += $diff;
+                                    }else{
+                                        $allTrip->missed_trip = 0;
+                                    }
+
+                                    $found = true;
+                                    break ;
+                                }
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $startDay . "' AND '" . $endDay . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key3 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        if($lastKey==$key){
+                            $currTotServedPerRoute = DB::select("SELECT route.route_number, route.route_name, company.company_name, count(trip_details.id) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                            SUM(total_adult) + SUM(total_concession) AS ridership
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.company ON company.id = route.company_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.route_number = '" . $allTrip->route_number . "'
+                            GROUP BY route_number
+                            ORDER BY route.company_id, route_number;");
+
+                            $currTotPlannedPerRoute = DB::select("SELECT route.route_number, route.route_name, cast(route_scheduler_details.schedule_date as date) as planned_date,
+                            count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.route_number = '" . $allTrip->route_number . "'
+                            GROUP BY route.route_number
+                            ORDER BY route.route_number;");
+
+                            $found = false;
+                            if($currTotServedPerRoute){
+                                foreach($currTotServedPerRoute as $key4 => $totalTripServe){
+                                    $companyTotal = new \stdClass;
+                                    $grandTotal = new \stdClass;
+
+                                    $companyTotal->company_name = $totalTripServe->company_name;
+                                    $companyTotal->trip_served = $totalTripServe->trip_served;
+                                    $companyTotal->km_served = $totalTripServe->km_served;
+                                    $companyTotal->farebox = $totalTripServe->farebox;
+                                    $companyTotal->ridership = $totalTripServe->ridership;
+
+                                    $grandTotal->trip_served = $totalTripServe->trip_served;
+                                    $grandTotal->km_served = $totalTripServe->km_served;
+                                    $grandTotal->farebox = $totalTripServe->farebox;
+                                    $grandTotal->ridership = $totalTripServe->ridership;
+
+                                    //Early Late Per Route
+                                    $earlyLateCountPerRoute = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                    FROM trip_details
+                                    WHERE trip_details.id IN ( 
+                                    SELECT trip_details.id
+                                    FROM mybas.trip_details
+                                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                    WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                    AND trip_details.route_id =  " . $allTrip->route_id . "
+                                    AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                    OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                                    GROUP BY trip_details.id);");
+
+                                    foreach($earlyLateCountPerRoute as $key5 => $earlyLatePerRoute){
+                                        $totalTripServe->earlyLate = $earlyLatePerRoute->countEarlyLate;
+                                        $companyTotal->earlyLate = $earlyLatePerRoute->countEarlyLate;
+                                        $grandTotal->earlyLate = $earlyLatePerRoute->countEarlyLate;
+                                    }
+
+                                    foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                        $totalTripServe->trip_planned = $totalTripPlan->trip_planned;
+                                        $companyTotal->trip_planned = $totalTripPlan->trip_planned;
+                                        $grandTotal->trip_planned = $totalTripPlan->trip_planned;
+                                        $totalTripServe->km_planned = $totalTripPlan->km_planned;
+                                        $companyTotal->km_planned = $totalTripPlan->km_planned;
+                                        $grandTotal->km_planned = $totalTripPlan->km_planned;
+                                        //Total Missed Trip Ver 2
+                                        $totalTripServe->missed_trip = $countMissedTripPerRoute;
+                                        $companyTotal->missed_trip = $countMissedTripPerRoute;
+                                        $grandTotal->missed_trip = $countMissedTripPerRoute;
+
+                                        $found = true;
+                                        break ;
+                                    }
+                                    if(!$found){
+                                        $totalTripServe->trip_planned = 0;
+                                        $totalTripServe->km_planned = 0;
+                                        $totalTripServe->missed_trip = 0;
+
+                                        $companyTotal->trip_planned = 0;
+                                        $companyTotal->km_planned = 0;
+                                        $companyTotal->missed_trip = 0;
+
+                                        $grandTotal->trip_planned = 0;
+                                        $grandTotal->km_planned = 0;
+                                        $grandTotal->missed_trip = 0;
+                                    }
+                                }
+                                $currTotServedPerCompany[] = $companyTotal;
+                                $currTotServedPerGrand[] = $grandTotal;
+                            }else{
+                                $noTrip = new \stdClass;
+                                $noTrip->route_number = $allTrip->route_number;
+                                $noTrip->route_name = $allTrip->route_name;
+                                $noTrip->company_id = $allTrip->company_id;
+                                $noTrip->trip_served = 0;
+                                $noTrip->km_served = 0.00;
+                                $noTrip->farebox = 0.00;
+                                $noTrip->ridership = 0;
+                                $noTrip->earlyLate = 0;
+
+                                $companyTotal = new \stdClass;
+                                $companyTotal->company_id = $allTrip->company_name;
+                                $companyTotal->trip_served = 0;
+                                $companyTotal->km_served = 0.00;
+                                $companyTotal->farebox = 0.00;
+                                $companyTotal->ridership = 0;
+                                $companyTotal->earlyLate = 0;
+
+                                $grandTotal = new \stdClass;
+                                $grandTotal->trip_served = 0;
+                                $grandTotal->km_served = 0.00;
+                                $grandTotal->farebox = 0.00;
+                                $grandTotal->ridership = 0;
+                                $grandTotal->earlyLate = 0;
+                                
+                                foreach($currTotPlannedPerRoute as $key6 => $totalTripPlan){
+                                    $noTrip->trip_planned = $totalTripPlan->trip_planned;
+                                    $noTrip->km_planned = $totalTripPlan->km_planned;
+                                    $companyTotal->trip_planned = $totalTripPlan->trip_planned;
+                                    $companyTotal->km_planned = $totalTripPlan->km_planned;
+                                    $grandTotal->trip_planned = $totalTripPlan->trip_planned;
+                                    $grandTotal->km_planned = $totalTripPlan->km_planned;
+
+                                    //Total Missed Trip Ver 2
+                                    $noTrip->missed_trip = $countMissedTripPerRoute;
+                                    $companyTotal->missed_trip = $countMissedTripPerRoute;
+                                    $grandTotal->missed_trip = $countMissedTripPerRoute;
+
+                                    $found = true;
+                                    break ;
+                                }
+                                if(!$found){
+                                    $noTrip->trip_planned = 0;
+                                    $noTrip->km_planned = 0;
+                                    $noTrip->missed_trip = 0;
+
+                                    $companyTotal->trip_planned = 0;
+                                    $companyTotal->km_planned = 0;
+                                    $companyTotal->missed_trip = 0;
+
+                                    $grandTotal->trip_planned = 0;
+                                    $grandTotal->km_planned = 0;
+                                    $grandTotal->missed_trip = 0;
+                                }
+                                $currTotServedPerRoute[] = $noTrip;
+                                $currTotServedPerCompany[] = $companyTotal;
+                                $currTotServedPerGrand[] = $grandTotal;
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerGrand);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerCompany);
+                            array_splice($allTrips, $newKey, 0, $currTotServedPerRoute);
+                        }
+                    }
+                }
+            }
+            return Excel::download(new SPADSummaryByRoute($allTrips, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Summary_By_Route_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    public function printSummaryNetworkOld()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE INprintSummaryNetwork()");
@@ -11192,8 +16206,13 @@ class ReportSpad extends Component
                                 }
                             }
             
+                            if($allRoute->company_id==29){
+                                $charge = 3.42;
+                            }else{
+                                $charge = 1.33;
+                            }
                             //Total Claim = KM/day * 1.33
-                            $claim = 1.33 * $totalKMServed;
+                            $claim = $charge * $totalKMServed;
                             $totalClaim = round($claim,0);
             
                             /**Total Breakdown & Total Accidents need to revise**/
@@ -11251,6 +16270,11 @@ class ReportSpad extends Component
             }else{
                 $companyDetails = Company::where('id', $this->selectedCompany)->first();
                 $networkArea = $companyDetails->company_name;
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
                 if(!empty($validatedData['route_id'])) {
                     //Summary By Network all route specific company
                     if($validatedData['route_id']=='All'){
@@ -11367,7 +16391,7 @@ class ReportSpad extends Component
                             }
         
                             //Total Claim = KM/day * 1.33
-                            $claim = 1.33 * $totalKMServed;
+                            $claim = $charge * $totalKMServed;
                             $totalClaim = round($claim,0);
         
                             /**Total Breakdown & Total Accidents need to revise**/
@@ -11533,7 +16557,7 @@ class ReportSpad extends Component
                         }
         
                         //Total Claim = KM/day * 1.33
-                        $claim = 1.33 * $totalKMServed;
+                        $claim = $charge * $totalKMServed;
                         $totalClaim = round($claim,0);
         
                         /**Total Breakdown & Total Accidents need to revise**/
@@ -11593,6 +16617,808 @@ class ReportSpad extends Component
         }else{
             $this->dispatchBrowserEvent('company-required');
         }
+    }
+
+    //FAST
+    public function printSummaryNetwork(){
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printSummaryNetworkFast()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $all_dates = array();
+        
+        while ($startDate->lte($endDate)) {
+            $all_dates[] = $startDate->toDateString();
+            $startDate->addDay();
+        }
+
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'ALL';
+                //Summary By Network all route all company
+                if($validatedData['route_id']=='All'){
+                    $getAllRoutes = Route::where('status', 1)->orderBy('company_id')->orderBy('route_number')->get();
+                    $allTrips = [];
+
+                    foreach($getAllRoutes as $allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+
+                        $tripPerRoute = DB::select("SELECT IFNULL(route.id, " .  $allRoute->id . ") as route_id, 
+                        IFNULL(route.route_number, '" . $allRoute->route_number . "') as route_number, COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed, 
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        IFNULL(SUM(trip_details.total_mileage),0.00) as km_served,
+                        IFNULL((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage) ELSE 1.33 *  SUM(trip_details.total_mileage) END), 0.00) as travel_claim,
+                        IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.bus ON bus.id = trip_details.bus_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allRoute->id . ";");
+
+                        $out->writeln("In tripPerRoute > 0");
+                        $allTrips = array_merge($allTrips, $tripPerRoute);
+                    }
+                    //dd($allTrips);
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    GROUP BY route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $count = 0;
+                    $countMissedTripGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number);
+                        $found = false;
+
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $found = true;
+                                break ;
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Cash
+                        $fareTypeCash = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as cash
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 0;");
+
+                        foreach($fareTypeCash as $key3 => $cashSum){
+                            $allTrip->cash_collection = $cashSum->cash;
+                        }
+
+                        //TNG
+                        $fareTypeTNG = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as tng
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 1;");
+
+                        foreach($fareTypeTNG as $key4 => $tngSum){
+                            $allTrip->tng_collection = $tngSum->tng;
+                        }
+
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key5 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed, 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage) ELSE 1.33 *  SUM(trip_details.total_mileage) END) as travel_claim,
+                            SUM(trip_details.total_adult) + SUM(trip_details.total_concession) AS ridership
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.bus ON bus.id = trip_details.bus_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status=1;");
+
+                            $grandTotPlanned = DB::select("SELECT count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1;");
+
+                            foreach($grandTotServed as $grandInKey => $grandServed){
+                                $out->writeln("In grand total loop");
+
+                                //Cash
+                                $fareTypeCash = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as cash
+                                FROM mybas.trip_details
+                                JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND tc.fare_type = 0;");
+
+                                foreach($fareTypeCash as $key3 => $cashSum){
+                                    $grandServed->cash_collection = $cashSum->cash;
+                                }
+
+                                //TNG
+                                $fareTypeTNG = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as tng
+                                FROM mybas.trip_details
+                                JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND tc.fare_type = 1;");
+
+                                foreach($fareTypeTNG as $key4 => $tngSum){
+                                    $grandServed->tng_collection = $tngSum->tng;
+                                }
+
+                                //Early Late
+                                $grandTotEarlyLate = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'));");
+
+                                foreach($grandTotEarlyLate as $grandEarlyLateKey => $grandEarlyLate){
+                                    $grandServed->earlyLate = $grandEarlyLate->countEarlyLate;
+                                }
+
+                                foreach($grandTotPlanned as $grandPlanKey => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                    $grandServed->missed_trip = $countMissedTripGrand;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                        }
+                    }
+                }
+            }else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+                //Summary By Network all route specific company
+                if($validatedData['route_id']=='All'){
+                    $getAllRoutes = Route::where('status', 1)->where('company_id',$companyDetails->id)
+                    ->orderBy('company_id')->orderBy('route_number')->get();
+                    $allTrips = [];
+
+                    foreach($getAllRoutes as $allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+
+                        $tripPerRoute = DB::select("SELECT IFNULL(route.id, " .  $allRoute->id . ") as route_id, 
+                        IFNULL(route.route_number, '" . $allRoute->route_number . "') as route_number, COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed, 
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        IFNULL(SUM(trip_details.total_mileage),0.00) as km_served,
+                        IFNULL((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage) ELSE 1.33 *  SUM(trip_details.total_mileage) END), 0.00) as travel_claim,
+                        IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.bus ON bus.id = trip_details.bus_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allRoute->id . ";");
+
+                        $out->writeln("In tripPerRoute > 0");
+                        $allTrips = array_merge($allTrips, $tripPerRoute);
+                    }
+                    //dd($allTrips);
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.company_id = " . $companyDetails->id . "
+                    GROUP BY route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $count = 0;
+                    $countMissedTripGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number);
+                        $found = false;
+
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $found = true;
+                                break ;
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Cash
+                        $fareTypeCash = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as cash
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 0;");
+
+                        foreach($fareTypeCash as $key3 => $cashSum){
+                            $allTrip->cash_collection = $cashSum->cash;
+                        }
+
+                        //TNG
+                        $fareTypeTNG = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as tng
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 1;");
+
+                        foreach($fareTypeTNG as $key4 => $tngSum){
+                            $allTrip->tng_collection = $tngSum->tng;
+                        }
+
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key5 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        if($lastKey==$key){
+                            $grandTotServed = DB::select("SELECT COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed, 
+                            (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                            SUM(trip_details.total_mileage) as km_served,
+                            (case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage) ELSE 1.33 *  SUM(trip_details.total_mileage) END) as travel_claim,
+                            SUM(trip_details.total_adult) + SUM(trip_details.total_concession) AS ridership
+                            FROM mybas.trip_details
+                            JOIN mybas.route ON route.id = trip_details.route_id
+                            JOIN mybas.bus ON bus.id = trip_details.bus_id
+                            WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status=1
+                            AND route.company_id=" . $companyDetails->id . ";");
+
+                            $grandTotPlanned = DB::select("SELECT count(route_scheduler_details.id) as trip_planned, 
+                            count(route_scheduler_details.id) * route.distance as km_planned
+                            FROM mybas.route
+                            JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                            JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                            WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                            AND route.status = 1
+                            AND route.company_id=" . $companyDetails->id . ";");
+
+                            foreach($grandTotServed as $grandInKey => $grandServed){
+                                $out->writeln("In grand total loop");
+
+                                //Cash
+                                $fareTypeCash = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as cash
+                                FROM mybas.trip_details
+                                JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '2022-07-01 00:00:00' AND '2022-07-31 23:59:59'
+                                AND tc.fare_type = 0
+                                AND route.company_id =" . $companyDetails->id . ";");
+
+                                foreach($fareTypeCash as $key3 => $cashSum){
+                                    $grandServed->cash_collection = $cashSum->cash;
+                                }
+
+                                //TNG
+                                $fareTypeTNG = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as tng
+                                FROM mybas.trip_details
+                                JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                WHERE trip_details.start_trip BETWEEN '2022-07-01 00:00:00' AND '2022-07-31 23:59:59'
+                                AND tc.fare_type = 1
+                                AND route.company_id =" . $companyDetails->id . ";");
+
+                                foreach($fareTypeTNG as $key4 => $tngSum){
+                                    $grandServed->tng_collection = $tngSum->tng;
+                                }
+
+                                //Early Late
+                                $grandTotEarlyLate = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                                FROM trip_details
+                                WHERE trip_details.id IN ( 
+                                SELECT trip_details.id
+                                FROM mybas.trip_details
+                                JOIN mybas.route ON route.id = trip_details.route_id
+                                JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                                JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                                WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                                AND route.company_id =" . $companyDetails->id . "
+                                AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                                OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00'));");
+
+                                foreach($grandTotEarlyLate as $grandEarlyLateKey => $grandEarlyLate){
+                                    $grandServed->earlyLate = $grandEarlyLate->countEarlyLate;
+                                }
+
+                                foreach($grandTotPlanned as $grandPlanKey => $grandPlanned){
+                                    $grandServed->trip_planned = $grandPlanned->trip_planned;
+                                    $grandServed->km_planned = $grandPlanned->km_planned;
+                                    $grandServed->missed_trip = $countMissedTripGrand;
+                                }
+                            }
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                        }
+                    }
+                }
+                //Summary By Network specific route specific company
+                else{
+                    $allRoute = Route::where('status', 1)->where('id',$validatedData['route_id'])
+                    ->orderBy('company_id')->orderBy('route_number')->first();
+                    $allTrips = [];
+
+                    if($allRoute){
+                        $out->writeln("All Route: " . $allRoute->route_number);
+
+                        $tripPerRoute = DB::select("SELECT IFNULL(route.id, " .  $allRoute->id . ") as route_id, 
+                        IFNULL(route.route_number, '" . $allRoute->route_number . "') as route_number, COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed, 
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        IFNULL(SUM(trip_details.total_mileage),0.00) as km_served,
+                        IFNULL((case when (route.company_id = 29) THEN 3.42 * SUM(trip_details.total_mileage) ELSE 1.33 *  SUM(trip_details.total_mileage) END), 0.00) as travel_claim,
+                        IFNULL((SUM(trip_details.total_adult) + SUM(trip_details.total_concession)), 0) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        JOIN mybas.bus ON bus.id = trip_details.bus_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allRoute->id . ";");
+
+                        $out->writeln("In tripPerRoute > 0");
+                        $allTrips = array_merge($allTrips, $tripPerRoute);
+                    }
+                    //dd($allTrips);
+
+                    //Trip Planned
+                    $tripPlanned = DB::select("SELECT route.route_number,
+                    count(route_scheduler_details.id) as trip_planned, 
+                    count(route_scheduler_details.id) * route.distance as km_planned
+                    FROM mybas.route
+                    JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                    JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                    WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                    AND route.status = 1
+                    AND route.id = " . $validatedData['route_id'] . "
+                    GROUP BY route_number
+                    ORDER BY route_number;");
+
+                    $lastKey = array_key_last($allTrips);
+                    $count = 0;
+                    $countMissedTripGrand = 0;
+                    foreach($allTrips as $key => $allTrip){
+                        $out->writeln("New Loop: " . $key . " - " . $allTrip->route_number);
+                        $found = false;
+
+                        foreach($tripPlanned as $key2 => $tripPlan){
+                            if($tripPlan->route_number == $allTrip->route_number){
+                                $allTrip->trip_planned = $tripPlan->trip_planned;
+                                $allTrip->km_planned = $tripPlan->km_planned;
+
+                                //Total Missed Trip
+                                $diff= $tripPlan->trip_planned - $allTrip->trip_served;
+                                if($diff>0){
+                                    $allTrip->missed_trip = $diff;
+                                    $countMissedTripGrand += $diff;
+                                }else{
+                                    $allTrip->missed_trip = 0;
+                                }
+
+                                $found = true;
+                                break ;
+                            }
+                        }
+                        if(!$found){
+                            $allTrip->trip_planned = 0;
+                            $allTrip->km_planned = 0;
+                            $allTrip->missed_trip = 0;
+                        }
+                        
+                        //Cash
+                        $fareTypeCash = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as cash
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 0;");
+
+                        foreach($fareTypeCash as $key3 => $cashSum){
+                            $allTrip->cash_collection = $cashSum->cash;
+                        }
+
+                        //TNG
+                        $fareTypeTNG = DB::select("SELECT IFNULL(SUM(tc.actual_amount), 0.00) as tng
+                        FROM mybas.trip_details
+                        JOIN mybas.ticket_sales_transaction as tc ON tc.trip_id = trip_details.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        and trip_details.route_id = " . $allTrip->route_id . "
+                        AND tc.fare_type = 1;");
+
+                        foreach($fareTypeTNG as $key4 => $tngSum){
+                            $allTrip->tng_collection = $tngSum->tng;
+                        }
+
+                        //Early Late
+                        $earlyLateCount = DB::select("SELECT count(trip_details.id) as countEarlyLate
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id =  " . $allTrip->route_id . "
+                        AND (TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '-00:05:00'
+                        OR TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '00:05:00')
+                        GROUP BY trip_details.id);");
+
+                        foreach($earlyLateCount as $key5 => $earlyLate){
+                            $allTrip->earlyLate = $earlyLate->countEarlyLate;
+                        }
+
+                        if($lastKey==$key){
+                            $grandTotal = new \stdClass;
+
+                            $grandTotal->bus_deployed = $allTrip->bus_deployed;
+                            $grandTotal->trip_served = $allTrip->trip_served;
+                            $grandTotal->km_served = $allTrip->km_served;
+                            $grandTotal->travel_claim = $allTrip->travel_claim;
+                            $grandTotal->ridership = $allTrip->ridership;
+                            $grandTotal->cash_collection = $allTrip->cash_collection;
+                            $grandTotal->tng_collection = $allTrip->tng_collection;
+                            $grandTotal->earlyLate = $allTrip->earlyLate;
+                            $grandTotal->trip_planned = $allTrip->trip_planned;
+                            $grandTotal->km_planned = $allTrip->km_planned;
+                            $grandTotal->missed_trip = $allTrip->missed_trip;
+
+                            $grandTotServed[] = $grandTotal;
+
+                            $newKey = $key + $count+1;
+                            $out->writeln("last newKey: " . $newKey);
+                            array_splice($allTrips, $newKey, 0, $grandTotServed);
+                        }
+                    }
+                }
+            }
+            return Excel::download(new SPADSummaryByNetwork($allTrips, $validatedData['dateFrom'], $validatedData['dateTo'], $networkArea), 'Summary_By_Network_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+    }
+
+    //FAST
+    public function printISBSFFailed()
+    {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN printISBSF()");
+
+        $validatedData = Validator::make($this->state,[
+            'dateFrom' => ['required', 'date'],
+            'dateTo' => ['required', 'date'],
+            'route_id' => ['required'],
+        ])->validate();
+
+        $dateFrom = new Carbon($validatedData['dateFrom']);
+        $dateTo = new Carbon($validatedData['dateTo'] . " 23:59:59");
+
+        $startDate = new Carbon($validatedData['dateFrom']);
+        $endDate = new Carbon($validatedData['dateTo'] . " 23:59:59");
+        $all_dates = array();
+        $days = array();
+
+        while ($startDate->lte($endDate)){
+            $all_dates[] = $startDate->toDateString();
+            $days[] = $startDate->day;
+            $startDate->addDay();
+        }
+
+        $isbsfSPAD = collect();
+        $colspan = count($all_dates) + 3;
+        $monthName = $dateFrom->format('M Y');
+        if ($this->selectedCompany){
+            if($this->selectedCompany=='All'){
+                $networkArea = 'All';
+                //ISBSF all route all company
+                if($validatedData['route_id']=='All'){
+
+                    $allRoutes = Route::where('status', 1)->orderBy('route_number')->get();
+                    $allTrips = [];
+                    foreach($allRoutes as $key => $allRoute){
+
+                        //Completed Trip IBOB
+                        $servedTrips = DB::select("SELECT  trip_code, route.route_number, route.route_name, cast(trip_details.start_trip as date) as service_date,
+                        (case when (count(trip_details.id) = 0) THEN 0 ELSE count(trip_details.id) END) as trip_served, 
+                        SUM(trip_details.total_mileage) as km_served,
+                        SUM(total_adult_amount) + SUM(total_concession_amount) AS farebox, 
+                        SUM(total_adult) + SUM(total_concession) AS ridership
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route_number, service_date, trip_code
+                        ORDER BY route_number, service_date, trip_code; ");
+
+                        //Planned Trip
+                        $plannedTrips = DB::select("SELECT route.route_number, route.route_name,
+                        cast(route_scheduler_details.schedule_date as date) as planned_date,
+                        count(route_scheduler_details.id) as trip_planned
+                        FROM mybas.route
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.route_id = route.id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE route_scheduler_details.schedule_date BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route_number, planned_date
+                        ORDER BY route_number, planned_date;");
+
+                        //Bus Deployed
+                        $deployedBuses = DB::select("SELECT route.route_number, route.route_name, cast(trip_details.start_trip as date) as service_date,
+                        COUNT(DISTINCT(trip_details.bus_id)) as bus_deployed
+                        FROM mybas.trip_details
+                        JOIN mybas.route ON route.id = trip_details.route_id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND route.id = " . $allRoute->id . "
+                        GROUP BY route_number, service_date
+                        ORDER BY route_number, service_date;");
+
+                        //Trip Ontime
+                        $ontimeTrips = DB::select("SELECT count(trip_details.id) as countOntime
+                        FROM trip_details
+                        WHERE trip_details.id IN ( 
+                        SELECT trip_details.id
+                        FROM mybas.trip_details
+                        JOIN mybas.route_scheduler_mstr ON route_scheduler_mstr.id = trip_details.route_schedule_mstr_id
+                        JOIN mybas.route_scheduler_details ON route_scheduler_details.route_scheduler_mstr_id = route_scheduler_mstr.id
+                        WHERE trip_details.start_trip BETWEEN '" . $dateFrom . "' AND '" . $dateTo . "'
+                        AND trip_details.route_id = " . $allRoute->id . "
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) > '-00:05:00'
+                        AND TIMEDIFF(route_scheduler_mstr.schedule_start_time, cast(trip_details.start_trip as TIME)) < '00:05:00'
+                        GROUP BY trip_details.id);");
+
+                        $planned_trip = new \stdClass;
+                        $trip_ib = new \stdClass;
+                        $trip_ob = new \stdClass;
+                        $total_trip = new \stdClass;
+                        $trip_compliance = new \stdClass;
+                        $planned_trip = new \stdClass;
+                        $off_route = new \stdClass;
+                        $route_compliance = new \stdClass;
+                        $km_ib = new \stdClass;
+                        $km_ob = new \stdClass;
+                        $tot_km_ib = new \stdClass;
+                        $tot_km_ob = new \stdClass;
+                        $tot_km = new \stdClass;
+                        $currDate = "";
+                        $i=0;
+                        $totTripPlanned = 0;
+                        $routeArr = [];
+                        $plannedTripArr = [];
+
+                        $route = new \stdClass;
+                        $route->route_name = $allRoute->route_number . " " . $allRoute->route_name;
+                        $routeArr[] = $route;
+                        $allTrips = array_merge($allTrips, $routeArr);
+                        
+                        foreach($plannedTrips as $key => $plannedTrip){
+                            $name = "planned_trip_" . $i;
+                            $planned_trip->$name = $plannedTrip->trip_planned;
+                            $i++;
+                            $totTripPlanned += $plannedTrip->trip_planned;
+                        }
+                        $name = "planned_trip_" . $i;
+                        $planned_trip->$name = $totTripPlanned;
+                        $plannedTripArr[] = $planned_trip;
+                        $allTrips = array_merge($allTrips, $plannedTripArr);
+
+                        $i=0;
+                        $o=0;
+                        $c=0;
+                        $kmi=0;
+                        $kmo=0;
+                        $totTripInbound = 0;
+                        $totTripOutbound = 0;
+                        $totTripCompleted = 0;
+                        $totKMInbound = 0;
+                        $totKMOutbound = 0;
+                        $totalKMInbound = 0;
+                        $totalKMOutbound = 0;
+                        $totKMCompleted =0;
+                        $inboundTripArr = [];
+                        $outboundTripArr = [];
+                        $completedTripArr = [];
+                        $nameCompleted = "completed_trip_" . $c;
+                        $kmCompleted = "completed_km_" . $c;
+                        $nameIB = "inbound_trip_" . $i;
+                        $nameKMI = "inbound_km_" . $i;
+                        $totKMI = "tot_inbound_km_" . $i;
+                        $nameOB = "outbound_trip_" . $o;
+                        $nameKMO = "inbound_km_" . $o;
+                        $totKMO = "tot_inbound_km_" . $o;
+                        $lastKey = array_key_last($servedTrips);
+                        $pastDate = NULL;
+                        foreach($servedTrips as $key => $servedTrip){
+                            if($servedTrip->service_date != $pastDate && $pastDate != NULL){
+                                $completed_trip->$nameCompleted = $pastTripIB + $pastTripOB;
+                                $totTripCompleted += $completed_trip->$nameCompleted;
+
+                                $tot_km->$kmCompleted = $pastKMIB + $pastKMOB;
+                                $totKMCompleted += $tot_km->$kmCompleted;
+                                $c++;
+                            }
+
+                            if($servedTrip->trip_code == 1 ){
+                                $inbound_trip->$nameIB = $servedTrip->trip_served;
+                                $totTripInbound += $servedTrip->trip_served;
+
+                                $km_ib->$nameKMI = $allRoute->inbound_distance;
+                                $totKMInbound += $allRoute->inbound_distance;
+
+                                $tot_km_ib->$totKMI = $servedTrip->trip_served * $allRoute->inbound_distance;
+                                $totalKMInbound += $servedTrip->trip_served * $allRoute->inbound_distance;
+
+                                $i++;
+                                $pastTripIB = $servedTrip->trip_served;
+                                $pastKMIB = $tot_km_ib->$totKMI;
+                            }
+
+                            if($servedTrip->trip_code == 0){
+                                $outbound_trip->$nameOB = $servedTrip->trip_served;
+                                $totTripOutbound += $servedTrip->trip_served;
+
+                                $km_ob->$nameKMO = $allRoute->outbound_distance;
+                                $totKMOutbound += $allRoute->outbound_distance;
+
+                                $tot_km_ob->$totKMO = $servedTrip->trip_served * $allRoute->outbound_distance;
+                                $totalKMOutbound += $servedTrip->trip_served * $allRoute->outbound_distance;
+                               
+                                $o++;
+                                $pastTripOB = $servedTrip->trip_served;
+                                $pastKMOB = $tot_km_ob->$totKMI;
+                            }
+                            $pastDate = $servedTrip->service_date;
+
+                            if($lastKey==$key){
+                                $completed_trip->$nameCompleted = $pastTripIB + $pastTripOB;
+                                $totTripCompleted += $completed_trip->$nameCompleted;
+
+                                $tot_km->$kmCompleted = $pastKMIB + $pastKMOB;
+                                $totKMCompleted += $tot_km->$kmCompleted;
+                                $c++;
+                            }
+                        }
+                        $inbound_trip->$nameIB = $totTripInbound;
+                        $inboundTripArr[] = $inbound_trip;
+                        $allTrips = array_merge($allTrips, $inboundTripArr);
+
+                        $km_ib->$nameKMI = $totKMInbound;
+                        $inboundKMArr[] = $km_ib;
+                        $allTrips = array_merge($allTrips, $inboundKMArr);
+
+                        $tot_km_ib->$totKMI = $totalKMInbound;
+                        $totInboundKMArr[] = $tot_km_ib;
+                        $allTrips = array_merge($allTrips, $totInboundKMArr);
+
+                        $outbound_trip->$nameOB = $totTripOutbound;
+                        $outboundTripArr[] = $outbound_trip;
+                        $allTrips = array_merge($allTrips, $outboundTripArr);
+
+                        $km_ob->$nameKMO = $totKMOutbound;
+                        $outboundKMArr[] = $km_ob;
+                        $allTrips = array_merge($allTrips, $outboundKMArr);
+
+                        $tot_km_ob->$totKMO = $totalKMOutbound;
+                        $totOutboundKMArr[] = $tot_km_ob;
+                        $allTrips = array_merge($allTrips, $totOutboundKMArr);
+
+                        $completed_trip->$nameCompleted = $totTripCompleted;
+                        $tripCompletedArr[] = $completed_trip;
+                        $allTrips = array_merge($allTrips, $tripCompletedArr);
+
+                        $tot_km->$kmCompleted = $totKMCompleted;
+                        $kmCompletedArr[] = $tot_km;
+                        $allTrips = array_merge($allTrips, $kmCompletedArr);
+                        dd($allTrips);
+                    }
+                    dd($allTrips);
+                }
+            }
+            else{
+                $companyDetails = Company::where('id', $this->selectedCompany)->first();
+                $networkArea = $companyDetails->company_name;
+
+                //ISBSF all route all company
+                if($validatedData['route_id']=='All'){
+
+                }
+                else{
+
+                }
+            }
+            return Excel::download(new SPADIsbsf($isbsfSPAD, $validatedData['dateFrom'], $validatedData['dateTo'], $colspan, $all_dates, $monthName, $days, $networkArea), 'ISBSF_Report_SPAD_'.Carbon::now()->format('YmdHis').'.xlsx');
+        }else{
+            $this->dispatchBrowserEvent('company-required');
+        }
+
     }
 
     public function printISBSF()
@@ -11794,7 +17620,7 @@ class ReportSpad extends Component
                                 //Number of Bus
                                 $numBus = TripDetail::whereBetween('start_trip',[$firstDate,$lastDate])
                                     ->where('route_id', $allRoute->id)
-                                    ->groupBy('bus_id')
+                                    ->distinct('bus_id')
                                     ->count();
                                 $numBusArr[$all_date] = $numBus;
                                 $finalNumBus += $numBus;
@@ -12021,7 +17847,7 @@ class ReportSpad extends Component
                                 //Number of Bus
                                 $numBus = TripDetail::whereBetween('start_trip',[$firstDate,$lastDate])
                                     ->where('route_id',  $routeByCompany->id)
-                                    ->groupBy('bus_id')
+                                    ->distinct('bus_id')
                                     ->count();
                                 $numBusArr[$all_date] = $numBus;
                                 $finalNumBus += $numBus;
@@ -12242,7 +18068,7 @@ class ReportSpad extends Component
                             //Number of Bus
                             $numBus = TripDetail::whereBetween('start_trip',[$firstDate,$lastDate])
                                 ->where('route_id',  $validatedRoute->id)
-                                ->groupBy('bus_id')
+                                ->distinct('bus_id')
                                 ->count();
                             $numBusArr[$all_date] = $numBus;
                             $finalNumBus += $numBus;
@@ -12310,6 +18136,7 @@ class ReportSpad extends Component
         }
     }
 
+
     public function printTripMissed()
     {
         $out = new ConsoleOutput();
@@ -12347,6 +18174,12 @@ class ReportSpad extends Component
                             $totalTripMissedIn = 0;
                             $totalTripMissedOut = 0;
                             $trip_data = [];
+
+                            if($allRoute->company_id==29){
+                                $charge = 3.42;
+                            }else{
+                                $charge = 1.33;
+                            }
             
                             foreach($all_dates as $all_date) {
                                 $firstDate = new Carbon($all_date);
@@ -12370,8 +18203,7 @@ class ReportSpad extends Component
                                     ->whereBetween('start_trip', [$firstDate, $lastDate])
                                     ->where('trip_code', 0)
                                     ->get();
-            
-                                    
+
                                 if(count($tripPlanned) > 0){
                                     foreach ($tripPlanned as $tripPlan) {
                                         if ($tripPlan->RouteScheduleMSTR->route_id == $allRoute->id) {
@@ -12399,7 +18231,7 @@ class ReportSpad extends Component
                                                     $notServedIn['bus_reg_no'] = 'NO DATA';
                                                     $notServedIn['bus_age'] = 'NO DATA';
                                                 }
-                                                $notServedIn['km_rate'] = 1.33;
+                                                $notServedIn['km_rate'] = $charge;
                                                 $tripIn[$countTripMissedIn] = $notServedIn;
                                             }
             
@@ -12424,7 +18256,7 @@ class ReportSpad extends Component
                                                     $notServedOut['bus_reg_no'] = 'NO DATA';
                                                     $notServedOut['bus_age'] = 'NO DATA';
                                                 }
-                                                $notServedOut['km_rate'] = 1.33;
+                                                $notServedOut['km_rate'] = $charge;
                                                 $tripOut[$countTripMissedOut] = $notServedOut;
                                             }
                                         }
@@ -12486,6 +18318,11 @@ class ReportSpad extends Component
             }else{
                 $companyDetails = Company::where('id', $this->selectedCompany)->first();
                 $networkArea = $companyDetails->company_name;
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
                 if(!empty($validatedData['route_id'])) {
                     //TripMissed all route for specific company
                     if($validatedData['route_id']=='All'){
@@ -12518,7 +18355,7 @@ class ReportSpad extends Component
                                     ->whereBetween('start_trip', [$firstDate,$lastDate])
                                     ->where('trip_code',0)
                                     ->get();
-        
+    
                                 if(count($tripPlanned)>0) {
                                     foreach ($tripPlanned as $tripPlan) {
                                         $out->writeln("YOU ARE IN triPlanned loop" . $validatedData['dateFrom']);
@@ -12546,7 +18383,7 @@ class ReportSpad extends Component
                                                     $notServedIn['bus_reg_no'] = 'NO DATA';
                                                     $notServedIn['bus_age'] = 'NO DATA';
                                                 }
-                                                $notServedIn['km_rate'] = 1.33;
+                                                $notServedIn['km_rate'] = $charge;
         
                                                 $tripIn[$countTripMissedIn] = $notServedIn;
                                             }
@@ -12571,7 +18408,7 @@ class ReportSpad extends Component
                                                     $notServedOut['bus_reg_no'] = 'NO DATA';
                                                     $notServedOut['bus_age'] = 'NO DATA';
                                                 }
-                                                $notServedOut['km_rate'] = 1.33;
+                                                $notServedOut['km_rate'] = $charge;
         
                                                 $tripOut[$countTripMissedOut] = $notServedOut;
                                             }
@@ -12688,7 +18525,7 @@ class ReportSpad extends Component
                                                 $notServedIn['bus_reg_no'] = 'NO DATA';
                                                 $notServedIn['bus_age'] = 'NO DATA';
                                             }
-                                            $notServedIn['km_rate'] = 1.33;
+                                            $notServedIn['km_rate'] = $charge;
                                             $tripIn[$countTripMissedIn] = $notServedIn;
                                         }
         
@@ -12712,7 +18549,7 @@ class ReportSpad extends Component
                                                 $notServedOut['bus_reg_no'] = 'NO DATA';
                                                 $notServedOut['bus_age'] = 'NO DATA';
                                             }
-                                            $notServedOut['km_rate'] = 1.33;
+                                            $notServedOut['km_rate'] = $charge;
                                             $tripOut[$countTripMissedOut] = $notServedOut;
                                         }
                                     }
@@ -12809,6 +18646,11 @@ class ReportSpad extends Component
                             $totalTripPlannedIn = 0;
                             $totalTripPlannedOut = 0;
                             $trip_data = [];
+                            if($allRoute->company_id==29){
+                                $charge = 3.42;
+                            }else{
+                                $charge = 1.33;
+                            }
             
                             foreach($all_dates as $all_date) {
                                 $firstDate = new Carbon($all_date);
@@ -12832,7 +18674,7 @@ class ReportSpad extends Component
                                     ->whereBetween('start_trip', [$firstDate, $lastDate])
                                     ->where('trip_code', 0)
                                     ->get();
-            
+
                                 if (count($schedules) > 0) {
                                     foreach ($schedules as $schedule) {
                                         if ($schedule->RouteScheduleMSTR->route_id == $allRoute->id) {
@@ -12853,7 +18695,7 @@ class ReportSpad extends Component
                                                     $plannedIn['bus_reg_no'] = 'NO DATA';
                                                     $plannedIn['bus_age'] = 'NO DATA';
                                                 }
-                                                $plannedIn['km_rate'] = 1.33;
+                                                $plannedIn['km_rate'] = $charge;
                 
                                                 if (count($allInboundTrips) > 0) {
                                                     foreach ($allInboundTrips as $allInboundTrip) {
@@ -12883,7 +18725,7 @@ class ReportSpad extends Component
                                                     $plannedOut['bus_reg_no'] = 'NO DATA';
                                                     $plannedOut['bus_age'] = 'NO DATA';
                                                 }
-                                                $plannedOut['km_rate'] = 1.33;
+                                                $plannedOut['km_rate'] = $charge;
                 
                                                 if (count($allOutboundTrips) > 0) {
                                                     foreach ($allOutboundTrips as $allOutboundTrip) {
@@ -12956,7 +18798,12 @@ class ReportSpad extends Component
             }else{
                 $companyDetails = Company::where('id', $this->selectedCompany)->first();
                 $networkArea = $companyDetails->company_name;
-    
+                if($companyDetails->id==29){
+                    $charge = 3.42;
+                }else{
+                    $charge = 1.33;
+                }
+
                 if(!empty($validatedData['route_id'])) {
                     //TripPlanned all route for specific company
                     if($validatedData['route_id']=='All'){
@@ -13011,7 +18858,7 @@ class ReportSpad extends Component
                                                     $plannedIn['bus_reg_no'] = 'NO DATA';
                                                     $plannedIn['bus_age'] = 'NO DATA';
                                                 }
-                                                $plannedIn['km_rate'] = 1.33;
+                                                $plannedIn['km_rate'] = $charge;
             
                                                 if (count($allInboundTrips) > 0) {
                                                     foreach ($allInboundTrips as $allInboundTrip) {
@@ -13041,7 +18888,7 @@ class ReportSpad extends Component
                                                     $plannedOut['bus_reg_no'] = 'NO DATA';
                                                     $plannedOut['bus_age'] = 'NO DATA';
                                                 }
-                                                $plannedOut['km_rate'] = 1.33;
+                                                $plannedOut['km_rate'] = $charge;
             
                                                 if (count($allOutboundTrips) > 0) {
                                                     foreach ($allOutboundTrips as $allOutboundTrip) {
@@ -13118,6 +18965,7 @@ class ReportSpad extends Component
                         $totalTripPlannedIn = 0;
                         $totalTripPlannedOut = 0;
                         $trip_data = [];
+                        
         
                         foreach($all_dates as $all_date) {
                             $firstDate = new Carbon($all_date);
@@ -13162,7 +19010,7 @@ class ReportSpad extends Component
                                                 $plannedIn['bus_reg_no'] = 'NO DATA';
                                                 $plannedIn['bus_age'] = 'NO DATA';
                                             }
-                                            $plannedIn['km_rate'] = 1.33;
+                                            $plannedIn['km_rate'] = $charge;
             
                                             foreach ($allInboundTrips as $allInboundTrip) {
                                                 if ($schedule->RouteScheduleMSTR->id == $allInboundTrip->route_schedule_mstr_id) {
@@ -13189,7 +19037,7 @@ class ReportSpad extends Component
                                                 $plannedOut['bus_reg_no'] = 'NO DATA';
                                                 $plannedOut['bus_age'] = 'NO DATA';
                                             }
-                                            $plannedOut['km_rate'] = 1.33;
+                                            $plannedOut['km_rate'] = $charge;
             
                                             foreach ($allOutboundTrips as $allOutboundTrip) {
                                                 if ($schedule->RouteScheduleMSTR->id == $allOutboundTrip->route_schedule_mstr_id) {

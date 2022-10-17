@@ -58,40 +58,83 @@ class VehiclePositionController extends Controller
 
     public function viewSummary()
     {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN viewSummary())");
+
         $currentDate = Carbon::now();
 
         $join = DB::table('vehicle_position')
-                ->select('bus_id', DB::raw('MAX(id) as last_id'))
-                ->groupBy('bus_id');
+            ->select('bus_id', DB::raw('MAX(id) as last_id'))
+            ->groupBy('bus_id');
+
+        $out->writeln("After join SQL");
 
         $allBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
+        $out->writeln("After allBus SQL");
+
         $onlineBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) < '00:10:00'")
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
+        $out->writeln("After onlineBus SQL");
+
         $stationaryBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) >=  '00:10:00'")
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
+        $out->writeln("After stationaryBus SQL");
+
         $offlineBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) >=  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
+            
+        $out->writeln("After offline Bus SQL");
+        // $onlineBus = DB::table('vehicle_position as a')
+        //     ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) < '00:10:00'")
+        //     ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+        //     ->joinSub($join, 'b', function ($join) {
+        //         $join->on('a.id', '=', 'b.last_id');
+        //     })
+        //     ->count();
+
+        // $stationaryBus = DB::table('vehicle_position as a')
+        //     ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) >=  '00:10:00'")
+        //     ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
+        //     ->joinSub($join, 'b', function ($join) {
+        //         $join->on('a.id', '=', 'b.last_id');
+        //     })
+        //     ->count();
+
+        // $offlineBus = DB::table('vehicle_position as a')
+        //     ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) >=  1")
+        //     ->joinSub($join, 'b', function ($join) {
+        //         $join->on('a.id', '=', 'b.last_id');
+        //     })
+        //     ->count();
 
         return view('gps.summary', compact('allBus','onlineBus','stationaryBus','offlineBus'));
     }

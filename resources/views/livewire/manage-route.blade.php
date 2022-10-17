@@ -34,6 +34,9 @@
                     <th class="border-gray-200">{{ __('Route Name') }}</th>
                     <th class="border-gray-200">{{ __('Inbound Distance (KM)') }}</th>
                     <th class="border-gray-200">{{ __('Outbound Distance (KM)') }}</th>
+                    <th class="border-gray-200">{{ __('Updated At') }}</th>
+                    <th class="border-gray-200">{{ __('Updated By') }}</th>
+                    <th class="border-gray-200">{{ __('Status') }}</th>
                     <th class="border-gray-200">{{ __('Route Map') }}</th>
                     <th class="border-gray-200">Action</th>
                 </tr>
@@ -45,6 +48,18 @@
                         <td><span class="fw-normal">{{ $route->route_name }}</span></td>
                         <td><span class="fw-normal">{{ $route->inbound_distance }}</span></td>
                         <td><span class="fw-normal">{{ $route->outbound_distance }}</span></td>
+                        @if ($route->updated_at != NULL && $route->updated_by != NULL)
+                            <td><span class="fw-normal">{{ $route->updated_at}}</span></td>
+                            <td><span class="fw-normal">{{ $route->UpdatedBy->username}}</span></td>
+                        @else
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                            <td style="text-align:center"><span class="fw-normal"> - </span></td>
+                        @endif
+                        @if ($route->status==1)
+                            <td><span class="badge bg-success">ACTIVE</span></td>
+                        @else
+                            <td><span class="badge bg-danger">INACTIVE</span></td>
+                        @endif
                         @php
                             $result = false;
                         @endphp
@@ -60,7 +75,7 @@
                             <td>
                                 <!-- Button for preview stage map-->
                                 <button onclick="window.location='{{ route('viewRouteMap', $route->id) }}'" class="btn btn-success">View</button>
-                                {{-- <button wire:click.prevent="confirmRemovalMap({{ $route->id }})"  class="btn btn-danger">Remove</button> --}}
+                                <button wire:click.prevent="confirmRemovalMap({{ $route->id }})"  class="btn btn-danger">Remove</button>
                             </td>
                         @else
                             <td>

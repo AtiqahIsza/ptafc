@@ -20,13 +20,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use function Illuminate\Events\queueable;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SPADClaimDetails;
 
 class DataController extends Controller
 {
+
     public function loadTripData(Request $request)
     {
-        $out = new ConsoleOutput();
-        $out->writeln("YOU ARE IN  loadTripData");
+        //$out = new ConsoleOutput();
+        //$out->writeln("YOU ARE IN  loadTripData");
 
         //dd($request->all());
         $validator = Validator::make($request->all(), [
@@ -45,6 +48,7 @@ class DataController extends Controller
         $index = 0;
         $saved = 0;
         $existed = 0;
+        $path = $data->storeAs('trips', $data->getClientOriginalName());;
         foreach ($reads as $read) {
             $parse = str_getcsv($read, ',');
             $newTrip = new TripDetail();
@@ -96,25 +100,19 @@ class DataController extends Controller
                 $existed++;
             }
         }
-        if($saved>0){
-            $path = $data->storeAs('trips', $data->getClientOriginalName());;
+        if($saved>0 || $existed>0){
             return response()->json([
                 'success' => true,
                 'saved' => $saved . ' data saved',
                 'existed' => $existed . ' data already existed',
             ]);
-        }elseif($saved==0 && $existed>0){
+        }else{
             return response()->json([
-                'success' => true,
-                'saved' => $saved . ' data saved',
-                'existed' => $existed . ' data already existed',
+                'success' => false,
+                'saved' => 'Failed to save trip data',
+                'existed' => false,
             ]);
         }
-        return response()->json([
-            'success' => false,
-            'saved' => 'Failed to save ticket data',
-            'existed' => false,
-        ]);
     }
 
     public function loadTicketSalesData(Request $request)
@@ -141,6 +139,10 @@ class DataController extends Controller
         $concessionAmount = 0;
         $prevTripNumber = NULL; 
         $dataPerTrip = [];
+
+        //save ticket file in storage
+        $path = $data->storeAs('tickets', $data->getClientOriginalName());;
+
         foreach ($reads as $read) {
             $parse = str_getcsv($read, ',');
             $newTicket = new TicketSalesTransaction();
@@ -235,9 +237,6 @@ class DataController extends Controller
 
         $recalcSave = 0;
         if($saved>0){
-             //save ticket file in storage
-             $path = $data->storeAs('tickets', $data->getClientOriginalName());;
-
             //save total adult/concession count/amount
             if(count($dataPerTrip)>0){
                 foreach($dataPerTrip as $key => $value){
@@ -258,7 +257,6 @@ class DataController extends Controller
                     }
                 }
             }
-
             return response()->json([
                 'success' => true,
                 'saved' => $saved . ' data saved',

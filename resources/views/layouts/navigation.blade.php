@@ -149,14 +149,14 @@
                         <span class="sidebar-text">View Cards</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('manageVouchers') }}" class="nav-link {{ request()->routeIs('manageVouchers') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
                         <span class="sidebar-text">Manage Vouchers</span>
                     </a>
-                </li>
+                </li> --}}
             </ul>
         </div>
     </li>
@@ -232,14 +232,14 @@
                         <span class="sidebar-text">Daily Summary Report</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                {{-- <li class="nav-item">
                     <a href="{{ route('viewAverageSummary') }}" class="nav-link {{ request()->routeIs('viewAverageSummary') ? 'active' : '' }}">
                         <span class="sidebar-icon">
                             <i class="fas fa-circle"></i>
                         </span>
                         <span class="sidebar-text">Average Summary Report</span>
                     </a>
-                </li>
+                </li> --}}
                 <li class="nav-item">
                     <a href="{{ route('viewReportSPAD') }}" class="nav-link  {{ request()->routeIs('viewReportSPAD') ? 'active' : '' }}">
                         <span class="sidebar-icon">

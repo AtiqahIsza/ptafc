@@ -14,6 +14,8 @@ use App\Models\TicketSalesTransaction;
 use App\Models\BusStand;
 use App\Models\Stage;
 use App\Models\PDAProfile;
+use App\Models\VehiclePosition;
+
 class CheckTripTicketOpt extends Command
 {
     /**
@@ -49,7 +51,7 @@ class CheckTripTicketOpt extends Command
     {
         //$yesterdayDate = Carbon::yesterday()->format('Y-m-d');
         //$yesterdayDate = Carbon::now()->format('Y-m-d');
-        $afterDate = Carbon::create('2022-07-01')->format('Y-m-d');
+        $afterDate = Carbon::create('2022-08-01')->format('Y-m-d');
 
         //Check Trip Files
         $tripFiles = Storage::allFiles('trips');
@@ -59,8 +61,8 @@ class CheckTripTicketOpt extends Command
                 $date_modified = date('Y-m-d', $modified);
 
                 if($date_modified >= $afterDate){
-                //if($yesterdayDate>=$date_modified){
-                    $this->info("Checking after 2022-07-01 's trip files...");
+                    $this->info("Checking after 2022-08-01's trip files...");
+                    $this->info("File: " . $tripFile . " Date Modified: ". $date_modified);
                     $path = Storage::path($tripFile);
                     $reads = file($path);
                     foreach ($reads as $read) {
@@ -123,8 +125,8 @@ class CheckTripTicketOpt extends Command
                 $date_modified = date('Y-m-d', $modified);
 
                 if($date_modified >= $afterDate){
-                //if($yesterdayDate==$date_modified){
-                    $this->info("Checking after 2022-07-01 's tickets files...");
+                    $this->info("Checking after 2022-08-01's tickets files...");
+                    $this->info("File: " . $ticketFile . " Date Modified: ". $date_modified);
                     $path = Storage::path($ticketFile);
                     $reads = file($path);
                     $adultCount = 0;
@@ -251,5 +253,50 @@ class CheckTripTicketOpt extends Command
                 }
             }
          }
+    }
+
+    public function calcTotMileageFirstLast()
+    {
+        $allTrips = TripDetail::whereBetween('start_trip', ['2022-07-31 00:00:00', '2022-07-31 23:59:59'])
+        ->orderBy('start_trip')->get();
+
+        foreach($allTrips as $allTrip)
+        {
+            $this->info("Iterate each trip...");
+
+            if($allTrip->total_mileage==0){
+                $this->info("Trip ID: " . $allTrip->trip_number);
+
+                $allLoc = VehiclePosition::where('trip_id', $allTrip->trip_number)->orderBy('id','ASC')->first();
+
+                $firstLoc = VehiclePosition::where('trip_id', $allTrip->trip_number)->orderBy('id','ASC')->first();
+                $lastLoc = VehiclePosition::where('trip_id', $allTrip->trip_number)->orderBy('id','DESC')->first();
+
+                if($firstLoc != NULL && $lastLoc != NULL){
+                    $firstLong = $firstLoc->longitude;
+                    $lastLong = $lastLoc->longitude;
+                    $firstLat = $firstLoc->latitude;
+                    $lastLat = $lastLoc->latitude;
+    
+                    $theta = $firstLong - $lastLong;
+                    // $dist = sin(deg2rad($firstLat)) * sin(deg2rad($lastLat)) +  cos(deg2rad($firstLat)) * cos(deg2rad($lastLat)) * cos(deg2rad($theta)); 
+                    // $dist = acos($dist); 
+                    // $dist = rad2deg($dist); 
+                    // $miles = $dist * 60 * 1.1515;
+                    //$unit = strtoupper($unit);
+    
+                    $calc = 6371 * acos( cos( deg2rad($firstLat) ) 
+                    * cos( deg2rad( $lastLat ) ) 
+                    * cos( deg2rad( $theta) ) + sin( deg2rad($firstLat) ) 
+                    * sin( deg2rad( $lastLat ) ) );
+    
+                    $this->info("Calculated distance: " . $calc);
+                }else{
+                    $this->info("NO GPS TRACKING");
+                }
+            }
+        }
+        $this->info("END OF LOOP...");
+
     }
 }

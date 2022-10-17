@@ -399,6 +399,7 @@ class HomeController extends Controller
             return $this->returnResponse (2, $error, 'Error Encountered. See Log');
         }
     }
+
     public function getTotalTrips()
     {
         $out = new ConsoleOutput();
@@ -610,7 +611,7 @@ class HomeController extends Controller
             if($grandFareboxPrev==0 && $grandFarebox>0){
                 $increaseFareboxFormat = 100;
             }elseif($grandFareboxPrev==0 && $grandFarebox==0){
-                $increaseRidershipFormat = 0;
+                $increaseFareboxFormat = 0;
             }else{
                 $increaseFarebox = (($grandFarebox - $grandFareboxPrev) / $grandFareboxPrev) * 100/100;
                 $increaseFareboxFormat = number_format((float)$increaseFarebox, 2, '.', '');
@@ -711,36 +712,44 @@ class HomeController extends Controller
         $currentDate = Carbon::now();
 
         $join = DB::table('vehicle_position')
-                ->select('bus_id', DB::raw('MAX(id) as last_id'))
-                ->groupBy('bus_id');
+            ->select('bus_id', DB::raw('MAX(id) as last_id'))
+            ->groupBy('bus_id');
 
         $allBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
         $onlineBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) < '00:10:00'")
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
         $stationaryBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("TIMEDIFF(" . " '$currentDate' " . ", a.date_time) >=  '00:10:00'")
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) <  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
         $offlineBus = DB::table('vehicle_position as a')
+            ->join('bus as c', 'a.bus_id', '=', 'c.id')
             ->whereRaw("DATEDIFF(" . " '$currentDate' " . ", a.date_time) >=  1")
             ->joinSub($join, 'b', function ($join) {
                 $join->on('a.id', '=', 'b.last_id');
             })
+            ->where('c.status', 1)
             ->count();
 
         $collectionVehicle = [

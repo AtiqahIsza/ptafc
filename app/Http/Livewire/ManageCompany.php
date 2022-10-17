@@ -27,21 +27,22 @@ class ManageCompany extends Component
 
     public function render()
     {
-        $this->regions = RegionCode::all();
+        $this->companies = Company::orderBy('company_name')->get();
         return view('livewire.manage-company');
     }
 
-    public function updatedSelectedRegion($region)
-    {
-        if (!is_null($region)) {
-            $this->companies = Company::where('region_id', $region)->get();
-        }
-    }
+    // public function updatedSelectedRegion($region)
+    // {
+    //     if (!is_null($region)) {
+    //         $this->companies = Company::where('region_id', $region)->orderBy('company_name')->get();
+    //     }
+    // }
 
     public function edit(Company $company)
     {
         $this->showEditModal = true;
-        $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+        $this->companies = Company::orderBy('company_name')->get();
+        $this->regions = RegionCode::orderBy('description')->get();
         $this->editedCompanies = $company;
         $this->state = $company->toArray();
         $this->dispatchBrowserEvent('show-form');
@@ -58,13 +59,14 @@ class ManageCompany extends Component
             'postcode' => ['required','regex:/\b\d{5}\b/'],
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
-            'minimum_balance' => ['required', 'between:0,99.99'],
+            // 'minimum_balance' => ['required', 'between:0,99.99'],
         ])->validate();
 
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editedCompanies->update($validatedData);
 
         if($success){
-            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->companies = Company::orderBy('company_name')->get();
             $this->dispatchBrowserEvent('hide-form-edit');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -89,13 +91,15 @@ class ManageCompany extends Component
             'postcode' => ['required','regex:/\b\d{5}\b/'],
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
-            'minimum_balance' => ['required', 'between:0,99.99'],
+            // 'minimum_balance' => ['required', 'between:0,99.99'],
         ])->validate();
 
+        $validatedData['created_by'] = auth()->user()->id;
+        $validatedData['updated_by'] = auth()->user()->id;
         $create = Company::create($validatedData);
 
         if($create){
-            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->companies = Company::orderBy('company_name')->get();
             $this->dispatchBrowserEvent('hide-form-add');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -116,7 +120,7 @@ class ManageCompany extends Component
         $successRemove = $company ->delete();
 
         if($successRemove) {
-            $this->companies = Company::where('region_id', $this->selectedRegion)->get();
+            $this->companies = Company::orderBy('company_name')->get();
             $this->dispatchBrowserEvent('hide-delete-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');

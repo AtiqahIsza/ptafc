@@ -14,7 +14,8 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         Commands\RouteSchedulerDaily::class,
         Commands\CheckTripTicket::class,
-        Commands\CheckTripTicketOpt::class
+        Commands\CheckTripTicketOpt::class,
+        Commands\RemoveInactive::class
     ];
     /**
      * Define the application's command schedule.
@@ -24,12 +25,15 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
         $filePath = 'storage/logs/schedule.log';
-        $schedule->command('routeschedule:daily')->dailyAt('00:00')->appendOutputTo($filePath);
-        //$schedule->command('routeschedule:opt')->dailyAt('13:12')->appendOutputTo($filePath);
+        $schedule->command('removeinactive:ri')->dailyAt('00:00')->appendOutputTo($filePath);
+        $schedule->command('routeschedule:daily')->dailyAt('00:05')->appendOutputTo($filePath);
         $schedule->command('tripticks:check')->dailyAt('00:10')->appendOutputTo($filePath);
-        //$schedule->command('tripticksOpt:check')->dailyAt('10:22')->appendOutputTo($filePath);
+        $schedule->command('calcTotMileage:ctm')->dailyAt('02:00')->appendOutputTo($filePath);
+        
+        //optional
+        //$schedule->command('routeschedule:opt')->dailyAt('15:10')->appendOutputTo($filePath);
+        //$schedule->command('tripticksOpt:check')->dailyAt('10:55')->appendOutputTo($filePath);
         //$schedule->command('tripticks:check')->everyMinute()->appendOutputTo($filePath);
         //$schedule->command('routeschedule:daily')->everyMinute()->appendOutputTo($filePath);
         /**

@@ -11,7 +11,7 @@ class BusDriver extends Model
 
     protected $table = 'bus_driver';
 
-    public $timestamps = false;
+    //public $timestamps = false;
 
     protected $fillable = [
         'driver_name',
@@ -26,7 +26,9 @@ class BusDriver extends Model
         'sector_id',
         'route_id',
         'bus_id',
-        'wallet_balance'
+        'wallet_balance',
+        'updated_by',
+        'created_by'
     ];
 
     function Sector() {
@@ -47,5 +49,11 @@ class BusDriver extends Model
 
     function Company() {
         return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }

@@ -51,7 +51,10 @@ class ApiController extends Controller
             ]);
         }
 
-        $data = BusDriver::where('driver_number', $request->driver_number)->where('driver_role', 1)->first();
+        $data = BusDriver::where('driver_number', $request->driver_number)
+        ->where('status', 1)
+        ->where('driver_role', 1)
+        ->first();
 
         if ($data) {
             $match = Hash::check($request->driver_password, $data->driver_password);
@@ -100,7 +103,7 @@ class ApiController extends Controller
             ]);
         }
 
-       $data = BusDriver::where('company_id', $request->company_id)->get();
+       $data = BusDriver::where('company_id', $request->company_id)->where('status',1)->get();
 
         if($data){
             return response()->json([
@@ -129,7 +132,7 @@ class ApiController extends Controller
             ]);
         }
 
-        $data = Bus::where('company_id', $request->company_id)->get();
+        $data = Bus::where('company_id', $request->company_id)->where('status', 1)->get();
 
         if($data){
             return response()->json([
@@ -157,7 +160,7 @@ class ApiController extends Controller
             ]);
         }
 
-        $data = Route::where('company_id', $request->company_id)->get();
+        $data = Route::where('company_id', $request->company_id)->where('status', 1)->get();
 
         if($data){
             return response()->json([
@@ -336,12 +339,13 @@ class ApiController extends Controller
             ]);
         }
 
-        $routePerCompany = Route::where('company_id', $request->company_id)->get();
+        $routePerCompany = Route::where('company_id', $request->company_id)->where('status', 1)->get();
 
         $routeScheduleCollection = collect();
 
         foreach($routePerCompany as $route) {
-            $routeSchedules = RouteSchedulerMSTR::where('route_id', $route->id)->get();
+            $routeSchedules = RouteSchedulerMSTR::where('route_id', $route->id)
+            ->where('status',1)->get();
 
             if($routeSchedules) {
                 $data = $routeSchedules;
@@ -375,7 +379,7 @@ class ApiController extends Controller
 
         $checkCompany = Company::find($request->company_id);
         if($checkCompany){
-            $checkPDA= PDAProfile::where('imei', $request->imei)->first();
+            $checkPDA= PDAProfile::where('imei', $request->imei)->where('status', 1)->first();
             if($checkPDA){
                 $token = Str::random(60);
 
@@ -498,7 +502,7 @@ class ApiController extends Controller
             ]);
         }
 
-        $checkPDA= PDAProfile::where('imei', $request->imei)->first();
+        $checkPDA= PDAProfile::where('imei', $request->imei)->where('status', 1)->first();
         if($checkPDA){
             $checkPDA->app_version = $request->app_version;
             $checkPDA->save();

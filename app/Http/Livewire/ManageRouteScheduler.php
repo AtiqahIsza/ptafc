@@ -65,7 +65,7 @@ class ManageRouteScheduler extends Component
         if (!is_null($company)) {
             $this->selectedCompany = $company;
             $this->routes = Route::where('company_id', $company)
-                ->orderBy('route_name')
+                ->orderBy('route_number')
                 ->get();
         }
     }
@@ -73,7 +73,7 @@ class ManageRouteScheduler extends Component
     public function updatedSelectedRoute($route)
     {
         if (!is_null($route)) {
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $route)->orderBy('schedule_start_time')->get();
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $route)->orderBy('status')->orderBy('schedule_start_time')->get();
 
             //$this->emit('viewEvent', $route);
         }
@@ -89,7 +89,7 @@ class ManageRouteScheduler extends Component
 
     public function addNew()
     {
-        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
 
         $this->state = [];
         $this->showEditModal = false;
@@ -97,7 +97,7 @@ class ManageRouteScheduler extends Component
         $this->editedCompanies = Company::orderBy('company_name')->get();
         $this->editedRoutes = Route::orderBy('route_name')->get();
         $this->editedBuses = Bus::orderBy('bus_registration_number')->get();
-        $this->dispatchBrowserEvent('show-form');
+        $this->dispatchBrowserEvent('show-form-admin');
     }
 
     public function addRouteSchedule()
@@ -116,24 +116,35 @@ class ManageRouteScheduler extends Component
         ])->validate();
 
         //$validatedData['route_id'] = $this->selectedRoute;
-
-        $out->writeln($validatedData['schedule_start_time']);
-        $out->writeln($validatedData['route_id']);
-        $out->writeln($validatedData['status']);
-        $out->writeln($validatedData['trip_type']);
-
+        $validatedData['created_by'] = auth()->user()->id;
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = RouteSchedulerMSTR::create($validatedData);
 
         if($success){
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
             $this->dispatchBrowserEvent('hide-form-add');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
         }
     }
 
+    public function editAdmin(RouteSchedulerMSTR $schedule)
+    {
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
+
+        $companyId = $schedule->Route->company_id;
+        $this->selectedEditCompany =  $companyId;
+        $this->editedCompanies = Company::orderBy('company_name')->get();
+        $this->editedRoutes = Route::where('company_id', $this->selectedEditCompany)->orderBy('route_name')->get();
+        $this->editedBuses = Bus::where('company_id', $this->selectedEditCompany)->orderBy('bus_registration_number')->get();
+        $this->editSchedules = $schedule;
+        $this->state = $schedule->toArray();
+        $this->showEditModal = true;
+        $this->dispatchBrowserEvent('show-form-admin');
+    }
+
     public function edit(RouteSchedulerMSTR $schedule){
-        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
 
         $companyId = $schedule->Route->company_id;
         $this->selectedEditCompany =  $companyId;
@@ -146,7 +157,7 @@ class ManageRouteScheduler extends Component
         $this->dispatchBrowserEvent('show-form');
     }
 
-    public function updateRouteSchedule()
+    public function updateRouteScheduleAdmin()
     {
         $out = new ConsoleOutput();
         $out->writeln("YOU ARE IN HERE");
@@ -161,15 +172,32 @@ class ManageRouteScheduler extends Component
             'status'=> ['required', 'int'],
         ])->validate();
 
-        $out->writeln($validatedData['schedule_start_time']);
-        $out->writeln($validatedData['route_id']);
-        $out->writeln($validatedData['status']);
-        $out->writeln($validatedData['trip_type']);
-
+        $validatedData['updated_by'] = auth()->user()->id;
         $success = $this->editSchedules->update($validatedData);
 
         if($success){
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
+            $this->dispatchBrowserEvent('hide-form-edit-admin');
+        }else{
+            $this->dispatchBrowserEvent('hide-form-failed-admin');
+        }
+    }
+
+    public function updateRouteSchedule()
+    {
+        $out = new ConsoleOutput();
+        $out->writeln("YOU ARE IN HERE");
+
+        $validatedData = Validator::make($this->state, [
+            'schedule_start_time'=> ['required'],
+            'schedule_end_time'=> ['required'],
+        ])->validate();
+
+        $validatedData['updated_by'] = auth()->user()->id;
+        $success = $this->editSchedules->update($validatedData);
+
+        if($success){
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
             $this->dispatchBrowserEvent('hide-form-edit');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -178,7 +206,7 @@ class ManageRouteScheduler extends Component
 
     public function confirmChanges($id, $currStat)
     {
-        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
 
         $this->changedScheduleId = $id;
         $selectedRemoved = RouteSchedulerMSTR::where('id', $this->changedScheduleId)->first();
@@ -190,13 +218,13 @@ class ManageRouteScheduler extends Component
     public function changeStatus()
     {
         if($this->currentStatus==1) {
-            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 2]);
+            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 2, 'updated_by' => auth()->user()->id]);
         }else {
-            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 1]);
+            $updateStatus = RouteSchedulerMSTR::whereId($this->changedScheduleId)->update(['status' => 1, 'updated_by' => auth()->user()->id]);
         }
 
         if ($updateStatus){
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
             $this->dispatchBrowserEvent('hide-status-modal');
         }else{
             $this->dispatchBrowserEvent('hide-form-failed');
@@ -205,7 +233,7 @@ class ManageRouteScheduler extends Component
 
     public function confirmRemoval($id)
     {
-        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+        $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
 
         $this->removedId = $id;
         $selectedRemoved = RouteSchedulerMSTR::where('id', $this->removedId)->first();
@@ -220,7 +248,7 @@ class ManageRouteScheduler extends Component
         $successRemove = $remove->delete();
 
         if($successRemove){
-            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('schedule_start_time')->get();
+            $this->schedules = RouteSchedulerMSTR::where('route_id', $this->selectedRoute)->orderBy('status')->orderBy('schedule_start_time')->get();
             $this->dispatchBrowserEvent('hide-delete-modal');
         }else{
             $this->dispatchBrowserEvent('hide-delete-failed');

@@ -9,7 +9,7 @@ class RouteSchedulerMSTR extends Model
 {
     use HasFactory;
     protected $table = 'route_scheduler_mstr';
-    public $timestamps = false;
+    //public $timestamps = false;
 
     /** trip_type
      * 1 - weekday
@@ -23,6 +23,8 @@ class RouteSchedulerMSTR extends Model
      * 9 - All Day Except Friday & Sunday
      * 10 - All Day (Except Friday and Saturday)
      * 11 - SUNDAY only
+     * 12 - Friday & Saturday
+     * 13 - Friday - Sunday
      * 
      * trip_code
      * 1 - inbound
@@ -45,6 +47,8 @@ class RouteSchedulerMSTR extends Model
         'trip_type',
         'trip_code',
         'bus_id',
+        'created_by',
+        'updated_by'
     ];
 
     function Route() {
@@ -53,5 +57,11 @@ class RouteSchedulerMSTR extends Model
 
     function Bus() {
         return $this->belongsTo(Bus::class, 'bus_id', 'id');
+    }
+    function UpdatedBy() {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
+    function CreatedBy() {
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 }
